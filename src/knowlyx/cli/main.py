@@ -258,6 +258,306 @@ def assets(
 
 
 @app.command()
+def memory(
+    action: str = typer.Argument(..., help="list | recall | decide | forget"),
+    query: str = typer.Argument("", help="Search query or entry ID"),
+    domain: str = typer.Option("", "--domain", "-d"),
+    title: str = typer.Option("", "--title"),
+    body: str = typer.Option("", "--body"),
+    repo_path: str = typer.Option(".", "--repo", "-r"),
+):
+    """
+    Manage Knowlyx memory.
+
+    \b
+    knowlyx memory list                        # list all entries
+    knowlyx memory recall "payment idempotency"
+    knowlyx memory decide payment "Use Redis queue" --body "All async jobs via BullMQ"
+    knowlyx memory forget <entry-id>
+    """
+    from knowlyx.memory.schema import MemoryEntry, MemoryKind
+    from knowlyx.memory.store import create_store
+    store = create_store(repo_path)
+
+    if action == "list":
+        entries = store.list_by_domain(domain) if domain else store.all()
+        t = Table(title="Memory", show_header=True)
+        t.add_column("ID", style="dim", width=18)
+        t.add_column("Kind", style="cyan")
+        t.add_column("Domain")
+        t.add_column("Title")
+        t.add_column("Approved", justify="center")
+        for e in entries:
+            t.add_row(e.id, e.kind.value, e.domain, e.title, "[green]✓[/green]" if e.approved else "[yellow]pending[/yellow]")
+        console.print(t)
+
+    elif action == "recall":
+        results = store.search(query, domain=domain, limit=10)
+        approved = [r for r in results if r.approved]
+        if not approved:
+            console.print("[yellow]No approved memories found.[/yellow]")
+            return
+        for m in approved:
+            console.print(Panel(m.body, title=f"[bold]{m.title}[/bold] [{m.domain}] [{m.kind.value}]"))
+
+    elif action == "decide":
+        if not query or not body:
+            console.print("[red]Usage: knowlyx memory decide <domain> <title> --body <decision>[/red]")
+            raise typer.Exit(1)
+        entry = MemoryEntry(id="", kind=MemoryKind.TEAM_DECISION, domain=query, title=title or body[:60], body=body, approved=True, approved_by="team", repo_path=repo_path)
+        saved = store.save(entry)
+        console.print(f"[green]Decision saved and approved[/green] — ID: {saved.id}")
+
+    elif action == "forget":
+        if store.delete(query):
+            console.print(f"[green]Deleted[/green] {query}")
+        else:
+            console.print(f"[red]Not found[/red]: {query}")
+
+    else:
+        console.print(f"[red]Unknown action: {action}[/red]. Use: list | recall | decide | forget")
+
+
+@app.command()
+def pack(
+    domain: str = typer.Argument(..., help="Domain name (auth, payment, webhook, order, otp, notification, worker)"),
+):
+    """Show the built-in cognition pack for a domain."""
+    from knowlyx.packs.builtin import get_pack
+    p = get_pack(domain)
+    if not p:
+        console.print(f"[red]No pack for '{domain}'.[/red] Available: auth, otp, payment, webhook, order, notification, worker")
+        raise typer.Exit(1)
+    console.print(Panel(p.description, title=f"[bold cyan]Cognition Pack: {p.domain}[/bold cyan]"))
+    console.print("\n[bold]Business Rules:[/bold]")
+    for r in p.business_rules:
+        console.print(f"  • {r}")
+    console.print("\n[bold]Common Requirements:[/bold]")
+    for r in p.common_requirements:
+        console.print(f"  • {r}")
+    console.print("\n[bold red]Risk Flags:[/bold red]")
+    for r in p.risk_flags:
+        console.print(f"  [red]⚠[/red] {r}")
+    console.print("\n[bold yellow]Forbidden Shortcuts:[/bold yellow]")
+    for r in p.forbidden_shortcuts:
+        console.print(f"  [yellow]✗[/yellow] {r}")
+    if p.questions_to_ask:
+        console.print("\n[bold blue]Questions to clarify:[/bold blue]")
+        for q in p.questions_to_ask:
+            console.print(f"  [blue]?[/blue] {q}")
+
+
+@app.command()
+def workspace(
+    action: str = typer.Argument(..., help="init | scan | impact | graph"),
+    target: str = typer.Argument("", help="Repo name (for impact) or format (for graph)"),
+    change: str = typer.Option("", "--change", "-c", help="Change description (for impact)"),
+    workspace_path: str = typer.Option(".", "--workspace", "-w"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """
+    Multi-repo workspace commands.
+
+    \b
+    knowlyx workspace init                        # create knowlyx.toml
+    knowlyx workspace scan                        # scan all repos
+    knowlyx workspace impact payment-service -c "fix payment scan 501"
+    knowlyx workspace graph                       # print mermaid diagram
+    knowlyx workspace graph react_flow --json     # React Flow JSON
+    """
+    from knowlyx.workspace.config_loader import init, load
+    from knowlyx.workspace.multi_scanner import CrossRepoImpactAnalyzer, WorkspaceScanner
+
+    if action == "init":
+        cfg = init(workspace_path)
+        console.print(f"[green]Created[/green] knowlyx.toml for workspace '{cfg.name}'")
+        console.print("Edit knowlyx.toml to add [[repos]] and [[dependencies]] sections.")
+        return
+
+    config = load(workspace_path)
+    if not config.repos and action != "init":
+        console.print("[yellow]No repos in knowlyx.toml. Add [[repos]] entries first.[/yellow]")
+        raise typer.Exit(1)
+
+    if action == "scan":
+        scanner = WorkspaceScanner(config)
+        with console.status("[bold cyan]Scanning workspace…"):
+            ws = scanner.scan()
+        summary = ws.summary()
+        if json_output:
+            print(json.dumps(summary, indent=2))
+            return
+        console.print(Panel(f"Workspace: [bold]{summary['workspace']}[/bold]  Repos: {len(summary['repos'])}", title="[bold green]Workspace Scan[/bold green]"))
+        t = Table(show_header=True)
+        t.add_column("Repo", style="bold")
+        t.add_column("Role", style="cyan")
+        t.add_column("Stack")
+        t.add_column("Domains")
+        t.add_column("Critical", justify="center")
+        for r in summary["repos"]:
+            t.add_row(r["name"], r["role"], f"{r['language']}/{r['framework']}", ", ".join(r["domains"][:4]), "[red]✓[/red]" if r["critical"] else "")
+        console.print(t)
+        if summary.get("errors"):
+            console.print("\n[red]Scan errors:[/red]", summary["errors"])
+
+    elif action == "impact":
+        if not target:
+            console.print("[red]Specify repo name: knowlyx workspace impact <repo-name> --change '...'[/red]")
+            raise typer.Exit(1)
+        scanner = WorkspaceScanner(config)
+        with console.status("[bold cyan]Scanning + analyzing impact…"):
+            ws = scanner.scan()
+            analyzer = CrossRepoImpactAnalyzer(ws, config)
+            result = analyzer.analyze(target, change or "unspecified change")
+        if json_output:
+            print(json.dumps(result, indent=2))
+            return
+        console.print(Panel(f"Changed: [bold]{target}[/bold]  Change: {change}", title="[bold]Cross-Repo Impact[/bold]"))
+        if result.get("critical_repos_affected"):
+            console.print("[bold red]⚠ CRITICAL REPO AFFECTED — human review required[/bold red]")
+        console.print(f"\n[bold]Directly affected:[/bold] {', '.join(result.get('directly_affected_repos', []))}")
+        console.print(f"[bold]All affected:[/bold] {', '.join(result.get('all_affected_repos', []))}")
+        if result.get("per_repo_impact"):
+            t = Table(title="Per-repo impact", show_header=True)
+            t.add_column("Repo", style="bold")
+            t.add_column("Role")
+            t.add_column("Relation")
+            t.add_column("Reason")
+            for r in result["per_repo_impact"]:
+                t.add_row(r["repo"], r["role"], r["relation"], r["reason"][:60])
+            console.print(t)
+
+    elif action == "graph":
+        fmt = target or "mermaid"
+        from knowlyx.graph.exporter import GraphExporter
+        scanner = WorkspaceScanner(config)
+        with console.status("[bold cyan]Scanning workspace…"):
+            ws = scanner.scan()
+        if fmt == "mermaid":
+            mermaid = GraphExporter.workspace_to_mermaid(ws)
+            if json_output:
+                print(mermaid)
+            else:
+                console.print(Panel(mermaid, title="[bold]Mermaid Workspace Graph[/bold]"))
+        elif fmt == "dot":
+            print(GraphExporter.workspace_to_dot(ws))
+        elif fmt == "react_flow":
+            print(json.dumps(GraphExporter.to_workspace_react_flow(ws), indent=2))
+        else:
+            console.print(f"[red]Unknown format '{fmt}'[/red]. Use: mermaid | dot | react_flow")
+    else:
+        console.print(f"[red]Unknown action '{action}'[/red]. Use: init | scan | impact | graph")
+
+
+@app.command()
+def approval(
+    action: str = typer.Argument(..., help="list | approve | reject | show"),
+    request_id: str = typer.Argument("", help="Approval request ID"),
+    reason: str = typer.Option("", "--reason"),
+    repo_path: str = typer.Option(".", "--repo", "-r"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """
+    Manage human approval requests.
+
+    \b
+    knowlyx approval list              # list pending approvals
+    knowlyx approval show <id>         # show details
+    knowlyx approval approve <id>
+    knowlyx approval reject <id> --reason "too risky right now"
+    """
+    from knowlyx.approval.queue import get_queue
+
+    queue = get_queue(repo_path)
+
+    if action == "list":
+        entries = queue.pending()
+        if json_output:
+            print(json.dumps([r.model_dump(mode="json") for r in entries], indent=2, default=str))
+            return
+        if not entries:
+            console.print("[green]No pending approvals.[/green]")
+            return
+        t = Table(title="Pending Approvals", show_header=True)
+        t.add_column("ID", style="dim")
+        t.add_column("Title", style="bold")
+        t.add_column("Domain", style="cyan")
+        t.add_column("Risk")
+        for r in entries:
+            risk_color = {"critical": "red", "high": "yellow", "medium": "blue"}.get(r.risk_level, "white")
+            t.add_row(r.id, r.title, r.domain, f"[{risk_color}]{r.risk_level}[/{risk_color}]")
+        console.print(t)
+
+    elif action == "show":
+        if not request_id:
+            console.print("[red]Provide a request ID.[/red]")
+            raise typer.Exit(1)
+        req = queue.get(request_id)
+        if not req:
+            console.print(f"[red]Not found:[/red] {request_id}")
+            raise typer.Exit(1)
+        console.print(Panel(
+            f"[bold]Title:[/bold] {req.title}\n"
+            f"[bold]Domain:[/bold] {req.domain}  [bold]Risk:[/bold] {req.risk_level}\n"
+            f"[bold]Action:[/bold] {req.requested_action}\n\n"
+            f"{req.description}",
+            title=f"[bold]Approval Request — {req.status.value.upper()}[/bold]",
+        ))
+        if req.impact_summary:
+            console.print("[bold]Impact:[/bold]", *[f"\n  • {i}" for i in req.impact_summary])
+        if req.warnings:
+            console.print("[bold yellow]Warnings:[/bold yellow]", *[f"\n  [yellow]![/yellow] {w}" for w in req.warnings])
+
+    elif action == "approve":
+        if not request_id:
+            console.print("[red]Provide a request ID.[/red]")
+            raise typer.Exit(1)
+        req = queue.approve(request_id)
+        if not req:
+            console.print(f"[red]Not found:[/red] {request_id}")
+            raise typer.Exit(1)
+        console.print(f"[green]Approved[/green] — {req.title}")
+
+    elif action == "reject":
+        if not request_id:
+            console.print("[red]Provide a request ID.[/red]")
+            raise typer.Exit(1)
+        req = queue.reject(request_id, reason)
+        if not req:
+            console.print(f"[red]Not found:[/red] {request_id}")
+            raise typer.Exit(1)
+        console.print(f"[red]Rejected[/red] — {req.title}" + (f" ({reason})" if reason else ""))
+    else:
+        console.print(f"[red]Unknown action '{action}'[/red]. Use: list | show | approve | reject")
+
+
+@app.command()
+def graph(
+    format: str = typer.Argument("mermaid", help="mermaid | dot | react_flow"),
+    repo_path: str = typer.Option(".", "--repo", "-r"),
+):
+    """Export the cognitive graph for a single repo."""
+    from knowlyx.graph.exporter import GraphExporter
+    from knowlyx.scanner.repo_scanner import RepoScanner
+    from knowlyx.graph.cognitive_graph import CognitiveGraph
+
+    scanner = RepoScanner(repo_path)
+    with console.status("[bold cyan]Scanning…"):
+        scan_result = scanner.scan()
+    g = CognitiveGraph()
+    g.build(scan_result)
+
+    if format == "mermaid":
+        console.print(GraphExporter.to_mermaid(g))
+    elif format == "dot":
+        print(GraphExporter.to_dot(g))
+    elif format == "react_flow":
+        print(json.dumps(GraphExporter.to_react_flow(g), indent=2))
+    else:
+        console.print(f"[red]Unknown format '{format}'[/red]. Use: mermaid | dot | react_flow")
+
+
+@app.command()
 def mcp_server(
     repo_path: str = typer.Option(".", "--repo", "-r", help="Default repo path for MCP tools"),
     sse: bool = typer.Option(False, "--sse", help="Run as SSE server instead of stdio"),
