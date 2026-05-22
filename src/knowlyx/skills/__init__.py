@@ -1,5 +1,15 @@
-"""User-authored skills — Markdown knowledge files in workspace/skills/."""
+"""User-authored skills — Markdown knowledge files in workspace/skills/.
 
-from knowlyx.skills.loader import Skill, load_workspace_skills, read_skill
+Built-in default skills (auth, payment, webhook, order, etc.) are merged in
+automatically so even a fresh workspace gets sensible domain guidance. Teams
+override any built-in by creating `skills/<same-name>.md` with their own.
+"""
 
-__all__ = ["Skill", "load_workspace_skills", "read_skill"]
+from knowlyx.skills.loader import (
+    Skill,
+    load_builtin_skills,
+    load_workspace_skills,
+    read_skill,
+)
+
+__all__ = ["Skill", "load_builtin_skills", "load_workspace_skills", "read_skill"]

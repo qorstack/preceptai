@@ -1,11 +1,19 @@
 """
 Approval queue — structured human-in-the-loop workflow.
 
-AI submits an ApprovalRequest before proceeding on HIGH/CRITICAL risk actions.
-Human reviews and calls approve() or reject().
-AI polls or is notified of the outcome.
+Layout (conflict-free, file-per-request):
 
-Stored in .knowlyx/approvals.json (same pattern as memory store).
+    <store_dir>/<id>.json
+
+Two devs submitting approvals concurrently create different files → zero git
+merge conflicts. Updating a request (approve/reject) touches only its own
+file.
+
+Legacy `approvals.json` (single file with `{id: req}` dict) is auto-migrated
+on first init. The old file is renamed to `approvals.json.migrated`.
+
+Fail-safe rule: once an approval is REJECTED, it stays REJECTED even if
+someone later tries to approve it (security default).
 """
 
 from __future__ import annotations
@@ -17,6 +25,8 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+from knowlyx.storage import atomic_write_text, file_lock
 
 
 class ApprovalStatus(str, Enum):
@@ -44,26 +54,76 @@ class ApprovalRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+def _safe_filename(s: str) -> str:
+    return "".join(c if c.isalnum() or c in "-_" else "_" for c in s)
+
+
 class ApprovalQueue:
-    """
-    Concurrent-safe approval queue. Each mutation does atomic R-M-W
-    under a file lock so two processes can't lose updates.
+    """Directory of per-request JSON files. Conflict-free across devs."""
 
-    Fail-safe rule: once an approval is REJECTED, it stays REJECTED
-    even if someone later tries to approve it (security default).
-    """
+    def __init__(self, store_dir: str | Path) -> None:
+        p = Path(store_dir)
+        if p.suffix == ".json":
+            p = p.parent / p.stem  # approvals.json → approvals
+        self.dir = p
+        self.dir.mkdir(parents=True, exist_ok=True)
+        self._migrate_legacy_json()
 
-    def __init__(self, store_path: str | Path = ".knowlyx/approvals.json") -> None:
-        self.path = Path(store_path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+    # ------------------------------------------------------------------
+    # Legacy migration
+    # ------------------------------------------------------------------
 
-    def _read(self) -> dict:
-        if not self.path.exists():
-            return {}
+    def _migrate_legacy_json(self) -> None:
+        legacy = self.dir.parent / f"{self.dir.name}.json"
+        if not legacy.exists():
+            return
         try:
-            return json.loads(self.path.read_text(encoding="utf-8"))
+            data = json.loads(legacy.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
-            return {}
+            return
+        if isinstance(data, dict):
+            for req_id, raw in data.items():
+                if isinstance(raw, dict):
+                    self._write_request(str(req_id), raw)
+        try:
+            legacy.rename(legacy.with_suffix(legacy.suffix + ".migrated"))
+        except OSError:
+            pass
+
+    # ------------------------------------------------------------------
+    # Disk I/O
+    # ------------------------------------------------------------------
+
+    def _request_file(self, request_id: str) -> Path:
+        return self.dir / f"{_safe_filename(request_id)}.json"
+
+    def _write_request(self, request_id: str, payload: dict) -> None:
+        path = self._request_file(request_id)
+        with file_lock(path):
+            atomic_write_text(path, json.dumps(payload, indent=2, ensure_ascii=False, default=str))
+
+    def _read_request(self, request_id: str) -> dict | None:
+        path = self._request_file(request_id)
+        if not path.exists():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else None
+        except (json.JSONDecodeError, OSError):
+            return None
+
+    def _load_all(self) -> list[dict]:
+        if not self.dir.exists():
+            return []
+        out: list[dict] = []
+        for p in self.dir.glob("*.json"):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    out.append(data)
+            except (json.JSONDecodeError, OSError):
+                continue
+        return out
 
     @staticmethod
     def _new_id() -> str:
@@ -72,87 +132,62 @@ class ApprovalQueue:
         return hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest()[:12]
 
     # ------------------------------------------------------------------
-    # Write — all use atomic R-M-W
+    # Writes — each touches a single file under its own lock
     # ------------------------------------------------------------------
 
     def submit(self, request: ApprovalRequest) -> ApprovalRequest:
-        """Submit a new approval request. Returns the saved request with ID."""
-        from knowlyx.storage import read_modify_write
         if not request.id:
             request.id = self._new_id()
-        payload = request.model_dump(mode="json")
-
-        def mutate(current: dict) -> dict:
-            current[request.id] = payload
-            return current
-
-        read_modify_write(self.path, mutate, default={})
+        self._write_request(request.id, request.model_dump(mode="json"))
         return request
 
     def approve(self, request_id: str, reviewed_by: str = "human") -> ApprovalRequest | None:
-        """
-        Approve — but a previously REJECTED request stays rejected (fail-safe).
-        Returns the final state of the request.
-        """
-        from knowlyx.storage import read_modify_write
-        captured: dict[str, ApprovalRequest | None] = {"req": None}
-
-        def mutate(current: dict) -> dict:
-            raw = current.get(request_id)
+        """Approve — but a previously REJECTED request stays rejected (fail-safe)."""
+        path = self._request_file(request_id)
+        with file_lock(path):
+            raw = self._read_request(request_id)
             if not raw:
-                return current
+                return None
             existing = ApprovalRequest(**raw)
             if existing.status == ApprovalStatus.REJECTED:
-                # fail-safe: do not flip a reject into approve
-                captured["req"] = existing
-                return current
+                return existing  # fail-safe: do not flip
             existing.status = ApprovalStatus.APPROVED
             existing.reviewed_by = reviewed_by
             existing.reviewed_at = datetime.now(timezone.utc).replace(tzinfo=None)
-            current[request_id] = existing.model_dump(mode="json")
-            captured["req"] = existing
-            return current
-
-        read_modify_write(self.path, mutate, default={})
-        return captured["req"]
+            atomic_write_text(path, json.dumps(existing.model_dump(mode="json"), indent=2, ensure_ascii=False, default=str))
+            return existing
 
     def reject(self, request_id: str, reason: str = "", reviewed_by: str = "human") -> ApprovalRequest | None:
         """Reject — wins over a prior approve (security fail-safe)."""
-        from knowlyx.storage import read_modify_write
-        captured: dict[str, ApprovalRequest | None] = {"req": None}
-
-        def mutate(current: dict) -> dict:
-            raw = current.get(request_id)
+        path = self._request_file(request_id)
+        with file_lock(path):
+            raw = self._read_request(request_id)
             if not raw:
-                return current
+                return None
             existing = ApprovalRequest(**raw)
             existing.status = ApprovalStatus.REJECTED
             existing.reviewed_by = reviewed_by
             existing.rejection_reason = reason or existing.rejection_reason
             existing.reviewed_at = datetime.now(timezone.utc).replace(tzinfo=None)
-            current[request_id] = existing.model_dump(mode="json")
-            captured["req"] = existing
-            return current
-
-        read_modify_write(self.path, mutate, default={})
-        return captured["req"]
+            atomic_write_text(path, json.dumps(existing.model_dump(mode="json"), indent=2, ensure_ascii=False, default=str))
+            return existing
 
     # ------------------------------------------------------------------
-    # Read
+    # Reads
     # ------------------------------------------------------------------
 
     def get(self, request_id: str) -> ApprovalRequest | None:
-        raw = self._read().get(request_id)
+        raw = self._read_request(request_id)
         return ApprovalRequest(**raw) if raw else None
 
     def pending(self) -> list[ApprovalRequest]:
-        return [ApprovalRequest(**r) for r in self._read().values() if r.get("status") == "pending"]
+        return [ApprovalRequest(**r) for r in self._load_all() if r.get("status") == "pending"]
 
     def all(self) -> list[ApprovalRequest]:
-        return [ApprovalRequest(**r) for r in self._read().values()]
+        return [ApprovalRequest(**r) for r in self._load_all()]
 
     def for_repo(self, repo_path: str) -> list[ApprovalRequest]:
-        return [ApprovalRequest(**r) for r in self._read().values() if r.get("repo_path") == repo_path]
+        return [ApprovalRequest(**r) for r in self._load_all() if r.get("repo_path") == repo_path]
 
     def status_of(self, request_id: str) -> ApprovalStatus | None:
         req = self.get(request_id)
@@ -161,12 +196,11 @@ class ApprovalQueue:
 
 def get_queue(repo_path: str = ".") -> ApprovalQueue:
     """
-    Resolve approval queue path.
+    Resolve approval queue dir.
 
     If repo (or ancestor) has .knowlyx/config.toml, use the central
-    workspace queue at ~/.knowlyx/workspaces/<name>/approvals.json
-    — shared across all repos in the same workspace.
-    Otherwise fall back to legacy per-repo .knowlyx/approvals.json.
+    workspace queue at <workspace>/approvals/ — shared across all repos.
+    Otherwise fall back to legacy per-repo .knowlyx/approvals/.
     """
     from knowlyx.link.resolver import resolve_workspace_or_legacy
 

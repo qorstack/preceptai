@@ -85,11 +85,13 @@ def ensure_workspace_dir(name: str, at: str | Path | None = None) -> Path:
 
 
 def workspace_memory_path(name: str) -> Path:
-    return workspace_dir(name) / "memory.json"
+    """Directory holding per-entry memory files (conflict-free storage)."""
+    return workspace_dir(name) / "memory"
 
 
 def workspace_approvals_path(name: str) -> Path:
-    return workspace_dir(name) / "approvals.json"
+    """Directory holding per-request approval files (conflict-free storage)."""
+    return workspace_dir(name) / "approvals"
 
 
 def workspace_toml_path(name: str) -> Path:

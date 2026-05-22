@@ -1276,6 +1276,173 @@ def _infer_role(framework: str, language: str) -> str:
 
 
 @app.command()
+def doctor(
+    repo_path: str = typer.Option(".", "--repo", "-r"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """
+    Diagnose your Knowlyx setup — does each piece work end-to-end?
+
+    Checks (in order):
+
+    \b
+    1. Is this folder a Knowlyx workspace home, a linked working repo, or neither?
+    2. Does the registry point at a real workspace path?
+    3. Is the MCP server reachable via `claude mcp list`? (skipped if `claude` not installed)
+    4. How many skills / memory entries are visible to AI?
+    5. Are there pending approvals waiting on a human?
+    6. Is the last cognition stamp recent enough for commit-check?
+    """
+    import subprocess
+    from datetime import datetime, timedelta, timezone
+
+    target = Path(repo_path).resolve()
+    results: list[dict[str, str]] = []
+
+    def add(name: str, status: str, detail: str, fix: str = "") -> None:
+        results.append({"check": name, "status": status, "detail": detail, "fix": fix})
+
+    # 1. Mode detection
+    has_workspace_toml = (target / "workspace.toml").exists()
+    has_link = (target / ".knowlyx" / "config.toml").exists()
+    sibling = _find_knowledge_sibling(target)
+
+    if has_workspace_toml:
+        add("mode", "ok", "Knowledge home (workspace.toml present in this folder)")
+    elif has_link:
+        from knowlyx.link.config import load_link
+        link = load_link(target)
+        ws_name = link.workspace if link else "?"
+        add("mode", "ok", f"Linked working repo → workspace '{ws_name}'")
+    elif sibling is not None:
+        add("mode", "warn", f"Unlinked but sibling knowledge repo detected: {sibling.name}",
+            "Run `knowlyx init` to auto-link.")
+    else:
+        add("mode", "fail", "Not a Knowlyx folder — no workspace.toml here, no link config, no knowledge sibling",
+            "Run `knowlyx init` in a knowledge repo first, then in each working repo.")
+
+    # 2. Workspace resolution + registry health
+    from knowlyx.link.resolver import resolve_workspace
+    from knowlyx.registry import get_path as get_registered_path
+    res = resolve_workspace(target)
+    if res is not None:
+        ws_name = res.workspace_name
+        registered = get_registered_path(ws_name)
+        actual_dir = res.workspace_dir
+        if not actual_dir.exists() or not (actual_dir / "workspace.toml").exists():
+            add("workspace_dir", "fail",
+                f"Workspace '{ws_name}' resolves to {actual_dir} but no workspace.toml there",
+                "Clone the team's knowledge repo, then `knowlyx init` again.")
+        elif registered and registered != actual_dir:
+            add("workspace_dir", "warn",
+                f"Registry → {registered}\n     Resolved → {actual_dir} (mismatch)",
+                "Re-run `knowlyx init` in the knowledge repo to refresh the registry.")
+        else:
+            add("workspace_dir", "ok", f"Workspace '{ws_name}' at {actual_dir}")
+    elif has_workspace_toml:
+        # Knowledge mode but no link — check own workspace
+        add("workspace_dir", "ok", f"Workspace home at {target}")
+
+    # 3. MCP integration (best-effort, skipped if `claude` not on PATH)
+    try:
+        proc = subprocess.run(
+            ["claude", "mcp", "list"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        if proc.returncode == 0 and "knowlyx" in proc.stdout.lower():
+            add("mcp", "ok", "knowlyx registered with Claude Code (`claude mcp list`)")
+        elif proc.returncode == 0:
+            add("mcp", "warn", "Claude Code MCP list does not include knowlyx",
+                "Run: claude mcp add knowlyx -- uvx knowlyx mcp --repo .")
+        else:
+            add("mcp", "warn", "`claude mcp list` returned non-zero",
+                "Check that Claude Code CLI is installed and authenticated.")
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        add("mcp", "skip", "`claude` CLI not on PATH — skipping MCP check")
+
+    # 4. Content visibility (skills + memory entries)
+    if res is not None or has_workspace_toml:
+        from knowlyx.skills import load_workspace_skills
+        ws_name = res.workspace_name if res else _derive_workspace_name(target.name)
+        try:
+            skills = load_workspace_skills(ws_name)
+            add("skills", "ok" if skills else "warn",
+                f"{len(skills)} skill(s) available" if skills else "No skills authored yet",
+                "" if skills else "Drop a `skills/<name>.md` file. See `skills/README.md` for format.")
+        except Exception as e:
+            add("skills", "warn", f"Could not load skills: {e}")
+
+        try:
+            from knowlyx.memory.store import create_store
+            store = create_store(str(target))
+            entries = store.all()
+            approved = [e for e in entries if e.approved]
+            add("memory", "ok",
+                f"{len(approved)}/{len(entries)} approved memory entries")
+        except Exception as e:
+            add("memory", "warn", f"Could not read memory store: {e}")
+
+    # 5. Pending approvals
+    try:
+        from knowlyx.approval.queue import get_queue
+        queue = get_queue(str(target))
+        pend = queue.pending()
+        if pend:
+            add("approvals", "warn",
+                f"{len(pend)} pending approval(s) — AI may be blocked",
+                f"Review: knowlyx approval list")
+        else:
+            add("approvals", "ok", "No pending approvals")
+    except Exception:
+        pass
+
+    # 6. Cognition stamp freshness
+    stamp = target / ".knowlyx" / "last_cognition.json"
+    if stamp.exists():
+        try:
+            data = json.loads(stamp.read_text(encoding="utf-8"))
+            ts = data.get("timestamp", "")
+            when = datetime.fromisoformat(ts.replace("Z", ""))
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            age_min = int((now - when).total_seconds() / 60)
+            if age_min < 60:
+                add("cognition", "ok", f"Last analyze_intent {age_min} min ago — fresh")
+            else:
+                add("cognition", "warn", f"Last analyze_intent {age_min} min ago — stale",
+                    "Ask Claude to re-run analyze_intent before committing.")
+        except Exception:
+            add("cognition", "warn", "Could not parse cognition stamp")
+    else:
+        add("cognition", "skip", "No analyze_intent run yet in this repo")
+
+    # ----------------- render -----------------
+    if json_output:
+        print(json.dumps({"target": str(target), "results": results}, indent=2, ensure_ascii=False))
+        return
+
+    icon = {"ok": "[green]+[/green]", "warn": "[yellow]![/yellow]",
+            "fail": "[red]x[/red]", "skip": "[dim]-[/dim]"}
+    t = Table(title=f"Knowlyx doctor — {target.name}", show_header=True)
+    t.add_column("", width=2)
+    t.add_column("Check", style="bold")
+    t.add_column("Detail")
+    t.add_column("Fix", style="dim")
+    for r in results:
+        t.add_row(icon.get(r["status"], "?"), r["check"], r["detail"], r["fix"])
+    console.print(t)
+
+    fail_count = sum(1 for r in results if r["status"] == "fail")
+    warn_count = sum(1 for r in results if r["status"] == "warn")
+    if fail_count:
+        console.print(f"\n[red]{fail_count} blocker(s).[/red] Fix these before relying on Knowlyx.")
+        raise typer.Exit(1)
+    if warn_count:
+        console.print(f"\n[yellow]{warn_count} warning(s).[/yellow] Setup works but is not optimal.")
+    else:
+        console.print("\n[green]All checks passed.[/green]")
+
+
+@app.command()
 def audit(
     action: str = typer.Argument("show", help="show | clear | path"),
     repo_path: str = typer.Option(".", "--repo", "-r"),

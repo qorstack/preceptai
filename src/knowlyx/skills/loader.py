@@ -94,18 +94,76 @@ def _skill_from_file(path: Path) -> Skill | None:
 
 
 def load_workspace_skills(workspace_name: str) -> list[Skill]:
-    """Return every skill file in `<workspace>/skills/`. Empty list if none."""
+    """
+    Return every skill visible to AI for this workspace.
+
+    Merge order:
+    1. Built-in skills (auth, billing/payment, otp, webhook, order, etc.)
+       — ship with knowlyx as sensible defaults derived from cognition packs.
+    2. Workspace skills (`<workspace>/skills/*.md`) — team-authored.
+
+    Workspace skills override built-ins of the same `name`. So a team can
+    customize the default `billing` skill by writing `skills/billing.md`
+    in their workspace.
+    """
+    by_name: dict[str, Skill] = {s.name: s for s in load_builtin_skills()}
+
     skills_dir = workspace_skills_dir(workspace_name)
-    if not skills_dir.exists():
+    if skills_dir.exists():
+        for path in sorted(skills_dir.glob("*.md")):
+            if path.name.lower() == "readme.md":
+                continue
+            s = _skill_from_file(path)
+            if s is not None:
+                by_name[s.name] = s  # workspace overrides builtin
+
+    return sorted(by_name.values(), key=lambda s: s.name)
+
+
+def load_builtin_skills() -> list[Skill]:
+    """
+    Skills shipped with knowlyx — derived from BUILTIN_PACKS at runtime
+    so we have one source of truth for default domain knowledge.
+
+    Users can override any of these by writing `skills/<same-name>.md` in
+    their workspace.
+    """
+    try:
+        from knowlyx.packs.builtin import BUILTIN_PACKS
+    except Exception:
         return []
-    skills: list[Skill] = []
-    for path in sorted(skills_dir.glob("*.md")):
-        if path.name.lower() == "readme.md":
-            continue
-        s = _skill_from_file(path)
-        if s is not None:
-            skills.append(s)
-    return skills
+    return [_skill_from_pack(domain, pack) for domain, pack in BUILTIN_PACKS.items()]
+
+
+def _skill_from_pack(domain: str, pack) -> Skill:
+    """Render a CognitionPack as a markdown-style Skill (built-in default)."""
+    body_lines: list[str] = [f"# {domain.capitalize()} — built-in guidance", ""]
+    if pack.description:
+        body_lines.extend([pack.description, ""])
+
+    def section(title: str, items: list[str]) -> None:
+        if not items:
+            return
+        body_lines.append(f"## {title}")
+        body_lines.extend(f"- {item}" for item in items)
+        body_lines.append("")
+
+    section("Business rules", pack.business_rules)
+    section("Common requirements", pack.common_requirements)
+    section("Risk flags", pack.risk_flags)
+    section("Required workflow", pack.required_workflow)
+    section("Forbidden shortcuts", pack.forbidden_shortcuts)
+    section("Questions to ask", pack.questions_to_ask)
+    if pack.related_domains:
+        section("Related domains", pack.related_domains)
+
+    return Skill(
+        name=domain,
+        description=f"Built-in: {pack.description or domain + ' domain guidance'}",
+        tags=[domain, "builtin", *pack.related_domains],
+        body="\n".join(body_lines).strip(),
+        source_path=f"<builtin:{domain}>",
+    )
 
 
 def read_skill(workspace_name: str, name: str) -> Skill | None:

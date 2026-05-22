@@ -80,23 +80,49 @@ def _workspace_name_for(repo_path: str) -> str | None:
         return None
 
 
-def _available_skills_summary(repo_path: str) -> list[dict[str, Any]]:
-    """Return [{name, description, tags}] for every skill in the workspace.
+def _available_skills_summary(
+    repo_path: str,
+    domains: list[str] | None = None,
+    max_results: int = 15,
+) -> list[dict[str, Any]]:
+    """Return [{name, description, tags}] of skills relevant to the current task.
 
-    These are the team's authored knowledge files. analyze_intent surfaces
-    them as a menu — Claude scans descriptions and calls read_skill() on the
-    ones that sound relevant to the current task.
+    Filtering keeps the analyze_intent payload small on large projects:
+
+    - If `domains` is provided, only skills whose name/description/tags match
+      one of the domain keywords are surfaced.
+    - If the filter excludes everything (no match found), we fall back to the
+      full list — better to be slightly noisy than hide everything.
+    - Result is capped at `max_results` so even an aggressive matcher can't
+      explode context size.
+
+    Claude still scans these descriptions and decides which to `read_skill()`.
     """
     ws_name = _workspace_name_for(repo_path)
     if not ws_name:
         return []
     try:
-        return [
-            {"name": s.name, "description": s.description, "tags": s.tags}
-            for s in load_workspace_skills(ws_name)
-        ]
+        skills = load_workspace_skills(ws_name)
     except Exception:
         return []
+    if not skills:
+        return []
+
+    keywords = {d.lower() for d in (domains or []) if d}
+    if keywords:
+        filtered = []
+        for s in skills:
+            haystack = (s.name + " " + s.description + " " + " ".join(s.tags)).lower()
+            if any(k in haystack for k in keywords):
+                filtered.append(s)
+        chosen = filtered if filtered else skills
+    else:
+        chosen = skills
+
+    return [
+        {"name": s.name, "description": s.description, "tags": s.tags}
+        for s in chosen[:max_results]
+    ]
 
 
 # ==================================================================
@@ -167,7 +193,7 @@ def analyze_intent(request: str, repo_path: str = ".") -> str:
             for m in memories
             if m.approved  # only surface human-approved memories
         ],
-        "available_skills": _available_skills_summary(repo_path),
+        "available_skills": _available_skills_summary(repo_path, domains=all_domains),
         "suggested_plan": report.suggested_plan,
         "architecture": scan.architecture.value,
         "language": scan.language,
