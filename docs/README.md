@@ -27,6 +27,7 @@
 13. [13_IMPLEMENTATION_GUIDE.md](13_IMPLEMENTATION_GUIDE.md) — step-by-step ต่อจากนี้
 14. [14_USAGE_EXAMPLES.md](14_USAGE_EXAMPLES.md) — ตัวอย่างใช้งานจริง 7 scenarios
 15. [15_DISTRIBUTED_KNOWLEDGE.md](15_DISTRIBUTED_KNOWLEDGE.md) — central workspace + per-repo link (Phase 4.A ✅)
+16. [16_GIT_SYNC_SETUP.md](16_GIT_SYNC_SETUP.md) — step-by-step sync workspace ผ่าน GitHub/GitLab
 
 ## สถานะปัจจุบัน (2026-05-22)
 
