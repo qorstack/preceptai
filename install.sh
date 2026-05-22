@@ -34,7 +34,7 @@ fi
 
 # 2. Install knowlyx as a tool
 echo "→ Installing knowlyx"
-uv tool install knowlyx --upgrade
+uv tool install git+https://github.com/SatangBudsai/knowlyx.git --upgrade
 
 # 3. Smoke test
 knowlyx --version

@@ -22,7 +22,7 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 
 # 2. Install knowlyx
 Write-Host "-> Installing knowlyx" -ForegroundColor Yellow
-uv tool install knowlyx --upgrade
+uv tool install git+https://github.com/SatangBudsai/knowlyx.git --upgrade
 
 # 3. Smoke test
 knowlyx --version
