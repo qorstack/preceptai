@@ -18,6 +18,27 @@ app = typer.Typer(
 console = Console()
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        from knowlyx import __version__
+        console.print(f"knowlyx {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-V",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show version and exit.",
+    ),
+) -> None:
+    """Cognitive enforcement layer for AI software development."""
+
+
 def _load_engine(repo_path: str):
     from knowlyx.graph.cognitive_graph import CognitiveGraph
     from knowlyx.reasoning.engine import ReasoningEngine

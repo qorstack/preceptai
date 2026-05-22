@@ -65,7 +65,7 @@ class AssetDetector:
                     name=f.stem,
                     asset_type="hook",
                     path=str(f.relative_to(self.root)),
-                    description=f"Custom React hook",
+                    description="Custom React hook",
                     tags=self._infer_tags(f.stem),
                 ))
 
@@ -98,7 +98,7 @@ class AssetDetector:
                         name=f.stem,
                         asset_type="util",
                         path=str(f.relative_to(self.root)),
-                        description=f"Utility module",
+                        description="Utility module",
                         tags=self._infer_tags(f.stem),
                     ))
         return assets

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-from knowlyx.workspace.schema import RepoDependency, RepoConfig, RepoRole, WorkspaceConfig
+from knowlyx.workspace.schema import RepoConfig, RepoDependency, RepoRole, WorkspaceConfig
 
 _DEFAULT_FILENAME = "knowlyx.toml"
 
@@ -200,7 +199,6 @@ def _simple_toml_parse(text: str) -> dict:
     """Minimal TOML parser fallback (handles only flat keys and [[array]])."""
     result: dict = {"repos": [], "dependencies": []}
     current_section: dict | None = None
-    current_list_key: str | None = None
 
     for line in text.splitlines():
         line = line.strip()
@@ -208,12 +206,10 @@ def _simple_toml_parse(text: str) -> dict:
             continue
         if line.startswith("[["):
             key = line.strip("[]").strip()
-            current_list_key = key
             current_section = {}
             result.setdefault(key, []).append(current_section)
         elif line.startswith("["):
             current_section = None
-            current_list_key = None
         elif "=" in line:
             k, _, v = line.partition("=")
             k = k.strip()
