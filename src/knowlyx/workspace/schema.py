@@ -28,7 +28,10 @@ class RepoDependency(BaseModel):
 
 class RepoConfig(BaseModel):
     name: str
-    path: str
+    path: str = ""
+    """Local filesystem path (varies per dev — optional, can be overridden locally)."""
+    git_url: str = ""
+    """Canonical git remote URL — the portable cross-machine identifier."""
     role: RepoRole = RepoRole.UNKNOWN
     domains: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)

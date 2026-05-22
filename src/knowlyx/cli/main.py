@@ -787,32 +787,60 @@ def init(
     if link_to:
         from knowlyx.link.config import LinkConfig, save_link
         from knowlyx.paths import workspace_dir, workspace_toml_path
+        from knowlyx.workspace.config_loader import register_repo_in_workspace
+        from knowlyx.workspace.schema import RepoConfig, RepoRole
+
         ws_exists_locally = workspace_toml_path(link_to).exists()
         if not ws_exists_locally and not remote:
             console.print(f"[red]Workspace '{link_to}' not found locally and no --remote provided.[/red]")
             console.print(f"Either: [cyan]knowlyx workspace create {link_to}[/cyan]")
             console.print(f"Or:     [cyan]knowlyx init --link {link_to} --remote <git-url>[/cyan]")
             raise typer.Exit(1)
-        # auto-detect role + domains
+
+        # auto-detect role + domains + git_url
         with console.status("[bold cyan]Auto-detecting role + domains…"):
             scan = RepoScanner(target).scan()
-        role = _infer_role(scan.framework, scan.language)
+        inferred_role = _infer_role(scan.framework, scan.language)
+        inferred_domains = scan.domains[:6]
+        repo_git_url = _detect_git_remote(target)
+
+        # Write MINIMAL link config — only what travels with the repo.
+        # Knowlyx re-infers role+domains via scanner at analysis time, so we
+        # don't burden the dev with manual data entry here.
         save_link(LinkConfig(
             workspace=link_to,
-            repo_name=target.name,
-            role=role,
-            domains=scan.domains[:6],
             knowledge_remote=remote,
         ), target)
         console.print(f"[green]Linked[/green] {target.name} → {link_to}")
-        console.print(f"  Role: {role}, Domains: {', '.join(scan.domains[:6]) or '(none)'}")
+        console.print(f"  Detected role: [cyan]{inferred_role}[/cyan]  Domains: {', '.join(inferred_domains) or '(none)'}")
+        console.print("  Wrote: [cyan].knowlyx/config.toml[/cyan]  (just 2 lines — workspace + remote)")
+        if repo_git_url:
+            console.print(f"  Repo git URL: {repo_git_url}")
         if remote:
             console.print(f"  Knowledge remote: {remote}")
-        console.print("  Commit [cyan].knowlyx/config.toml[/cyan] to git so teammates get linked automatically.")
+
+        # Auto-register this repo into the workspace.toml of the local knowledge clone
+        if ws_exists_locally:
+            changed, written = register_repo_in_workspace(
+                link_to,
+                RepoConfig(
+                    name=target.name,
+                    git_url=repo_git_url,
+                    role=RepoRole(inferred_role) if inferred_role in [r.value for r in RepoRole] else RepoRole.UNKNOWN,
+                    domains=inferred_domains,
+                ),
+            )
+            if written and changed:
+                console.print(f"\n[green]✓[/green] Auto-registered in workspace.toml: {written}")
+                console.print("  [dim]Commit + push the knowledge repo to share this topology with the team.[/dim]")
+            elif written:
+                console.print(f"\n[dim]Repo already registered in {written}, no change.[/dim]")
+
         if not ws_exists_locally and remote:
             console.print(
                 f"\n[yellow]⚠ Shared knowledge not on this machine yet.[/yellow]\n"
-                f"  Run:  [cyan]git clone {remote} {workspace_dir(link_to)}[/cyan]"
+                f"  Run:  [cyan]git clone {remote} {workspace_dir(link_to)}[/cyan]\n"
+                f"  Then re-run [cyan]knowlyx init --link {link_to}[/cyan] to auto-register."
             )
         return
 
@@ -843,6 +871,24 @@ def init(
     console.print(f"     [cyan]{suggested_link}[/cyan]\n")
     console.print("  3. Add MCP server to .claude/settings.json:")
     console.print('     [dim]{"mcpServers": {"knowlyx": {"command": "uvx", "args": ["knowlyx", "mcp", "--repo", "."]}}}[/dim]')
+
+
+def _detect_git_remote(repo_path: Path) -> str:
+    """Best-effort: read `git remote get-url origin` from the repo. Empty on failure."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return ""
 
 
 def _infer_role(framework: str, language: str) -> str:

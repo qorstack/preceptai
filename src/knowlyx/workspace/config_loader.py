@@ -74,6 +74,48 @@ def init(workspace_path: str | Path = ".", name: str = "") -> WorkspaceConfig:
     return config
 
 
+def register_repo_in_workspace(
+    workspace_name: str,
+    repo: RepoConfig,
+) -> tuple[bool, Path | None]:
+    """
+    Auto-add or update a repo entry in `~/.knowlyx/workspaces/<name>/workspace.toml`.
+
+    Returns (changed, written_path). `written_path` is None if the workspace
+    folder doesn't exist locally (caller should print the clone hint).
+    """
+    from knowlyx.paths import workspace_dir, workspace_toml_path
+
+    toml_path = workspace_toml_path(workspace_name)
+    if not toml_path.exists():
+        return False, None
+
+    ws_dir = workspace_dir(workspace_name)
+    config = load(ws_dir)
+
+    existing_idx = next((i for i, r in enumerate(config.repos) if r.name == repo.name), None)
+    if existing_idx is not None:
+        existing = config.repos[existing_idx]
+        merged = RepoConfig(
+            name=repo.name,
+            path=existing.path,
+            git_url=repo.git_url or existing.git_url,
+            role=repo.role if repo.role != RepoRole.UNKNOWN else existing.role,
+            domains=list({*existing.domains, *repo.domains}),
+            tags=list({*existing.tags, *repo.tags}),
+            critical=repo.critical or existing.critical,
+            description=repo.description or existing.description,
+        )
+        if merged == existing:
+            return False, toml_path
+        config.repos[existing_idx] = merged
+    else:
+        config.repos.append(repo)
+
+    save(config, ws_dir)
+    return True, toml_path
+
+
 # ------------------------------------------------------------------
 # Internal
 # ------------------------------------------------------------------
@@ -82,7 +124,8 @@ def _parse(data: dict, root: Path) -> WorkspaceConfig:
     repos = [
         RepoConfig(
             name=r["name"],
-            path=str(root / r.get("path", r["name"])),
+            path=str(root / r["path"]) if r.get("path") else "",
+            git_url=r.get("git_url", ""),
             role=RepoRole(r.get("role", "unknown")),
             domains=r.get("domains", []),
             tags=r.get("tags", []),
@@ -127,8 +170,12 @@ def _serialize(config: WorkspaceConfig) -> str:
     for repo in config.repos:
         lines.append("[[repos]]")
         lines.append(f'name = "{repo.name}"')
-        lines.append(f'path = "{repo.path}"')
-        lines.append(f'role = "{repo.role.value}"')
+        if repo.git_url:
+            lines.append(f'git_url = "{repo.git_url}"')
+        if repo.path:
+            lines.append(f'path = "{repo.path}"')
+        if repo.role != RepoRole.UNKNOWN:
+            lines.append(f'role = "{repo.role.value}"')
         if repo.domains:
             lines.append(f"domains = {repo.domains!r}")
         if repo.tags:
