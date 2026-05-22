@@ -11,14 +11,17 @@ AI coding tools generate code fast — but they don't understand your system. Th
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
 - [What it does](#what-it-does)
-- [Install (pick one)](#install-pick-one)
+- [Try the live tutorial](#try-the-live-tutorial)
+- [Install](#install)
 - [Connect your AI assistant](#connect-your-ai-assistant)
 - [5-minute first session](#5-minute-first-session)
 - [Multi-repo workspace setup](#multi-repo-workspace-setup)
 - [Share knowledge with team via git](#share-knowledge-with-team-via-git)
 - [Daily workflow](#daily-workflow)
 - [Why Knowlyx](#why-knowlyx)
-- [How does it work](#how-does-it-work)
+- [How it works](#how-it-works)
+- [Design properties](#design-properties)
+- [Troubleshooting](#troubleshooting)
 - [Roadmap & docs](#roadmap--docs)
 
 ---
@@ -36,7 +39,7 @@ Cascade:   account enumeration, email bombing, token replay
 
 Reuse:     EmailTemplate.tsx, useRateLimit hook, AuditLogger
 Memory:    "Team uses SendGrid + SES fallback" (approved by alice@co 2 weeks ago)
-           [3 more entries auto-synthesized by AI into common themes]
+           [3 more entries auto-synthesized by AI into a single narrative]
 
 Workflow:
   1. Single-use token (15 min expiry)
@@ -52,7 +55,43 @@ Claude reads this through MCP — it can't skip it. Result: first-try correct co
 
 ---
 
-## Install (pick one)
+## Try the live tutorial
+
+A complete 3-repo demo (knowledge + backend service + frontend website) with real code and commits showing the full Knowlyx loop:
+
+```bash
+# 1. Install knowlyx (30 seconds, one-time)
+curl -fsSL https://raw.githubusercontent.com/knowlyx/knowlyx/main/install.sh | bash
+# Windows: irm https://raw.githubusercontent.com/knowlyx/knowlyx/main/install.ps1 | iex
+
+# 2. Clone the shared knowledge into the expected path
+git clone https://github.com/SatangBudsai/tutorial-knowlyx-knowledge.git \
+  ~/.knowlyx/workspaces/tutorial
+
+# 3. Clone the two product repos anywhere
+mkdir -p ~/code && cd ~/code
+git clone https://github.com/SatangBudsai/tutorial-knowlyx-service.git
+git clone https://github.com/SatangBudsai/tutorial-knowlyx-website.git
+
+# 4. Register MCP with Claude Code in each product repo
+cd tutorial-knowlyx-service  && claude mcp add knowlyx -- uvx knowlyx mcp --repo .
+cd ../tutorial-knowlyx-website && claude mcp add knowlyx -- uvx knowlyx mcp --repo .
+```
+
+Then open the WALKTHROUGH:
+**[tutorial-knowlyx-knowledge/WALKTHROUGH.md](https://github.com/SatangBudsai/tutorial-knowlyx-knowledge/blob/main/WALKTHROUGH.md)**
+
+What you'll see (across 8 commits):
+
+- Tech lead scaffolds workspace + records 3 kickoff decisions
+- Alice scaffolds FastAPI service → Claude auto-applies memory (idempotency, decimal money)
+- Bob scaffolds Next.js storefront → Claude follows team conventions (TanStack Query, no raw fetch)
+- Bob attempts checkout (HIGH risk) → Knowlyx blocks until tech lead approves
+- AI synthesizes the billing domain (4 entries → 1 narrative) — cached for next session
+
+---
+
+## Install
 
 ### One-line installer
 
@@ -168,9 +207,9 @@ Edit `~/.continue/config.json`:
 }
 ```
 
-### Windsurf / Zed / Codex
+### Windsurf / Zed / Codex / any MCP client
 
-Any MCP-compatible client — same JSON pattern:
+Same JSON pattern:
 
 ```json
 { "command": "uvx", "args": ["knowlyx", "mcp", "--repo", "."] }
@@ -284,28 +323,35 @@ Now every dev who clones `api` is automatically connected to `my-product`'s shar
 ### Tech lead — git init + push
 
 ```bash
-# 1. Init git in the workspace folder
 knowlyx sync init \
   --workspace my-product \
   --remote git@github.com:your-org/my-product-knowledge.git
 
-# 2. Push
 knowlyx sync push --workspace my-product -m "init"
 ```
 
 ### Each developer — clone shared knowledge
 
 ```bash
-# Clone the shared knowledge to the expected path
+# Path matters — must be ~/.knowlyx/workspaces/<workspace-name>
 git clone git@github.com:your-org/my-product-knowledge.git \
   ~/.knowlyx/workspaces/my-product
-
-# That's it. The .knowlyx/config.toml in each repo points here.
 ```
 
 Auth: uses your existing git auth (SSH key / HTTPS credential helper / `gh auth`). No Knowlyx-specific tokens needed.
 
-Full setup including self-hosted GitLab, conflict resolution, and permissions: **[docs/git-sync.md](docs/git-sync.md)**
+Full setup including self-hosted GitLab, conflict resolution, and permissions:
+**[docs/git-sync.md](docs/git-sync.md)**
+
+### Concurrency safety
+
+All writes to `memory.json` and `approvals.json` are protected by:
+
+- **Cross-platform file lock** (`fcntl` POSIX / `msvcrt` Windows)
+- **Atomic write** (write temp + `os.replace()`)
+- **Read-modify-write under lock** — concurrent saves never lose updates
+
+**Approve/reject fail-safe:** once an approval is REJECTED, it stays rejected. Subsequent approves are no-ops. Same rule applies in git sync conflict resolution.
 
 ---
 
@@ -347,22 +393,24 @@ alias kw='knowlyx'
 | 2-week onboarding for new devs | `scan + graph` = 5-min mental model |
 | Silent API contract breakage | Risk gate + deprecation workflow |
 | AI re-invents same decision team made last month | `get_domain_knowledge` + cached AI synthesis |
+| AI downgrades risk to ship faster | Risk policy: `proceed → warn → ask → reject`, upgrade-only |
 
 ---
 
-## How does it work
+## How it works
 
-**No LLM inside Knowlyx — by design.** Knowlyx is 100% rule-based + pattern matching + graph algorithms. Deterministic, fast, free, offline, auditable.
+**No LLM inside Knowlyx — by design.** Knowlyx is 100% rule-based + pattern matching + graph algorithms. Deterministic, fast (<100ms), free, offline, auditable.
 
-The intelligence comes from Claude (or whatever AI you use): Knowlyx hands Claude **structured cognition data** through MCP, Claude does the reasoning and writing.
+The intelligence comes from your AI agent (Claude/Cursor/etc.): Knowlyx hands the agent **structured cognition data** through MCP, the agent does the reasoning and writing.
 
 For tasks that need judgment (summarizing related memory, weighing historical risk):
 
-- Knowlyx returns raw data + instructions
-- Your AI agent does the synthesis
-- Knowlyx caches the result so future sessions don't re-do it
+1. Knowlyx returns raw data + a structured instruction for the AI
+2. The AI agent does the synthesis using its own LLM
+3. Knowlyx caches the result (`save_synthesis`) so future sessions reuse it
+4. New evidence automatically marks the cache stale → triggers re-synthesis
 
-Risk decisions follow the **upgrade-only** rule: Claude can make Knowlyx's decision stricter (`proceed` → `warn` → `ask` → `reject`), but never looser.
+Risk decisions follow the **upgrade-only rule**: the AI can make Knowlyx's decision stricter (`proceed → warn → ask → reject`), but never looser.
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -370,9 +418,13 @@ Risk decisions follow the **upgrade-only** rule: Claude can make Knowlyx's decis
 └──────────────────┬──────────────────────────────┘
                    │ MCP protocol — 25 tools
 ┌──────────────────▼──────────────────────────────┐
-│  ENFORCEMENT — analyze_intent, get_conventions, │
-│  validate_generated_code, get_domain_knowledge, │
-│  save_synthesis, assess_risk_in_context, …      │
+│  ENFORCEMENT (mcp/server.py)                    │
+│  • analyze_intent  • get_conventions            │
+│  • get_reusable_assets  • get_impact_analysis   │
+│  • get_domain_knowledge  • save_synthesis       │
+│  • assess_risk_in_context  • get_module_context │
+│  • validate_generated_code  • request_approval  │
+│  • recall_context  • get_workspace_context  …   │
 └──────────────────┬──────────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────────┐
@@ -382,17 +434,69 @@ Risk decisions follow the **upgrade-only** rule: Claude can make Knowlyx's decis
                    │
        ┌───────────┼───────────────────┐
        ▼           ▼                   ▼
-┌──────────┐ ┌──────────┐         ┌──────────┐
-│  GRAPH   │ │  MEMORY  │         │  PACKS   │
-│ NetworkX │ │  v2 sch  │         │ 7 built  │
-│ cascade  │ │ +synth   │         │   -in    │
-└────┬─────┘ └──────────┘         └──────────┘
+┌──────────┐ ┌──────────────┐    ┌──────────┐
+│  GRAPH   │ │   MEMORY     │    │  PACKS   │
+│ NetworkX │ │ schema v2    │    │ 7 built  │
+│ cascade  │ │ + AI synth   │    │   -in    │
+│ rules    │ │ + file lock  │    │ domains  │
+└────┬─────┘ └──────────────┘    └──────────┘
      │
 ┌────▼────────────────────────────────────────────┐
 │  SCANNER — language/framework/architecture/     │
 │  domains/conventions/reusable assets            │
 └─────────────────────────────────────────────────┘
 ```
+
+### Memory schema v2
+
+```json
+{
+  "version": 2,
+  "entries": { "<id>": { kind, domain, title, body, approved, ... } },
+  "syntheses": {
+    "<domain>": {
+      "summary": "narrative tying related decisions together",
+      "key_themes": [...],
+      "open_questions": [...],
+      "stale": false
+    }
+  }
+}
+```
+
+v1 (flat dict) files auto-migrate on first read. New entries automatically mark their domain's synthesis stale → next AI session re-synthesizes.
+
+---
+
+## Design properties
+
+These are guarantees Knowlyx makes by construction:
+
+| Property | Why it matters |
+|---|---|
+| **Deterministic** | Same input → same output every time. Audits and CI gates work. |
+| **Fast** (<100ms reasoning) | Pre-commit hooks stay usable. AI doesn't wait. |
+| **Free** ($0 to run) | No API costs. No surprise bills. |
+| **Offline** | Works air-gapped, in CI, on planes. |
+| **No vendor lock-in** | Works with any MCP client. No required LLM provider. |
+| **Concurrent-safe** | Multiple devs/sessions can save simultaneously without lost updates. |
+| **Audit-friendly** | Git log shows every memory/approval change with author + timestamp. |
+| **Backward compatible** | Schema migrations are automatic. Old files keep working. |
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `knowlyx: command not found` | uv path not loaded | Open new terminal, or `source ~/.bashrc` |
+| `Workspace '<name>' not found` | Knowledge repo not cloned at the expected path | Must be `~/.knowlyx/workspaces/<workspace-name>` exactly |
+| Claude doesn't see memory | Local clone of knowledge repo is stale | `cd ~/.knowlyx/workspaces/<name> && git pull` |
+| `git push` rejected | Behind remote | `knowlyx sync pull` first, then push |
+| `memory.json` git conflict | Two devs saved at the same time | `knowlyx sync pull` auto-merges by timestamp; manual edit if not |
+| `Permission denied (publickey)` | SSH key not registered | Add `~/.ssh/id_ed25519.pub` to GitHub Settings → SSH keys |
+| Approval not unlocking AI | Status still pending | `knowlyx approval list` → `knowlyx approval approve <id>` |
+| TypeScript errors in fresh website clone | `node_modules` missing | `npm install` |
 
 ---
 
@@ -405,26 +509,15 @@ Risk decisions follow the **upgrade-only** rule: Claude can make Knowlyx's decis
 - **[docs/mcp.md](docs/mcp.md)** — MCP integration details
 - **[docs/architecture.md](docs/architecture.md)** — 6 layers explained
 - **[docs/multi-repo.md](docs/multi-repo.md)** — `knowlyx.toml` + cross-repo impact
-- **[docs/distributed-knowledge.md](docs/distributed-knowledge.md)** — central store + per-repo link
+- **[docs/distributed-knowledge.md](docs/distributed-knowledge.md)** — central store + per-repo link + concurrency
 - **[docs/git-sync.md](docs/git-sync.md)** — share workspace via GitHub/GitLab (full step-by-step)
 - **[docs/usage-examples.md](docs/usage-examples.md)** — 7 real-world scenarios
 - **[docs/cognition-packs.md](docs/cognition-packs.md)** — built-in domain knowledge
+- **[Live tutorial](https://github.com/SatangBudsai/tutorial-knowlyx-knowledge/blob/main/WALKTHROUGH.md)** — 3-repo working demo
+
+---
 
 ## Contribute
-
-PRs welcome — see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
-
-```bash
-git clone https://github.com/knowlyx/knowlyx
-cd knowlyx
-uv sync --extra dev
-uv run pytest
-```
-
-## License
-
-MIT — see [LICENSE](LICENSE).
-
 
 PRs welcome — see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
