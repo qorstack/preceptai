@@ -67,7 +67,8 @@ class ApprovalQueue:
 
     @staticmethod
     def _new_id() -> str:
-        import hashlib, uuid
+        import hashlib
+        import uuid
         return hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest()[:12]
 
     # ------------------------------------------------------------------

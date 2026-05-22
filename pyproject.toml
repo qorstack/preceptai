@@ -60,10 +60,13 @@ path = "src/knowlyx/__init__.py"
 
 [tool.ruff]
 src = ["src"]
-line-length = 100
+line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+ignore = [
+    "E501",  # line too long — handled by formatter, prefer descriptive help strings
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

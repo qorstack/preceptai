@@ -655,7 +655,7 @@ def request_approval(
     return json.dumps({
         "status": "pending",
         "id": req.id,
-        "message": f"Approval request submitted. Human must review before you proceed.",
+        "message": "Approval request submitted. Human must review before you proceed.",
         "check_with": f"check_approval('{req.id}')",
     }, indent=2, ensure_ascii=False)
 
@@ -933,7 +933,7 @@ def list_approvals(status_filter: str = "pending", repo_path: str = ".") -> str:
     List approval requests, filtered by status.
     status_filter: pending | approved | rejected | all
     """
-    from knowlyx.approval.queue import ApprovalStatus, get_queue
+    from knowlyx.approval.queue import get_queue
     queue = get_queue(repo_path)
     if status_filter == "all":
         entries = queue.all()

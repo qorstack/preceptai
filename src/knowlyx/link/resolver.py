@@ -17,7 +17,6 @@ from knowlyx.link.config import LinkConfig, load_link
 from knowlyx.paths import (
     ensure_workspace_dir,
     workspace_approvals_path,
-    workspace_dir,
     workspace_memory_path,
 )
 

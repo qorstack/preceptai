@@ -10,11 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from knowlyx.memory.schema import MemoryEntry, MemoryKind
 
@@ -197,6 +194,7 @@ class FileMemoryStore(MemoryStore):
                        open_questions: list[str], synthesized_by: str = "ai") -> dict:
         """Cache an AI-synthesized summary for a domain. Marks not-stale."""
         from datetime import datetime, timezone
+
         from knowlyx.storage import read_modify_write
 
         entry_ids: list[str] = []
@@ -310,7 +308,7 @@ class QdrantMemoryStore(MemoryStore):
         if not self._available() or not self._encoder:
             return self._fallback.search(query, kind, domain, limit)
         try:
-            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            from qdrant_client.models import FieldCondition, Filter, MatchValue
             vec = self._encode(query)
             filters = []
             if kind:

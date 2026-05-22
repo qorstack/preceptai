@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import networkx as nx
-
 from knowlyx.graph.cognitive_graph import CognitiveGraph
 from knowlyx.workspace.multi_scanner import WorkspaceScanResult
 

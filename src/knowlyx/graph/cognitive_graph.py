@@ -7,7 +7,6 @@ Edges:  depends_on | impacts | belongs_to | enforced_by | reuses
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import networkx as nx

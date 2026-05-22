@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional
 
 import typer
-from rich import print as rprint
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 app = typer.Typer(
     name="knowlyx",
@@ -154,7 +151,7 @@ def analyze(
 
     # Reusable assets
     if report.reusable_assets_to_use:
-        console.print(f"\n[bold green]Reuse Before Creating:[/bold green]")
+        console.print("\n[bold green]Reuse Before Creating:[/bold green]")
         for a in report.reusable_assets_to_use[:5]:
             console.print(f"  [green]→[/green] [{a.asset_type}] {a.name} ({a.path})")
 
@@ -382,8 +379,8 @@ def workspace(
             console.print("[red]Provide workspace name:[/red] knowlyx workspace create <name>")
             raise typer.Exit(1)
         from knowlyx.paths import ensure_workspace_dir, workspace_toml_path
-        from knowlyx.workspace.schema import WorkspaceConfig
         from knowlyx.workspace.config_loader import _serialize
+        from knowlyx.workspace.schema import WorkspaceConfig
         ws_dir = ensure_workspace_dir(target)
         toml_path = workspace_toml_path(target)
         if toml_path.exists():
@@ -598,9 +595,9 @@ def graph(
     repo_path: str = typer.Option(".", "--repo", "-r"),
 ):
     """Export the cognitive graph for a single repo."""
+    from knowlyx.graph.cognitive_graph import CognitiveGraph
     from knowlyx.graph.exporter import GraphExporter
     from knowlyx.scanner.repo_scanner import RepoScanner
-    from knowlyx.graph.cognitive_graph import CognitiveGraph
 
     scanner = RepoScanner(repo_path)
     with console.status("[bold cyan]Scanning…"):
@@ -684,6 +681,7 @@ def migrate(
     3. knowlyx migrate --repo /path/to/api
     """
     import json as _json
+
     from knowlyx.link.config import load_link
     from knowlyx.paths import workspace_approvals_path, workspace_memory_path
 
@@ -777,7 +775,7 @@ def init(
         ), target)
         console.print(f"[green]Linked[/green] {target.name} → {link_to}")
         console.print(f"  Role: {role}, Domains: {', '.join(scan.domains[:6]) or '(none)'}")
-        console.print(f"  Commit [cyan].knowlyx/config.toml[/cyan] to git so teammates get linked automatically.")
+        console.print("  Commit [cyan].knowlyx/config.toml[/cyan] to git so teammates get linked automatically.")
         return
 
     if workspace_mode:
@@ -800,12 +798,12 @@ def init(
         title="[bold green]Knowlyx Init[/bold green]",
     ))
     console.print("\n[bold]Suggested next steps:[/bold]\n")
-    console.print(f"  1. Create central workspace:")
+    console.print("  1. Create central workspace:")
     console.print(f"     [cyan]knowlyx workspace create {name or target.name}[/cyan]\n")
-    console.print(f"  2. Link this repo:")
+    console.print("  2. Link this repo:")
     suggested_link = f"knowlyx init --link {name or target.name}"
     console.print(f"     [cyan]{suggested_link}[/cyan]\n")
-    console.print(f"  3. Add MCP server to .claude/settings.json:")
+    console.print("  3. Add MCP server to .claude/settings.json:")
     console.print('     [dim]{"mcpServers": {"knowlyx": {"command": "uvx", "args": ["knowlyx", "mcp", "--repo", "."]}}}[/dim]')
 
 
@@ -836,7 +834,7 @@ def commit_check(
     knowlyx commit-check              # warns only
     knowlyx commit-check --strict     # exits 1 on any issue
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     stamp_path = Path(repo_path) / ".knowlyx" / "last_cognition.json"
     if not stamp_path.exists():
@@ -856,7 +854,8 @@ def commit_check(
     ts = stamp.get("timestamp", "")
     try:
         when = datetime.fromisoformat(ts.replace("Z", ""))
-        age = datetime.utcnow() - when
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        age = now - when
         if age > timedelta(minutes=stale_minutes):
             msg = f"Cognition stamp is stale ({int(age.total_seconds() / 60)} min old). Re-run analyze_intent."
             console.print(f"[yellow]⚠ {msg}[/yellow]")
@@ -924,7 +923,7 @@ def sync(
         console.print(f"  Path: {st.path}")
         if st.has_remote:
             console.print(f"  Remote: {st.remote_url}")
-            console.print(f"\nNext: [cyan]knowlyx sync push[/cyan]")
+            console.print("\nNext: [cyan]knowlyx sync push[/cyan]")
         else:
             console.print("  Remote: [yellow](none — pass --remote to set one)[/yellow]")
         return
@@ -933,7 +932,7 @@ def sync(
         st = sync_obj.status()
         if not sync_obj.is_git_repo():
             console.print(f"[yellow]Workspace '{workspace_name}' is not git-initialized.[/yellow]")
-            console.print(f"Run: [cyan]knowlyx sync init --remote <url>[/cyan]")
+            console.print("Run: [cyan]knowlyx sync init --remote <url>[/cyan]")
             return
         console.print(Panel(
             f"[bold]Workspace:[/bold] {st.workspace}\n"
