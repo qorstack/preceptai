@@ -64,6 +64,54 @@ def _load_engine(repo_path: str):
     return engine, scan, graph
 
 
+def _resolve_workspace_dir(repo_path: str | Path) -> Path | None:
+    """Return the knowledge-home folder for this repo, or None if unresolved.
+
+    Walks up looking for `workspace.toml` (knowledge-home mode), else resolves
+    via the link config to the registered workspace path.
+    """
+    p = Path(repo_path).resolve()
+    while True:
+        if (p / "workspace.toml").exists():
+            return p
+        if p.parent == p:
+            break
+        p = p.parent
+    try:
+        from knowlyx.link.resolver import resolve_workspace
+        res = resolve_workspace(repo_path)
+        if res is not None and (res.workspace_dir / "workspace.toml").exists():
+            return res.workspace_dir
+    except Exception:
+        pass
+    return None
+
+
+def _auto_sync_workspace(repo_path: str | Path, message: str, files: list[str] | None = None) -> None:
+    """Pull → commit → push the knowledge repo after a write. Silent on success,
+    one short line on skip/error so users see why it didn't sync."""
+    try:
+        from knowlyx import sync as _sync
+        if not _sync.sync_enabled():
+            return
+        ws = _resolve_workspace_dir(repo_path)
+        if ws is None:
+            return
+        pr, ph = _sync.full_sync(ws, message=message, files=files)
+        if pr.action == "skip" and ph.action == "skip":
+            return  # silent — no git/remote present
+        if not pr.ok:
+            console.print(f"[yellow]auto-sync: pull failed[/yellow] [dim]({pr.detail or 'unknown'})[/dim]")
+            return
+        if not ph.ok:
+            console.print(f"[yellow]auto-sync: push failed[/yellow] [dim]({ph.detail or 'unknown'})[/dim]  [dim]your change is committed locally — run `knowlyx sync` later[/dim]")
+            return
+        if ph.detail and ph.detail != "nothing to push":
+            console.print(f"[dim]auto-sync ok ({ph.detail}).[/dim]")
+    except Exception as e:
+        console.print(f"[yellow]auto-sync skipped:[/yellow] [dim]{e}[/dim]")
+
+
 def _print_workspace_hint(repo_path: str) -> None:
     """Print a one-line setup hint if the shared knowledge isn't on this machine."""
     try:
@@ -360,6 +408,7 @@ def memory(
         )
         saved = store.save(entry)
         console.print(f"[green]Decision saved and approved[/green] — ID: {saved.id}")
+        _auto_sync_workspace(repo_path, f"memory({query}): {saved.title[:60]}")
 
     elif action == "forget":
         if store.delete(query):
@@ -631,6 +680,7 @@ def approval(
             console.print(f"[red]Not found:[/red] {request_id}")
             raise typer.Exit(1)
         console.print(f"[green]Approved[/green] — {req.title}")
+        _auto_sync_workspace(repo_path, f"approval: approved {request_id[:8]}")
 
     elif action == "reject":
         if not request_id:
@@ -641,6 +691,7 @@ def approval(
             console.print(f"[red]Not found:[/red] {request_id}")
             raise typer.Exit(1)
         console.print(f"[red]Rejected[/red] — {req.title}" + (f" ({reason})" if reason else ""))
+        _auto_sync_workspace(repo_path, f"approval: rejected {request_id[:8]}")
     else:
         console.print(f"[red]Unknown action '{action}'[/red]. Use: list | show | approve | reject")
 
@@ -941,6 +992,9 @@ def _init_knowledge_mode(target: Path, override_name: str = "") -> None:
     console.print(f"  Registered in: [cyan]{_registry_display_path()}[/cyan]")
     if override_name == "":
         console.print("  [dim](workspace name derived from folder; override with --name)[/dim]")
+    # If this knowledge repo already has a git remote, push the freshly
+    # initialized workspace files so teammates can clone immediately.
+    _auto_sync_workspace(target, f"chore: init knowlyx workspace '{ws_name}'")
     _print_knowledge_next_steps(target)
 
 
@@ -1076,15 +1130,32 @@ The AI sees skill descriptions via `analyze_intent` and pulls the body via
 `read_skill(name)` when relevant. See [skills/README.md](skills/README.md) for
 the full format reference.
 
-## Day-to-day workflow
+## Day-to-day workflow — git is automatic
 
-- **Tech lead / anyone**: write skills in `skills/*.md`, commit, push
-- **Other devs**: `git pull` in this folder → instantly see updated knowledge
-- **Verify Claude actually used Knowlyx**: in any linked repo, run
-  ```bash
-  knowlyx audit
-  ```
-  to see which MCP tools the AI called (last ~500 events, capped automatically)
+Knowlyx **auto-syncs** every write to the knowledge repo. You usually don't
+type `git pull` or `git push` yourself:
+
+- `knowlyx memory decide ...` → save + `git pull --rebase` + `git commit` + `git push`
+- `knowlyx approval approve|reject` → same
+- `knowlyx init` in a working repo → registers it + pushes the topology update
+
+To opt out (manual git control), set `KNOWLYX_AUTO_SYNC=0` in your environment.
+
+**Manual sync** when you do want it:
+
+```bash
+knowlyx sync          # one-shot: pull then push everything pending
+knowlyx sync watch    # daemon: pull+push every 60s (Ctrl+C to stop)
+knowlyx sync status   # show local vs remote
+```
+
+**Verify Claude actually used Knowlyx**: in any linked repo, run
+
+```bash
+knowlyx audit
+```
+
+to see which MCP tools the AI called (last ~500 events, capped automatically).
 
 ## Useful CLI commands
 
@@ -1163,8 +1234,9 @@ def _init_link_mode(
             ),
         )
         if written and changed:
-            console.print(f"\n[green]✓[/green] Auto-registered in workspace.toml: {written}")
-            console.print("  [dim]Commit + push the knowledge repo to share this topology with the team.[/dim]")
+            console.print(f"\n[green]+[/green] Auto-registered in workspace.toml: {written}")
+            # Push the new repo file up so teammates immediately see the topology.
+            _auto_sync_workspace(written.parent.parent, f"topology: register {target.name}")
         elif written:
             console.print(f"\n[dim]Repo already registered in {written}, no change.[/dim]")
     elif remote:
@@ -1576,22 +1648,66 @@ def commit_check(
 
 @app.command()
 def sync(
-    action: str = typer.Argument(..., help="init | pull | push | status"),
+    action: str = typer.Argument("now", help="now | watch | init | pull | push | status"),
     workspace_name: str = typer.Option("", "--workspace", "-w", help="Workspace name (auto-detect from cwd if linked)"),
     remote: str = typer.Option("", "--remote", help="Remote URL (for init)"),
     branch: str = typer.Option("main", "--branch"),
     message: str = typer.Option("knowlyx: update knowledge", "--message", "-m"),
+    interval: int = typer.Option(60, "--interval", help="(watch) seconds between sync cycles"),
     no_auto_resolve: bool = typer.Option(False, "--no-auto-resolve", help="Don't auto-merge JSON conflicts"),
 ):
     """
-    Sync the central workspace via git (GitHub/GitLab/self-hosted).
+    Sync the central workspace via git.
 
     \b
-    knowlyx sync init --remote git@github.com:org/x-product-knowledge.git
-    knowlyx sync pull
-    knowlyx sync push -m "decision: use stripe billing"
-    knowlyx sync status
+    knowlyx sync                # one-shot: pull → push (default action: now)
+    knowlyx sync watch          # daemon: pull → push every --interval seconds
+    knowlyx sync status         # show local vs remote state
+    knowlyx sync init --remote git@github.com:org/x-knowledge.git
+    knowlyx sync pull           # pull only
+    knowlyx sync push -m "..."  # push only
+
+    `now` and `watch` are also triggered automatically by `knowlyx memory decide`,
+    `knowlyx approval approve|reject`, and `knowlyx init` — so most users never
+    need to run them by hand. Disable with `KNOWLYX_AUTO_SYNC=0`.
     """
+    if action in ("now", "watch"):
+        from knowlyx import sync as _sync_mod
+
+        ws_dir = _resolve_workspace_dir(".")
+        if ws_dir is None and workspace_name:
+            from knowlyx.paths import workspace_dir
+            ws_dir = workspace_dir(workspace_name)
+        if ws_dir is None or not ws_dir.exists():
+            console.print("[red]No workspace found.[/red] Run `knowlyx init` in a knowledge or working repo first.")
+            raise typer.Exit(1)
+
+        def cycle() -> int:
+            pr, ph = _sync_mod.full_sync(ws_dir, message=message)
+            for label, r in (("pull", pr), ("push", ph)):
+                if r.action == "skip":
+                    console.print(f"[dim]{label}: skipped ({r.skipped_reason})[/dim]")
+                elif r.ok:
+                    console.print(f"[green]+[/green] {label}: {r.detail or 'ok'}")
+                else:
+                    console.print(f"[red]x[/red] {label}: {r.detail}")
+            return 0 if (pr.ok and ph.ok) else 1
+
+        if action == "now":
+            raise typer.Exit(cycle())
+
+        # watch
+        import time
+        console.print(f"[bold]knowlyx sync watch[/bold] — every {interval}s. Ctrl+C to stop.")
+        try:
+            while True:
+                cycle()
+                time.sleep(max(interval, 5))
+        except KeyboardInterrupt:
+            console.print("\n[dim]stopped.[/dim]")
+            return
+
+
     from knowlyx.link.resolver import resolve_workspace
     from knowlyx.sync.git_sync import GitSync
 

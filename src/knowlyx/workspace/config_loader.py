@@ -78,10 +78,12 @@ def register_repo_in_workspace(
     repo: RepoConfig,
 ) -> tuple[bool, Path | None]:
     """
-    Auto-add or update a repo entry in `~/.knowlyx/workspaces/<name>/workspace.toml`.
+    Auto-add or update a repo entry as `<workspace>/repos/<repo_name>.toml`.
 
-    Returns (changed, written_path). `written_path` is None if the workspace
-    folder doesn't exist locally (caller should print the clone hint).
+    One file per repo so two devs linking concurrently never collide on the
+    same line of `workspace.toml`. Returns (changed, written_path).
+    `written_path` is None if the workspace folder doesn't exist locally
+    (caller should print the clone hint).
     """
     from knowlyx.paths import workspace_dir, workspace_toml_path
 
@@ -89,26 +91,14 @@ def register_repo_in_workspace(
     if not toml_path.exists():
         return False, None
 
-    # Load via the explicit workspace.toml path (not knowlyx.toml) so we read
-    # the central topology file the same one we're about to write back to.
-    config = _read_toml(toml_path, toml_path.parent)
-    # Preserve the workspace name from the toml (don't let load() default it
-    # to the folder name, which can be "tutorial-knowlyx-knowledge" instead
-    # of just "tutorial").
-    if not config.name or config.name == toml_path.parent.name:
-        config = WorkspaceConfig(
-            name=workspace_name,
-            version=config.version,
-            description=config.description,
-            repos=config.repos,
-            dependencies=config.dependencies,
-            global_conventions=config.global_conventions,
-            metadata=config.metadata,
-        )
+    ws_dir = toml_path.parent
+    repos_dir = ws_dir / "repos"
+    repos_dir.mkdir(parents=True, exist_ok=True)
+    repo_file = repos_dir / f"{_safe_repo_filename(repo.name)}.toml"
 
-    existing_idx = next((i for i, r in enumerate(config.repos) if r.name == repo.name), None)
-    if existing_idx is not None:
-        existing = config.repos[existing_idx]
+    # Merge with existing per-repo entry if any.
+    existing = _read_repo_file(repo_file) if repo_file.exists() else None
+    if existing is not None:
         merged = RepoConfig(
             name=repo.name,
             path=existing.path,
@@ -120,13 +110,93 @@ def register_repo_in_workspace(
             description=repo.description or existing.description,
         )
         if merged == existing:
-            return False, toml_path
-        config.repos[existing_idx] = merged
+            return False, repo_file
+        target = merged
     else:
-        config.repos.append(repo)
+        target = repo
 
-    toml_path.write_text(_serialize(config), encoding="utf-8")
-    return True, toml_path
+    repo_file.write_text(_serialize_repo(target), encoding="utf-8")
+    return True, repo_file
+
+
+def _safe_repo_filename(name: str) -> str:
+    return "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+
+
+def _serialize_repo(repo: RepoConfig) -> str:
+    """Serialize a single repo as a flat TOML file (no `[[repos]]` header)."""
+    lines = [f'name = "{repo.name}"']
+    if repo.git_url:
+        lines.append(f'git_url = "{repo.git_url}"')
+    if repo.path:
+        lines.append(f'path = "{repo.path}"')
+    if repo.role != RepoRole.UNKNOWN:
+        lines.append(f'role = "{repo.role.value}"')
+    if repo.domains:
+        lines.append(f"domains = {repo.domains!r}")
+    if repo.tags:
+        lines.append(f"tags = {repo.tags!r}")
+    if repo.critical:
+        lines.append("critical = true")
+    if repo.description:
+        lines.append(f'description = "{repo.description}"')
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _read_repo_file(path: Path) -> RepoConfig | None:
+    try:
+        try:
+            import tomllib
+            data = tomllib.loads(path.read_text(encoding="utf-8"))
+        except ImportError:
+            try:
+                import tomli as tomllib  # type: ignore
+                data = tomllib.loads(path.read_bytes())
+            except ImportError:
+                # Crude fallback for flat TOML.
+                data = {}
+                for raw in path.read_text(encoding="utf-8").splitlines():
+                    line = raw.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, _, v = line.partition("=")
+                    k = k.strip()
+                    v = v.strip()
+                    if v.startswith("[") and v.endswith("]"):
+                        inner = v[1:-1]
+                        data[k] = [s.strip().strip('"').strip("'") for s in inner.split(",") if s.strip()]
+                    elif v in ("true", "false"):
+                        data[k] = v == "true"
+                    else:
+                        data[k] = v.strip('"').strip("'")
+    except OSError:
+        return None
+    if not data.get("name"):
+        return None
+    return RepoConfig(
+        name=str(data["name"]),
+        path=str(data.get("path", "")),
+        git_url=str(data.get("git_url", "")),
+        role=RepoRole(data.get("role", "unknown")) if data.get("role", "unknown") in [r.value for r in RepoRole] else RepoRole.UNKNOWN,
+        domains=list(data.get("domains", []) or []),
+        tags=list(data.get("tags", []) or []),
+        critical=bool(data.get("critical", False)),
+        description=str(data.get("description", "")),
+    )
+
+
+def _load_repos_from_dir(workspace_dir: Path) -> list[RepoConfig]:
+    """Read every `<workspace>/repos/*.toml` as a RepoConfig."""
+    repos_dir = workspace_dir / "repos"
+    if not repos_dir.exists():
+        return []
+    out: list[RepoConfig] = []
+    for p in sorted(repos_dir.glob("*.toml")):
+        cfg = _read_repo_file(p)
+        if cfg is not None:
+            out.append(cfg)
+    return out
 
 
 # ------------------------------------------------------------------
@@ -134,7 +204,9 @@ def register_repo_in_workspace(
 # ------------------------------------------------------------------
 
 def _parse(data: dict, root: Path) -> WorkspaceConfig:
-    repos = [
+    # Legacy [[repos]] blocks still inline in workspace.toml — we'll migrate
+    # them to per-file storage below.
+    inline_repos = [
         RepoConfig(
             name=r["name"],
             path=str(root / r["path"]) if r.get("path") else "",
@@ -147,6 +219,28 @@ def _parse(data: dict, root: Path) -> WorkspaceConfig:
         )
         for r in data.get("repos", [])
     ]
+
+    # Authoritative source: per-file repos under <workspace>/repos/.
+    per_file_repos = _load_repos_from_dir(root)
+    per_file_names = {r.name for r in per_file_repos}
+
+    # If workspace.toml still has inline [[repos]] (older workspaces), split
+    # them into per-file storage. Per-file wins on name conflict.
+    for r in inline_repos:
+        if r.name in per_file_names:
+            continue
+        try:
+            (root / "repos").mkdir(parents=True, exist_ok=True)
+            (root / "repos" / f"{_safe_repo_filename(r.name)}.toml").write_text(
+                _serialize_repo(r), encoding="utf-8"
+            )
+            per_file_repos.append(r)
+        except OSError:
+            # Read-only workspace? Keep using inline data this run.
+            per_file_repos.append(r)
+
+    repos = sorted(per_file_repos, key=lambda r: r.name)
+
     deps = [
         RepoDependency(
             from_repo=d["from"],
@@ -168,6 +262,11 @@ def _parse(data: dict, root: Path) -> WorkspaceConfig:
 
 
 def _serialize(config: WorkspaceConfig) -> str:
+    """
+    Serialize the workspace header to `workspace.toml`. Per-repo entries live
+    in `repos/<name>.toml` and are NOT written here — that's how concurrent
+    `knowlyx init` calls from different devs avoid colliding on the same file.
+    """
     lines = [
         f'name = "{config.name}"',
         f'version = "{config.version}"',
@@ -179,24 +278,6 @@ def _serialize(config: WorkspaceConfig) -> str:
         for c in config.global_conventions:
             lines.append(f'  "{c}",')
         lines.append("]")
-        lines.append("")
-    for repo in config.repos:
-        lines.append("[[repos]]")
-        lines.append(f'name = "{repo.name}"')
-        if repo.git_url:
-            lines.append(f'git_url = "{repo.git_url}"')
-        if repo.path:
-            lines.append(f'path = "{repo.path}"')
-        if repo.role != RepoRole.UNKNOWN:
-            lines.append(f'role = "{repo.role.value}"')
-        if repo.domains:
-            lines.append(f"domains = {repo.domains!r}")
-        if repo.tags:
-            lines.append(f"tags = {repo.tags!r}")
-        if repo.critical:
-            lines.append("critical = true")
-        if repo.description:
-            lines.append(f'description = "{repo.description}"')
         lines.append("")
     for dep in config.dependencies:
         lines.append("[[dependencies]]")
