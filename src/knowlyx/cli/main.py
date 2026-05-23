@@ -88,8 +88,12 @@ def _resolve_workspace_dir(repo_path: str | Path) -> Path | None:
 
 
 def _auto_sync_workspace(repo_path: str | Path, message: str, files: list[str] | None = None) -> None:
-    """Pull → commit → push the knowledge repo after a write. Silent on success,
-    one short line on skip/error so users see why it didn't sync."""
+    """Schedule pull → commit → push in a detached background process.
+
+    Returns instantly so the calling CLI command doesn't block on git I/O.
+    Failures are written to `<workspace>/.knowlyx-sync-status.json` for
+    `knowlyx doctor` to surface.
+    """
     try:
         from knowlyx import sync as _sync
         if not _sync.sync_enabled():
@@ -97,19 +101,9 @@ def _auto_sync_workspace(repo_path: str | Path, message: str, files: list[str] |
         ws = _resolve_workspace_dir(repo_path)
         if ws is None:
             return
-        pr, ph = _sync.full_sync(ws, message=message, files=files)
-        if pr.action == "skip" and ph.action == "skip":
-            return  # silent — no git/remote present
-        if not pr.ok:
-            console.print(f"[yellow]auto-sync: pull failed[/yellow] [dim]({pr.detail or 'unknown'})[/dim]")
-            return
-        if not ph.ok:
-            console.print(f"[yellow]auto-sync: push failed[/yellow] [dim]({ph.detail or 'unknown'})[/dim]  [dim]your change is committed locally — run `knowlyx sync` later[/dim]")
-            return
-        if ph.detail and ph.detail != "nothing to push":
-            console.print(f"[dim]auto-sync ok ({ph.detail}).[/dim]")
-    except Exception as e:
-        console.print(f"[yellow]auto-sync skipped:[/yellow] [dim]{e}[/dim]")
+        _sync.schedule_full_sync(ws, message=message, files=files)
+    except Exception:
+        pass  # auto-sync must never block or break a CLI command
 
 
 def _print_workspace_hint(repo_path: str) -> None:
@@ -1078,96 +1072,171 @@ def _write_getting_started(target: Path, ws_name: str) -> None:
     if path.exists():
         return
     path.write_text(
-        f"""# Welcome to your Knowlyx workspace '{ws_name}'
+        f"""# Knowlyx workspace `{ws_name}` — quick start
 
-This folder is your team's **shared brain**. Everything here syncs to GitHub so
-every dev (and every AI session) sees the same conventions, decisions, and
-approval history.
+This folder is the team's **shared brain**. Anything saved here syncs to git
+automatically. Devs talk to Claude — nobody types git or knowlyx commands.
 
-## What was just created
-
-| File / folder      | Purpose                                                       |
-| ------------------ | ------------------------------------------------------------- |
-| `workspace.toml`   | Topology — auto-updated when devs link their repos            |
-| `skills/`          | Team-authored knowledge files (markdown). See `skills/README.md` |
-| `memory.json`      | Decision log — created when you save the first one            |
-| `approvals.json`   | Audit trail — created when AI requests its first approval     |
-
-## What to do next
-
-### 1. Push this folder to GitHub (one-time)
+## For each dev (one-time setup per repo)
 
 ```bash
-git add .
-git commit -m "chore: init knowlyx workspace for {ws_name}"
-git push -u origin main
+cd <my-working-repo>          # sibling of this knowledge folder
+knowlyx init                  # auto-links + bootstraps a starter skill from your code
+claude mcp add knowlyx -- uvx knowlyx mcp --repo .
 ```
 
-### 2. In each working repo (frontend, backend, etc.), run `knowlyx init`
+Done. Open Claude Code / Cursor and start coding.
 
-It will auto-detect this folder as a sibling and link automatically. No flags
-needed. The dev only needs to be in the same parent directory as this repo.
+## Day-to-day
 
-### 3. Author your first skill — when you need it
+Just talk to Claude. When the conversation produces a team rule, decision, or
+convention, Claude saves it for you:
 
-Skills tell the AI things it can't infer from code: UI style, money formatting,
-deploy quirks, business rules. Create `skills/<name>.md` with frontmatter:
+- "We use Stripe only" → `remember_team_decision('billing', ...)` → auto-pushed
+- "Money is rendered as THB X,XXX.XX" → `save_skill('ui-money', ...)` → auto-pushed
+- "This needs approval" → `request_approval(...)` → auto-pushed
 
-```markdown
----
-name: billing
-description: Use when working on payments, orders, or money.
-tags: [billing, payments]
----
+Other devs' Claude sees these on their next request (background pull every ~10s).
 
-# Billing rules
-- Stripe only, never store raw card data
-- Idempotency-Key required on every POST/PUT/DELETE
-- Money as string, never JS Number
-```
+## What's in this folder
 
-The AI sees skill descriptions via `analyze_intent` and pulls the body via
-`read_skill(name)` when relevant. See [skills/README.md](skills/README.md) for
-the full format reference.
+- `workspace.toml` — topology header (name/version/description)
+- `repos/<name>.toml` — one file per linked repo (auto-managed)
+- `skills/*.md` — team knowledge (auto-generated `repo-*.md` are starter
+  skills from each linked repo's scan — curate them)
+- `memory/entries/<id>.json` — decisions (one file per entry, no conflicts)
+- `memory/syntheses/<domain>.json` — cached domain summaries
+- `approvals/<id>.json` — approval audit trail
 
-## Day-to-day workflow — git is automatic
+All file-per-entry → concurrent writes from 10+ devs never collide.
 
-Knowlyx **auto-syncs** every write to the knowledge repo. You usually don't
-type `git pull` or `git push` yourself:
-
-- `knowlyx memory decide ...` → save + `git pull --rebase` + `git commit` + `git push`
-- `knowlyx approval approve|reject` → same
-- `knowlyx init` in a working repo → registers it + pushes the topology update
-
-To opt out (manual git control), set `KNOWLYX_AUTO_SYNC=0` in your environment.
-
-**Manual sync** when you do want it:
+## If something looks off
 
 ```bash
-knowlyx sync          # one-shot: pull then push everything pending
-knowlyx sync watch    # daemon: pull+push every 60s (Ctrl+C to stop)
-knowlyx sync status   # show local vs remote
+knowlyx doctor                # health check this repo + workspace
+knowlyx audit                 # what MCP tools did Claude actually call?
+knowlyx sync                  # force a pull+push right now
 ```
 
-**Verify Claude actually used Knowlyx**: in any linked repo, run
+## Opting out of auto-sync (rare)
 
-```bash
-knowlyx audit
-```
-
-to see which MCP tools the AI called (last ~500 events, capped automatically).
-
-## Useful CLI commands
-
-```bash
-knowlyx workspace list             # all registered workspaces on this machine
-knowlyx memory list                # all decisions saved (when memory exists)
-knowlyx audit                      # AI tool-call log for the current repo
-knowlyx init --help                # all init options
-```
+Set `KNOWLYX_AUTO_SYNC=0` in your shell to disable background git. You'll
+have to `knowlyx sync` manually.
 """,
         encoding="utf-8",
     )
+
+
+def _bootstrap_starter_skill(
+    ws_dir: Path,
+    repo_name: str,
+    scan,
+    role: str,
+    domains: list[str],
+    git_url: str,
+) -> Path | None:
+    """
+    Write a starter skill summarizing a newly-linked working repo so the team
+    has usable knowledge from day 1 — even on an existing/legacy codebase.
+
+    Only writes if the skill doesn't already exist (idempotent). Returns the
+    path written, or None if nothing was written.
+    """
+    skills_dir = ws_dir / "skills"
+    skills_dir.mkdir(parents=True, exist_ok=True)
+    safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in repo_name).strip("-").lower()
+    skill_file = skills_dir / f"repo-{safe}.md"
+    if skill_file.exists():
+        return None
+
+    language = (getattr(scan, "language", "") or "").strip()
+    framework = (getattr(scan, "framework", "") or "").strip()
+    architecture = getattr(getattr(scan, "architecture", None), "value", "") or ""
+    conventions = list(getattr(scan, "conventions", []) or [])
+    forbidden = list(getattr(scan, "forbidden_patterns", []) or [])
+    assets = list(getattr(scan, "reusable_assets", []) or [])
+
+    lines: list[str] = []
+    lines.append("---")
+    lines.append(f"name: repo-{safe}")
+    desc = (
+        f"Use when working on the {repo_name} repo "
+        f"({role}{', ' + framework if framework else ''}). "
+        f"Covers its stack, conventions, and reusable assets."
+    )
+    lines.append(f"description: {desc}")
+    tag_list = [t for t in [role, language.lower(), framework.lower(), *domains[:3]] if t]
+    if tag_list:
+        lines.append("tags: [" + ", ".join(f'"{t}"' for t in tag_list) + "]")
+    lines.append("auto_generated: true")
+    lines.append("---")
+    lines.append("")
+    lines.append(f"# `{repo_name}` — auto-detected stack & conventions")
+    lines.append("")
+    lines.append(
+        "_This skill was generated by `knowlyx init` from a static scan. "
+        "Curate it as the team learns more — Knowlyx will not overwrite it._"
+    )
+    lines.append("")
+
+    lines.append("## Stack")
+    if language:
+        lines.append(f"- **Language:** {language}")
+    if framework:
+        lines.append(f"- **Framework:** {framework}")
+    if architecture:
+        lines.append(f"- **Architecture:** {architecture}")
+    if role:
+        lines.append(f"- **Role:** {role}")
+    if git_url:
+        lines.append(f"- **Git:** {git_url}")
+    lines.append("")
+
+    if domains:
+        lines.append("## Detected domains")
+        for d in domains:
+            lines.append(f"- {d}")
+        lines.append("")
+
+    if conventions:
+        lines.append("## Conventions (auto-detected)")
+        for c in conventions[:10]:
+            name = getattr(c, "name", "") or ""
+            rule = getattr(c, "rule", "") or ""
+            if name and rule:
+                lines.append(f"- **{name}** — {rule}")
+            elif rule:
+                lines.append(f"- {rule}")
+        lines.append("")
+
+    if forbidden:
+        lines.append("## Forbidden patterns")
+        for f in forbidden[:8]:
+            lines.append(f"- {f}")
+        lines.append("")
+
+    if assets:
+        lines.append("## Reusable assets to import (don't recreate)")
+        seen: set[str] = set()
+        for a in assets[:12]:
+            key = f"{getattr(a, 'name', '')}@{getattr(a, 'path', '')}"
+            if key in seen:
+                continue
+            seen.add(key)
+            a_type = getattr(a, "asset_type", "")
+            a_name = getattr(a, "name", "")
+            a_path = getattr(a, "path", "")
+            lines.append(f"- `{a_name}` ({a_type}) — `{a_path}`")
+        lines.append("")
+
+    lines.append("## How AI should use this")
+    lines.append("- Honor every convention above when generating or editing code.")
+    lines.append("- Prefer the reusable assets — never recreate one.")
+    lines.append("- Treat forbidden patterns as hard blockers in `validate_generated_code`.")
+    lines.append("")
+
+    skill_file.write_text("\n".join(lines), encoding="utf-8")
+    return skill_file
 
 
 def _init_link_mode(
@@ -1237,6 +1306,20 @@ def _init_link_mode(
             console.print(f"\n[green]+[/green] Auto-registered in workspace.toml: {written}")
             # Push the new repo file up so teammates immediately see the topology.
             _auto_sync_workspace(written.parent.parent, f"topology: register {target.name}")
+            # Bootstrap a starter skill from the scan so existing projects
+            # land with usable knowledge from day 1.
+            ws_dir = written.parent.parent
+            skill_path = _bootstrap_starter_skill(
+                ws_dir=ws_dir,
+                repo_name=target.name,
+                scan=scan,
+                role=inferred_role,
+                domains=inferred_domains,
+                git_url=repo_git_url,
+            )
+            if skill_path is not None:
+                console.print(f"  [green]+[/green] Bootstrapped starter skill: [cyan]skills/{skill_path.name}[/cyan]  [dim](edit to refine)[/dim]")
+                _auto_sync_workspace(ws_dir, f"skills: bootstrap {skill_path.stem}")
         elif written:
             console.print(f"\n[dim]Repo already registered in {written}, no change.[/dim]")
     elif remote:

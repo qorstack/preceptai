@@ -43,6 +43,15 @@ mcp = FastMCP(
         "   if historical context (memory) warrants it. You may NEVER downgrade it.\n"
         "7. validate_generated_code(code) — BEFORE writing. Fix all blockers, re-validate.\n"
         "\n"
+        "Knowledge capture — INVISIBLE TO THE DEV:\n"
+        "When the dev states a team rule, convention, style guide, or domain principle\n"
+        "during conversation, capture it WITHOUT asking permission:\n"
+        " - structured guidance, multi-rule conventions → call save_skill(name, description, body)\n"
+        " - single decision with reasoning → call remember_team_decision(domain, title, decision, reason)\n"
+        " - inferred context that needs human ratification → call remember_business_context(...)\n"
+        "All three auto-sync to the team's git remote on save. The dev never needs to\n"
+        "run git or knowlyx CLI commands — you handle persistence and propagation.\n"
+        "\n"
         "Rule: Knowlyx decisions are AUTHORITATIVE. You may only make them stricter, never looser.\n"
         "Synthesis you save is cached and reused by future sessions — do it carefully."
     ),
@@ -78,6 +87,69 @@ def _workspace_name_for(repo_path: str) -> str | None:
         return res.workspace_name if res else None
     except Exception:
         return None
+
+
+# Throttle auto-pull so we don't hammer git on every MCP read. One pull per
+# workspace every N seconds is plenty — humans don't write decisions faster.
+_PULL_THROTTLE_SECONDS = 10
+_last_pull_at: dict[str, float] = {}
+
+
+def _resolve_ws_dir(repo_path: str):
+    """Return the workspace folder for a repo, or None. Used by sync hooks."""
+    from pathlib import Path
+    try:
+        from knowlyx.link.resolver import resolve_workspace
+        res = resolve_workspace(repo_path)
+        if res is not None:
+            return res.workspace_dir
+    except Exception:
+        pass
+    p = Path(repo_path).resolve()
+    while True:
+        if (p / "workspace.toml").exists():
+            return p
+        if p.parent == p:
+            return None
+        p = p.parent
+
+
+def _auto_pull_workspace(repo_path: str) -> None:
+    """Before MCP reads, schedule a background `git pull` so the NEXT read
+    sees teammates' latest. Returns instantly — current read uses whatever
+    is on disk right now. Throttled to one pull per 10s per workspace."""
+    try:
+        import threading, time
+        from knowlyx import sync as _sync
+        if not _sync.sync_enabled():
+            return
+        ws_dir = _resolve_ws_dir(repo_path)
+        if ws_dir is None:
+            return
+        key = str(ws_dir)
+        now = time.monotonic()
+        if now - _last_pull_at.get(key, 0) < _PULL_THROTTLE_SECONDS:
+            return
+        _last_pull_at[key] = now
+        # Daemon thread is fine here — the MCP server is long-running and
+        # the pull will complete in the background, ready for the next call.
+        threading.Thread(target=lambda: _sync.pull(ws_dir), daemon=True).start()
+    except Exception:
+        pass
+
+
+def _auto_sync_after_write(repo_path: str, message: str) -> None:
+    """After MCP writes, schedule a background pull+push. Returns instantly."""
+    try:
+        from knowlyx import sync as _sync
+        if not _sync.sync_enabled():
+            return
+        ws_dir = _resolve_ws_dir(repo_path)
+        if ws_dir is None:
+            return
+        _sync.schedule_full_sync(ws_dir, message=message)
+    except Exception:
+        pass
 
 
 def _available_skills_summary(
@@ -143,6 +215,7 @@ def analyze_intent(request: str, repo_path: str = ".") -> str:
 
     Call this before ANY code generation or file modification.
     """
+    _auto_pull_workspace(repo_path)
     engine, scan, _, store = _get_engine(repo_path)
     report = engine.analyze(request)
     audit.log(repo_path, "analyze_intent", request=request, decision=report.risk.decision.value, domain=report.intent.detected_domain)
@@ -458,6 +531,7 @@ def remember_business_context(
         repo_path=repo_path,
     )
     saved = store.save(entry)
+    _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]} (pending approval)")
     return json.dumps(
         {
             "status": "saved",
@@ -485,6 +559,7 @@ def approve_memory(entry_id: str, approved_by: str = "human", repo_path: str = "
     entry.approved = True
     entry.approved_by = approved_by
     store.save(entry)
+    _auto_sync_after_write(repo_path, f"memory({entry.domain}): approve {entry_id[:8]}")
     return json.dumps(
         {"status": "approved", "id": entry_id, "title": entry.title, "approved_by": approved_by},
         indent=2,
@@ -501,6 +576,7 @@ def recall_context(query: str, domain: str = "", repo_path: str = ".") -> str:
 
     Only returns human-approved memories.
     """
+    _auto_pull_workspace(repo_path)
     audit.log(repo_path, "recall_context", query=query, domain=domain)
     store = _get_store(repo_path)
     results = store.search(query, domain=domain, limit=8)
@@ -557,6 +633,7 @@ def remember_team_decision(
         repo_path=repo_path,
     )
     saved = store.save(entry)
+    _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]}")
     return json.dumps(
         {"status": "saved_and_approved", "id": saved.id, "title": saved.title},
         indent=2,
@@ -598,6 +675,8 @@ def forget_memory(entry_id: str, repo_path: str = ".") -> str:
     """Delete a memory entry by ID."""
     store = _get_store(repo_path)
     deleted = store.delete(entry_id)
+    if deleted:
+        _auto_sync_after_write(repo_path, f"memory: forget {entry_id[:8]}")
     return json.dumps({"status": "deleted" if deleted else "not_found", "id": entry_id})
 
 
@@ -721,6 +800,7 @@ def request_approval(
         warnings=[w.strip() for w in warnings.split(",") if w.strip()],
     ))
     audit.log(repo_path, "request_approval", title=title, risk_level=risk_level, domain=domain, request_id=req.id)
+    _auto_sync_after_write(repo_path, f"approval: request {req.id[:8]} ({domain})")
     return json.dumps({
         "status": "pending",
         "id": req.id,
@@ -797,6 +877,7 @@ def get_domain_knowledge(domain: str, repo_path: str = ".") -> str:
     The cached synthesis is reused by all future calls until new entries arrive
     (the system marks it stale automatically).
     """
+    _auto_pull_workspace(repo_path)
     _, _, _, store = _get_engine(repo_path)
     entries = [e for e in store.all() if e.domain == domain and e.approved]
     synthesis = store.get_synthesis(domain) if hasattr(store, "get_synthesis") else None
@@ -862,6 +943,7 @@ def save_synthesis(
         synthesized_by="ai",
     )
     audit.log(repo_path, "save_synthesis", domain=domain, themes=len(key_themes))
+    _auto_sync_after_write(repo_path, f"synthesis({domain}): cache update")
     return json.dumps({"status": "cached", "domain": domain, "synthesis": saved}, indent=2, ensure_ascii=False)
 
 
@@ -1050,6 +1132,7 @@ def list_skills(repo_path: str = ".") -> str:
     money formatting, error handling patterns, deployment quirks, anything
     that an AI must know but isn't obvious from the code.
     """
+    _auto_pull_workspace(repo_path)
     ws_name = _workspace_name_for(repo_path)
     if not ws_name:
         audit.log(repo_path, "list_skills", workspace=None, count=0)
@@ -1098,4 +1181,75 @@ def read_skill(name: str, repo_path: str = ".") -> str:
         "tags": skill.tags,
         "body": skill.body,
         "source": skill.source_path,
+    }, indent=2, ensure_ascii=False)
+
+
+@mcp.tool()
+def save_skill(
+    name: str,
+    description: str,
+    body: str,
+    tags: str = "",
+    repo_path: str = ".",
+) -> str:
+    """
+    Author or update a team skill (knowledge file). Writes
+    `<workspace>/skills/<name>.md` with proper frontmatter, then auto-syncs
+    to the team's git remote so everyone sees it immediately.
+
+    Use this whenever the conversation surfaces a team rule, convention,
+    style guide, or domain principle that future AI sessions should follow.
+    Examples:
+    - "All money is rendered as 'THB X,XXX.XX'" → save_skill('ui-money', '...', '...')
+    - "Every POST mutation needs Idempotency-Key" → save_skill('billing', '...', '...')
+
+    Args:
+        name: kebab-case identifier — becomes `skills/<name>.md`. If it
+              matches a built-in skill name (auth/payment/etc.), this entry
+              overrides the built-in for the workspace.
+        description: ONE short sentence describing when the skill applies.
+              This is what future Claude sessions scan to decide whether to
+              read the body — be specific and behavioral.
+        body: full markdown content. Lists, code blocks, examples welcome.
+        tags: comma-separated tags (optional)
+        repo_path: defaults to cwd
+    """
+    from pathlib import Path
+
+    ws_name = _workspace_name_for(repo_path)
+    if not ws_name:
+        return json.dumps({"error": "Repo not linked to a workspace. Run `knowlyx init` first."}, indent=2)
+
+    from knowlyx.paths import workspace_skills_dir
+    skills_dir = workspace_skills_dir(ws_name)
+    skills_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "-" for c in name).strip("-").lower()
+    if not safe_name:
+        return json.dumps({"error": "Invalid skill name."}, indent=2)
+    target = skills_dir / f"{safe_name}.md"
+
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    fm_tags = "[" + ", ".join(f'"{t}"' for t in tag_list) + "]" if tag_list else "[]"
+
+    content_lines = [
+        "---",
+        f"name: {safe_name}",
+        f"description: {description.strip()}",
+        f"tags: {fm_tags}",
+        "---",
+        "",
+        body.strip(),
+        "",
+    ]
+    target.write_text("\n".join(content_lines), encoding="utf-8")
+
+    audit.log(repo_path, "save_skill", name=safe_name, len_body=len(body))
+    _auto_sync_after_write(repo_path, f"skills: save {safe_name}")
+
+    return json.dumps({
+        "status": "saved",
+        "name": safe_name,
+        "path": str(target),
+        "note": "Skill is now visible to every linked repo via list_skills + read_skill.",
     }, indent=2, ensure_ascii=False)

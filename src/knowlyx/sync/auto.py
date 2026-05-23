@@ -201,4 +201,115 @@ def full_sync(
         return pr, SyncResult(ok=False, action="push", detail="skipped: pull failed first")
     msg = message or "chore(knowlyx): auto-sync"
     push_result = push(workspace_dir, files, msg)
+    _record_status(workspace_dir, pr, push_result)
     return pr, push_result
+
+
+# ------------------------------------------------------------------
+# Fire-and-forget background scheduling
+# ------------------------------------------------------------------
+#
+# CLI commands and MCP tools call these instead of `full_sync` so they
+# return to the user in milliseconds. The actual git work happens in a
+# detached subprocess (CLI) or daemon thread (long-running MCP server).
+# Result is written to `<workspace>/.knowlyx-sync-status.json` so
+# `knowlyx doctor` can show what happened.
+
+
+def schedule_full_sync(
+    workspace_dir: str | Path,
+    message: str = "",
+    files: list[str] | None = None,
+) -> None:
+    """Schedule a pull+push in the background. Returns immediately."""
+    if not sync_enabled():
+        return
+    p = Path(workspace_dir).expanduser().resolve()
+    if not p.exists() or not _is_git_repo(p) or not _has_remote(p):
+        return
+
+    # Prefer detached subprocess so the sync survives even after the parent
+    # CLI process exits. Daemon threads die when their parent does, which is
+    # bad for short-lived CLI invocations.
+    try:
+        _spawn_detached_sync(p, message, files)
+    except Exception:
+        # As a last resort, fall back to a daemon thread (works for MCP).
+        import threading
+        threading.Thread(
+            target=lambda: full_sync(p, message, files),
+            daemon=True,
+        ).start()
+
+
+def _spawn_detached_sync(p: Path, message: str, files: list[str] | None) -> None:
+    """Launch `python -m knowlyx.sync.auto _bg_sync <args>` detached."""
+    import json as _json
+    import sys
+    payload = _json.dumps({"path": str(p), "message": message, "files": files or []})
+    cmd = [sys.executable, "-m", "knowlyx.sync.auto", "_bg_sync", payload]
+    kwargs: dict = dict(
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+        close_fds=True,
+    )
+    if os.name == "nt":
+        # Windows: fully detach from parent console.
+        kwargs["creationflags"] = (
+            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        )
+    else:
+        kwargs["start_new_session"] = True
+    subprocess.Popen(cmd, **kwargs)
+
+
+def _record_status(
+    workspace_dir: str | Path,
+    pull_r: SyncResult,
+    push_r: SyncResult,
+) -> None:
+    """Drop the result of a sync cycle so `knowlyx doctor` can read it."""
+    import json as _json
+    from datetime import datetime, timezone
+    p = Path(workspace_dir) / ".knowlyx-sync-status.json"
+    try:
+        p.write_text(
+            _json.dumps({
+                "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "pull": {"ok": pull_r.ok, "action": pull_r.action, "detail": pull_r.detail},
+                "push": {"ok": push_r.ok, "action": push_r.action, "detail": push_r.detail},
+            }, indent=2),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def last_sync_status(workspace_dir: str | Path) -> dict | None:
+    import json as _json
+    p = Path(workspace_dir) / ".knowlyx-sync-status.json"
+    if not p.exists():
+        return None
+    try:
+        return _json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, _json.JSONDecodeError):
+        return None
+
+
+def _bg_main(argv: list[str]) -> int:
+    """Entry point for `python -m knowlyx.sync.auto _bg_sync <json>`."""
+    import json as _json
+    if len(argv) < 2 or argv[0] != "_bg_sync":
+        return 1
+    try:
+        payload = _json.loads(argv[1])
+        full_sync(payload["path"], payload.get("message", ""), payload.get("files") or None)
+        return 0
+    except Exception:
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(_bg_main(sys.argv[1:]))
