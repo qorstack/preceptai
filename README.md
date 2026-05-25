@@ -92,7 +92,7 @@ services:
       retries: 10
 
   web:
-    image: ghcr.io/qorstack/knowai:latest
+    image: qorstack/knowai:latest
     container_name: knowai-web
     restart: unless-stopped
     depends_on:
@@ -286,7 +286,7 @@ After submit you should land on the **original entry** (same id), not a new one.
 
 ## Manage / inspect
 
-#### From the dashboard
+### From the dashboard
 
 | URL | What it shows |
 |---|---|
@@ -298,7 +298,7 @@ After submit you should land on the **original entry** (same id), not a new one.
 | <http://localhost:8080/audit> | Full audit log, filter by action |
 | <http://localhost:8080/healthz> | JSON status (for monitoring) |
 
-#### From psql (no password needed via `docker exec`)
+### From psql (no password needed via `docker exec`)
 
 ```bash
 docker exec knowai-postgres psql -U knowai -d knowai -c "\dt"
