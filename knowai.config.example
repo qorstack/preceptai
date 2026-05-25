@@ -1,22 +1,10 @@
-# knowai CLI config (TOML format).
-#
-# Two valid spots — pick one (or both, project wins):
-#   • ./knowai.config            — per-project (walks up from cwd)
-#   • ~/.knowai.config           — user-global, works everywhere
-#
-# Precedence (highest first):
-#   1. Process env vars already set (CI / Docker overrides win)
-#   2. ./knowai.config in cwd or any parent
-#   3. ~/.knowai.config
-#   4. .env (also read by docker-compose)
-#
-# Tip: if you commit knowai.config with real passwords, mark it secret or
-# omit `password` here and set POSTGRES_PASSWORD via your shell / secrets.
+# Postgres credentials for knowai CLI (TOML format).
+# Put this at ~/.knowai.config (global) or ./knowai.config (per-project).
 
 [database]
 host     = "localhost"
 port     = 5432
 user     = "knowai"
-password = "knowai"      # local dev only — see note above
+password = "knowai"
 db       = "knowai"
 schema   = "public"
