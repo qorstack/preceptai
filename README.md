@@ -185,9 +185,9 @@ knowai --version
 
 If `command not found`, open a new terminal (uv/pipx adds to your PATH on first install).
 
-### Step 6 — Point the CLI at the same database
+### Step 6 — Give the CLI your Postgres credentials
 
-knowai needs your Postgres credentials. Drop one file in your home directory — works in every repo, no per-project setup:
+Drop one file in your home directory. Works in every repo:
 
 ```bash
 cat > ~/.knowai.config <<'EOF'
@@ -204,31 +204,32 @@ EOF
 Verify:
 
 ```bash
-knowai memory list   # should print [] or your existing entries — no error
+knowai memory list   # prints [] or your entries — no error
 ```
 
-**Per-project override:** drop a `knowai.config` at any repo root and it wins over the global one. The same file also identifies the repo to its workspace (one file, two purposes):
+That's it for single-database setups.
+
+### Step 6½ — (optional) Identify each repo to a workspace
+
+If you have **multiple repos sharing one knowledge base** (e.g. `api`, `web`, `worker`), generate a project file inside each:
+
+```bash
+cd ~/code/api
+knowai link my-product --role backend --domains payment,auth
+```
+
+This writes `./knowai.config` at the repo root with:
 
 ```toml
 workspace = "my-product"
 repo_name = "api"
 role      = "backend"
 domains   = ["payment", "auth"]
-
-[database]              # optional — overrides ~/.knowai.config
-host = "..."
 ```
 
-See [`knowai.config.example`](knowai.config.example) for the full format. To generate it automatically, run `knowai link my-product --role backend --domains payment,auth` inside the repo.
+Commit it — every dev who clones the repo is auto-connected to the same workspace. The same file can also carry a `[database]` section that overrides `~/.knowai.config` for that repo. See [`knowai.config.example`](knowai.config.example).
 
-**Precedence** (highest first):
-
-1. Process env vars already set (CI / Docker / shell exports win)
-2. `./knowai.config` in cwd or any parent dir (project-specific)
-3. `~/.knowai.config` (user-global)
-4. `.env` (the same file `docker compose` uses — kept as a fallback)
-
-> **Note on the password.** For local dev `localhost`, the value in the file is fine. For shared dev / prod, omit the password and set `POSTGRES_PASSWORD` via your shell or your team's secrets manager — process env vars override the file.
+**Config precedence** (highest first): process env → `./knowai.config` (cwd or any parent) → `~/.knowai.config` → `.env`.
 
 ### Step 7 — Connect to Claude Code
 
