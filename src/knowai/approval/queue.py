@@ -198,7 +198,7 @@ def get_queue(repo_path: str = ".") -> ApprovalQueue:
     """
     Resolve approval queue dir.
 
-    If repo (or ancestor) has .knowai/config.toml, use the central
+    If repo (or ancestor) has knowai.config, use the central
     workspace queue at <workspace>/approvals/ — shared across all repos.
     Otherwise fall back to legacy per-repo .knowai/approvals/.
     """

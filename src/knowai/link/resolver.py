@@ -2,7 +2,7 @@
 Resolve a repo_path to its central workspace (if any).
 
 Resolution strategy:
-1. Look for .knowai/config.toml in repo_path (or any parent up to FS root).
+1. Look for knowai.config in repo_path (or any parent up to FS root).
 2. If found, return the workspace name + central paths.
 3. If not found, return None — caller can fall back to legacy
    per-repo `<repo>/.knowai/memory.json` behavior.
@@ -33,7 +33,7 @@ class WorkspaceResolution:
 
 
 def _find_link_upwards(start: Path) -> tuple[Path, LinkConfig] | None:
-    """Walk up from `start` looking for .knowai/config.toml. Return (repo_root, config)."""
+    """Walk up from `start` looking for knowai.config. Return (repo_root, config)."""
     p = start.resolve()
     while True:
         cfg = load_link(p)
@@ -111,7 +111,7 @@ def resolve_workspace_or_legacy(repo_path: str | Path = ".") -> tuple[Path, Path
     Convenience: return (memory_path, approvals_path, mode).
 
     Resolution order:
-    1. If repo (or ancestor) has `.knowai/config.toml` → "central" — use the
+    1. If repo (or ancestor) has `knowai.config` → "central" — use the
        linked workspace's shared store.
     2. If repo (or ancestor) has `workspace.toml` → "home" — we ARE the
        workspace home, store at workspace root.

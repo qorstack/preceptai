@@ -120,5 +120,5 @@ def list_workspaces() -> list[str]:
 
 
 def repo_link_config_path(repo_path: str | Path) -> Path:
-    """Per-repo .knowai/config.toml path."""
-    return Path(repo_path) / ".knowai" / "config.toml"
+    """Per-repo knowai.config path (workspace link + optional DB override)."""
+    return Path(repo_path) / "knowai.config"

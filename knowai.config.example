@@ -1,5 +1,10 @@
-# Postgres credentials for knowai CLI (TOML format).
-# Put this at ~/.knowai.config (global) or ./knowai.config (per-project).
+# knowai project config — drop at repo root and commit.
+# Per-project. ~/.knowai.config is the user-global fallback (database only).
+
+workspace = "my-product"
+repo_name = "api"
+role      = "backend"
+domains   = ["payment", "auth"]
 
 [database]
 host     = "localhost"

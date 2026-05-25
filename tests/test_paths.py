@@ -58,4 +58,4 @@ def test_list_workspaces_empty_when_no_home(isolated_home):
 
 
 def test_repo_link_config_path(tmp_path):
-    assert paths.repo_link_config_path(tmp_path) == tmp_path / ".knowai" / "config.toml"
+    assert paths.repo_link_config_path(tmp_path) == tmp_path / "knowai.config"

@@ -1,7 +1,7 @@
 """
 Knowai Link layer — connects a project repo to a central workspace.
 
-Each project repo gets `.knowai/config.toml` that points to a workspace
+Each project repo gets `knowai.config` that points to a workspace
 stored under `~/.knowai/workspaces/<name>/`. This lets devs clone one
 repo at a time and still get shared memory, decisions, and cross-repo
 topology.

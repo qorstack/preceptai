@@ -768,15 +768,26 @@ def link(
 def unlink(
     repo_path: str = typer.Option(".", "--repo", "-r"),
 ):
-    """Remove this repo's link to a central workspace (deletes .knowai/config.toml)."""
+    """Remove this repo's link to a central workspace.
+
+    If knowai.config also carries a [database] section, only the link fields
+    are stripped; the file (and DB credentials) stay. Otherwise the whole
+    file is deleted.
+    """
+    from knowai.link.config import _extract_database_section
     from knowai.paths import repo_link_config_path
 
     path = repo_link_config_path(repo_path)
     if not path.exists():
         console.print("[yellow]No link config found.[/yellow]")
         raise typer.Exit(0)
-    path.unlink()
-    console.print(f"[green]Unlinked[/green] {path}")
+    db_section = _extract_database_section(path)
+    if db_section:
+        path.write_text(db_section, encoding="utf-8")
+        console.print(f"[green]Unlinked[/green] (kept [database] in {path})")
+    else:
+        path.unlink()
+        console.print(f"[green]Unlinked[/green] {path}")
 
 
 @app.command()
@@ -1286,7 +1297,7 @@ def _init_link_mode(
     ), target)
     console.print(f"[green]Linked[/green] {target.name} → {workspace_name}")
     console.print(f"  Detected role: [cyan]{inferred_role}[/cyan]  Domains: {', '.join(inferred_domains) or '(none)'}")
-    console.print("  Wrote: [cyan].knowai/config.toml[/cyan]")
+    console.print("  Wrote: [cyan]knowai.config[/cyan]")
     if repo_git_url:
         console.print(f"  Repo git URL: {repo_git_url}")
     if remote:

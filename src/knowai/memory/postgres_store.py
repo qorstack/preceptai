@@ -10,7 +10,7 @@ EXISTS / DO $$ guards make repeats free. Team workflow:
 
     1. cp .env.example .env
     2. docker compose up -d
-    3. knowai init                # writes .knowai/config.toml + MCP config
+    3. knowai init                # writes knowai.config + MCP config
 
 After that, just code + chat. The store auto-supersedes stale entries via
 cosine similarity, and the synthesis-stale flag fires from a DB trigger so

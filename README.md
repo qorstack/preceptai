@@ -207,7 +207,19 @@ Verify:
 knowai memory list   # should print [] or your existing entries — no error
 ```
 
-**Per-project override:** drop a `knowai.config` at any repo root and it wins over the global one. Useful if a repo points at a different database. See [`knowai.config.example`](knowai.config.example) for the format.
+**Per-project override:** drop a `knowai.config` at any repo root and it wins over the global one. The same file also identifies the repo to its workspace (one file, two purposes):
+
+```toml
+workspace = "my-product"
+repo_name = "api"
+role      = "backend"
+domains   = ["payment", "auth"]
+
+[database]              # optional — overrides ~/.knowai.config
+host = "..."
+```
+
+See [`knowai.config.example`](knowai.config.example) for the full format. To generate it automatically, run `knowai link my-product --role backend --domains payment,auth` inside the repo.
 
 **Precedence** (highest first):
 
