@@ -1,0 +1,19 @@
+# knowai CLI config — commit this file (or your edited copy) to your repo.
+# The CLI walks up from the current directory looking for `knowai.toml`,
+# so dropping this at the repo root is enough — no shell exports needed.
+#
+# Precedence (highest first):
+#   1. Process env vars already set (CI / Docker overrides win)
+#   2. This file (knowai.toml)
+#   3. .env file (also read by docker-compose)
+#
+# Tip: if you commit knowai.toml with real passwords, mark it secret or
+# put just the host/port/db here and keep the password in .env / secrets.
+
+[database]
+host     = "localhost"
+port     = 5432
+user     = "knowai"
+password = "knowai"      # local dev only — use env vars / secrets in prod
+db       = "knowai"
+schema   = "public"

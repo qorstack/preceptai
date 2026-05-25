@@ -187,51 +187,36 @@ If `command not found`, open a new terminal (uv/pipx adds to your PATH on first 
 
 ### Step 6 — Point the CLI at the same database
 
-The CLI uses the same `POSTGRES_*` env vars as the dashboard. **The easiest way is to reuse the `.env` file from Step 1** — knowai auto-loads `.env` from the directory you run the CLI in (no exporting needed).
+Drop a `knowai.toml` file at the root of any repo you'll run the CLI in. The CLI walks up from your current directory looking for it — no shell exports, no copying `.env` around.
 
-So if you `cd` into the folder you created in Step 1 (which has the `.env` and `docker-compose.yml`), the CLI just works:
+Create **`knowai.toml`** alongside your code:
 
-```bash
-cd ~/knowai          # the folder from Step 1
-knowai memory list   # uses .env automatically
+```toml
+[database]
+host     = "localhost"
+port     = 5432
+user     = "knowai"
+password = "knowai"      # local dev only — see note below
+db       = "knowai"
+schema   = "public"
 ```
 
-**If you want to run knowai from any directory** (e.g. inside your code repos), either:
+A ready-to-copy version lives at [`knowai.toml.example`](knowai.toml.example) in this repo.
 
-- Copy the `.env` file into each repo (recommended), or
-- Export the vars in your shell profile:
+Verify it works:
 
-  <details>
-  <summary>Mac / Linux</summary>
+```bash
+cd /path/to/your/repo   # any folder under one with knowai.toml works too
+knowai memory list      # should print [] or your existing entries, no error
+```
 
-  ```bash
-  export POSTGRES_HOST=localhost
-  export POSTGRES_PORT=5432
-  export POSTGRES_USER=knowai
-  export POSTGRES_PASSWORD=knowai
-  export POSTGRES_DB=knowai
-  export POSTGRES_SCHEMA=public
-  ```
+**Precedence** (highest first):
 
-  Persist in `~/.bashrc` or `~/.zshrc`.
-  </details>
+1. Process env vars already set (CI / Docker / shell exports win)
+2. `knowai.toml`
+3. `.env` (the same file `docker compose` uses — kept as a fallback)
 
-  <details>
-  <summary>Windows PowerShell</summary>
-
-  ```powershell
-  $env:POSTGRES_HOST='localhost'
-  $env:POSTGRES_PORT='5432'
-  $env:POSTGRES_USER='knowai'
-  $env:POSTGRES_PASSWORD='knowai'
-  $env:POSTGRES_DB='knowai'
-  $env:POSTGRES_SCHEMA='public'
-  ```
-
-  Persist in your `$PROFILE`.
-  </details>
-
-System env vars always win over `.env` if both exist.
+> **Note on the password.** For local dev `localhost`, the value in `knowai.toml` is fine. For shared dev / prod, commit `knowai.toml` without the password and set `POSTGRES_PASSWORD` via your shell or your team's secrets manager — process env vars override the file.
 
 ### Step 7 — Connect to Claude Code
 
