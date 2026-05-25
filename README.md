@@ -13,7 +13,7 @@
 
 AI coding tools generate code fast — but they don't understand your system. They duplicate utilities, ignore conventions, miss cross-service impact, and re-invent decisions your team already made.
 
-knowai sits between your AI assistant and your codebase. When you ask Claude *"add a refund endpoint"*, knowai intercepts and returns:
+knowai sits between your AI assistant and your codebase. When you ask Claude _"add a refund endpoint"_, knowai intercepts and returns:
 
 ```text
 Domain:    payment (HIGH)
@@ -33,11 +33,11 @@ Knowledge is stored in **Postgres** with semantic auto-merge (similar entries me
 
 ## Prerequisites
 
-| Need | Why |
-|---|---|
-| **Docker + Docker Compose v2** | run Postgres + dashboard |
-| **Python 3.11+** with `uv` or `pipx` | *only* if you want AI/MCP integration (Part 2) |
-| **~2GB RAM free** | embedding model loads in the web container |
+| Need                                 | Why                                            |
+| ------------------------------------ | ---------------------------------------------- |
+| **Docker + Docker Compose v2**       | run Postgres + dashboard                       |
+| **Python 3.11+** with `uv` or `pipx` | _only_ if you want AI/MCP integration (Part 2) |
+| **~2GB RAM free**                    | embedding model loads in the web container     |
 
 Verify:
 
@@ -86,7 +86,11 @@ services:
     volumes:
       - knowai_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-knowai} -d ${POSTGRES_DB:-knowai}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-knowai} -d ${POSTGRES_DB:-knowai}",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -144,7 +148,7 @@ You'll see the **Overview** page with all counts at 0.
    - **Title** — `Use idempotency keys`
    - **Content** — `All POST /payments require an Idempotency-Key header.`
      (Plain markdown — toolbar gives you bold/italic/headings/code/lists; **Preview** tab renders it.)
-3. *(Optional)* tick **Mark as approved** if your team has already signed off.
+3. _(Optional)_ tick **Mark as approved** if your team has already signed off.
 4. Click **Save** → you land on the entry detail page.
 
 Go back to **Home** — `Knowledge items = 1`, `Approved = 1`.
@@ -207,28 +211,33 @@ Verify:
 knowai memory list   # prints [] or your entries — no error
 ```
 
-### Step 6½ — Identify each repo to a workspace
+### Step 7 — Link each repo to a workspace
 
-For every repo that should join a workspace, drop a `./knowai.config` at its root:
+Drop a `./knowai.config` at the root of every repo that should join a workspace, then commit it:
 
 ```toml
 workspace = "my-product"
-repo_name = "aaa-api"
+repo_name = "aaa-api"        # required — explicit, not folder-derived
 role      = "backend"        # optional
 domains   = ["payment"]      # optional
 ```
 
-`repo_name` is **explicit on purpose** — folder names get renamed, the identity shouldn't. Commit `./knowai.config` to git so every dev who clones the repo is auto-connected to the same workspace.
+Write it by hand, or generate with `knowai link my-product --name aaa-api --role backend`. See [`knowai.config.example`](knowai.config.example).
 
-- Generate it with `knowai link my-product --name aaa-api --role backend`, or write it by hand. See [`knowai.config.example`](knowai.config.example).
-- A repo can also carry its own `[database]` section here to override `~/.knowai.config`.
-- Repos without `./knowai.config` simply aren't linked — knowai falls back to a per-repo local store. A dev who hasn't installed knowai is unaffected; the file is ignored.
+The same file can also carry a `[database]` section to override `~/.knowai.config` for that repo.
+
+**Why explicit `repo_name`:** folder names get renamed locally; repo identity shouldn't drift with them.
+
+**Bypass behavior:**
+
+- Repo without `./knowai.config` → not linked. The CLI keeps working but stores data in a local per-repo fallback.
+- Dev without knowai installed → the file is just text in the repo. Nothing breaks.
 
 **Config precedence** (highest first): process env → `./knowai.config` (cwd or any parent) → `~/.knowai.config` → `.env`.
 
-### Step 6¾ — (optional) Seed knowledge from an existing repo
+### Step 8 — (optional) Seed knowledge from existing code
 
-For repos you've already built, `knowai generate` scans the code and produces a starting set of memory entries (overview, conventions, reusable assets, risk patterns):
+For repos you've already built, `knowai generate` scans the code and turns each finding (overview, conventions, reusable assets, risk patterns) into a knowledge entry:
 
 ```bash
 cd ~/code/aaa-api
@@ -237,9 +246,11 @@ knowai generate --save              # persist as pending (review in dashboard)
 knowai generate --save --approve    # persist + auto-approve (use when you trust the scan)
 ```
 
-Then refine them in the dashboard — edit titles, delete noise, approve the keepers.
+Add `--approve` to mark them approved on the spot (use when you trust the scan).
 
-### Step 7 — Connect to Claude Code
+Then refine in the dashboard — edit titles, delete noise, approve the keepers.
+
+### Step 9 — Connect to Claude Code
 
 Register knowai **once at user scope** so it works in every project — no need to re-register per repo:
 
@@ -269,7 +280,7 @@ Edit `~/.cursor/mcp.json`:
 
 Restart Cursor.
 
-### Step 8 — Confirm the AI uses it
+### Step 10 — Confirm the AI uses it
 
 In your AI chat, type:
 
@@ -305,9 +316,9 @@ After submit you should land on the **original entry** (same id), not a new one.
 
 **If you see 2 separate entries:**
 
-| Cause | Fix |
-|---|---|
-| Bodies aren't similar enough (cosine < 0.92) | Use wording closer to the first entry. The threshold is intentionally strict to avoid wrong merges. |
+| Cause                                           | Fix                                                                                                                   |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Bodies aren't similar enough (cosine < 0.92)    | Use wording closer to the first entry. The threshold is intentionally strict to avoid wrong merges.                   |
 | Embedding model failed to load in the container | `docker compose logs web` — look for `sentence-transformers` errors. Restart `web` after first-run download finishes. |
 
 ---
@@ -316,15 +327,15 @@ After submit you should land on the **original entry** (same id), not a new one.
 
 ### From the dashboard
 
-| URL | What it shows |
-|---|---|
-| <http://localhost:8080> | **Home** — counts + recent activity |
-| <http://localhost:8080/entries> | **Knowledge** — list of items, search/filter, edit/approve/delete |
-| <http://localhost:8080/entries?add=true> | **Add knowledge** — full-page editor (Title + markdown content) |
-| <http://localhost:8080/entries/{id}> | Item detail with Edit / Approve / Delete + history |
-| <http://localhost:8080/syntheses> | **Summaries** — per-domain AI summaries + drift detection |
-| <http://localhost:8080/audit> | **Activity** — full audit log, filter by action |
-| <http://localhost:8080/healthz> | JSON status (for monitoring) |
+| URL                                      | What it shows                                                     |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| <http://localhost:8080>                  | **Home** — counts + recent activity                               |
+| <http://localhost:8080/entries>          | **Knowledge** — list of items, search/filter, edit/approve/delete |
+| <http://localhost:8080/entries?add=true> | **Add knowledge** — full-page editor (Title + markdown content)   |
+| <http://localhost:8080/entries/{id}>     | Item detail with Edit / Approve / Delete + history                |
+| <http://localhost:8080/syntheses>        | **Summaries** — per-domain AI summaries + drift detection         |
+| <http://localhost:8080/audit>            | **Activity** — full audit log, filter by action                   |
+| <http://localhost:8080/healthz>          | JSON status (for monitoring)                                      |
 
 ### From psql (no password needed via `docker exec`)
 
@@ -357,16 +368,16 @@ docker compose pull web && docker compose up -d
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| `docker compose up` fails | Make sure Docker Desktop is running |
-| Web shows `unhealthy` for >30s | Postgres still booting first time. Check `docker compose logs web` |
-| Port `5432` / `8080` already in use | Change `POSTGRES_PORT` / `WEB_PORT` in `.env`, then `docker compose up -d` |
-| `knowai: command not found` | Open a new terminal (uv/pipx PATH not loaded yet) |
-| AI doesn't call knowai tools | `~/.knowai.config` missing/misconfigured, OR Claude/Cursor started before you created it — restart the AI app and check `claude mcp list` shows `knowai ✓` |
-| Two similar entries instead of one merged | See [Verify auto-merge](#verify-auto-merge) outcomes table above |
-| Embedding model OOM on first start | Container needs ~2GB free RAM. Close other apps and `docker compose restart web` |
-| `docker pull qorstack/knowai` fails | Image not published yet — wait for `Publish Docker image` workflow to finish. Or build locally via the [Build from source](#build-from-source-contributors) section |
+| Problem                                   | Fix                                                                                                                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker compose up` fails                 | Make sure Docker Desktop is running                                                                                                                                 |
+| Web shows `unhealthy` for >30s            | Postgres still booting first time. Check `docker compose logs web`                                                                                                  |
+| Port `5432` / `8080` already in use       | Change `POSTGRES_PORT` / `WEB_PORT` in `.env`, then `docker compose up -d`                                                                                          |
+| `knowai: command not found`               | Open a new terminal (uv/pipx PATH not loaded yet)                                                                                                                   |
+| AI doesn't call knowai tools              | `~/.knowai.config` missing/misconfigured, OR Claude/Cursor started before you created it — restart the AI app and check `claude mcp list` shows `knowai ✓`          |
+| Two similar entries instead of one merged | See [Verify auto-merge](#verify-auto-merge) outcomes table above                                                                                                    |
+| Embedding model OOM on first start        | Container needs ~2GB free RAM. Close other apps and `docker compose restart web`                                                                                    |
+| `docker pull qorstack/knowai` fails       | Image not published yet — wait for `Publish Docker image` workflow to finish. Or build locally via the [Build from source](#build-from-source-contributors) section |
 
 ---
 
