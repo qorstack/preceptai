@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.title if entry else 'Entry' }}{% endblock %}
+{% block content %}
+<p><a href="/entries">← All entries</a></p>
+
+{% if not entry %}
+  <p class="muted">Entry not found.</p>
+{% else %}
+  <h1>{{ entry.title }}</h1>
+  <div class="meta">
+    <span class="tag">{{ entry.kind }}</span>
+    <span class="tag">domain: {{ entry.domain }}</span>
+    {% if entry.approved %}<span class="tag tag-approve">approved by {{ entry.approved_by or 'unknown' }}</span>
+    {% else %}<span class="tag">pending approval</span>{% endif %}
+    {% if entry.superseded_by %}
+      <span class="tag tag-supersede">superseded by <a href="/entries/{{ entry.superseded_by }}">{{ entry.superseded_by }}</a></span>
+    {% endif %}
+  </div>
+  <p class="muted mono"><small>id: {{ entry.id }} · repo: {{ entry.repo_path or '—' }} · created: {{ entry.created_at }} · updated: {{ entry.updated_at }}</small></p>
+
+  <div class="actions">
+    <a class="btn" href="/entries/{{ entry.id }}/edit">Edit</a>
+    {% if not entry.approved %}
+      <form method="post" action="/entries/{{ entry.id }}/approve" class="inline">
+        <input type="text" name="approver" placeholder="approver name (optional)">
+        <button type="submit" class="btn btn-primary">Approve</button>
+      </form>
+    {% endif %}
+    <form method="post" action="/entries/{{ entry.id }}/delete" class="inline" onsubmit="return confirm('Delete this entry?');">
+      <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+  </div>
+
+  <section>
+    <h2>Body</h2>
+    <pre class="body">{{ entry.body }}</pre>
+  </section>
+
+  {% if entry.tags %}
+  <section>
+    <h2>Tags</h2>
+    {% for t in entry.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if entry.metadata %}
+  <section>
+    <h2>Metadata</h2>
+    {% if entry.metadata.get('merge_count') %}
+      <p>Merged <strong>{{ entry.metadata.merge_count }}</strong> time(s).</p>
+    {% endif %}
+    {% if entry.metadata.get('contributors') %}
+      <table class="tbl">
+        <thead><tr><th>When</th><th>Actor</th><th>From title</th></tr></thead>
+        <tbody>
+        {% for c in entry.metadata.contributors %}
+          <tr><td class="mono"><small>{{ c.at }}</small></td><td>{{ c.actor }}</td><td>{{ c.title }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    <details><summary>Raw metadata</summary><pre class="mono">{{ entry.metadata | tojson(indent=2) }}</pre></details>
+  </section>
+  {% endif %}
+
+  <section>
+    <h2>Audit log</h2>
+    <table class="tbl">
+      <thead><tr><th>When</th><th>Action</th><th>Actor</th><th>Diff</th></tr></thead>
+      <tbody>
+      {% for a in audit %}
+        <tr>
+          <td class="mono"><small>{{ a.at }}</small></td>
+          <td><span class="tag tag-{{ a.action }}">{{ a.action }}</span></td>
+          <td>{{ a.actor }}</td>
+          <td><pre class="mono inline">{{ a.diff | tojson }}</pre></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endif %}
+{% endblock %}

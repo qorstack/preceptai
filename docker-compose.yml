@@ -17,5 +17,22 @@ services:
       timeout: 3s
       retries: 10
 
+  web:
+    build: .
+    container_name: knowai-web
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-knowai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowai}
+      POSTGRES_DB: ${POSTGRES_DB:-knowai}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-public}
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+
 volumes:
   knowai_pgdata:

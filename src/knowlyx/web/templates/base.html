@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}knowai{% endblock %} — knowai dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">knowai</div>
+    <nav>
+      <a href="/" class="{{ 'on' if active == 'dashboard' else '' }}">Overview</a>
+      <a href="/knowledge" class="{{ 'on' if active == 'knowledge' else '' }}">Knowledge</a>
+      <a href="/entries" class="{{ 'on' if active == 'entries' else '' }}">Entries</a>
+      <a href="/syntheses" class="{{ 'on' if active == 'syntheses' else '' }}">Syntheses</a>
+      <a href="/audit" class="{{ 'on' if active == 'audit' else '' }}">Audit</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

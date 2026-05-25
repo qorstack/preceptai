@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS memory_syntheses (
 CREATE TABLE IF NOT EXISTS memory_audit_log (
   id        BIGSERIAL PRIMARY KEY,
   entry_id  TEXT NOT NULL,
-  action    TEXT NOT NULL CHECK (action IN ('insert','update','delete','supersede','approve')),
+  action    TEXT NOT NULL CHECK (action IN ('insert','update','delete','supersede','approve','merge')),
   actor     TEXT NOT NULL DEFAULT 'system',
   at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   diff      JSONB NOT NULL DEFAULT '{}'::jsonb

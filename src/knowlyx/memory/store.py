@@ -381,7 +381,7 @@ def create_store(repo_path: str = ".", qdrant_url: str = "", qdrant_api_key: str
     Return the best available store for the given repo.
 
     Resolution order:
-    1. KNOWAI_DB_URL (or legacy KNOWLYX_DB_URL) set → PostgresMemoryStore.
+    1. POSTGRES_USER env set → PostgresMemoryStore (DSN built from POSTGRES_* vars).
        Schema auto-bootstraps on first connect (zero setting).
     2. Workspace config present → central FileMemoryStore at <workspace>/memory/.
     3. Legacy per-repo .knowlyx/memory/.
@@ -390,11 +390,10 @@ def create_store(repo_path: str = ".", qdrant_url: str = "", qdrant_api_key: str
 
     from knowlyx.link.resolver import resolve_workspace_or_legacy
 
-    dsn = os.getenv("KNOWAI_DB_URL") or os.getenv("KNOWLYX_DB_URL")
-    if dsn:
+    if os.getenv("POSTGRES_USER"):
         try:
             from knowlyx.memory.postgres_store import PostgresMemoryStore
-            return PostgresMemoryStore(dsn=dsn)
+            return PostgresMemoryStore()
         except ImportError:
             # psycopg not installed — fall through to file store
             pass

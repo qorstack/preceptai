@@ -1,8 +1,9 @@
 """
 Postgres-backed memory store with auto-bootstrap (zero setting).
 
-Activated when KNOWAI_DB_URL (or legacy KNOWLYX_DB_URL) is set, or when the
-default docker-compose Postgres is reachable on localhost:5432.
+Activated when POSTGRES_USER env is set. DSN is built from POSTGRES_USER,
+POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB — no separate
+KNOWAI_DB_URL needed.
 
 Bootstrap is idempotent: schema.sql runs on every connect; CREATE ... IF NOT
 EXISTS / DO $$ guards make repeats free. Team workflow:
@@ -26,9 +27,10 @@ from typing import Any
 from knowlyx.memory.schema import MemoryEntry, MemoryKind
 from knowlyx.memory.store import MemoryStore
 
-DEFAULT_DSN = "postgresql://knowai:knowai@localhost:5432/knowai"  # noqa: S105 - local docker-compose default
 DEFAULT_SCHEMA = "public"
-SIMILARITY_THRESHOLD = float(os.getenv("KNOWAI_SIMILARITY_THRESHOLD", "0.92"))
+# Cosine similarity above which a new entry is merged into an existing one.
+# Hard-coded to keep configuration zero-touch; tune in code if needed.
+SIMILARITY_THRESHOLD = 0.92
 
 
 def _validate_schema_name(name: str) -> str:
@@ -36,6 +38,25 @@ def _validate_schema_name(name: str) -> str:
     if not name or not all(c.isalnum() or c == "_" for c in name):
         raise ValueError(f"Invalid schema name: {name!r}")
     return name
+
+
+def _build_dsn_from_env() -> str:
+    """Compose DSN from POSTGRES_* env vars. Fails loud if any required var is missing."""
+    from urllib.parse import quote_plus
+
+    required = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB")
+    missing = [k for k in required if not os.getenv(k)]
+    if missing:
+        raise RuntimeError(
+            f"Missing required env vars: {', '.join(missing)}. "
+            "Define them in .env (see .env.example)."
+        )
+    user = quote_plus(os.environ["POSTGRES_USER"])
+    pw = quote_plus(os.environ["POSTGRES_PASSWORD"])
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    db = os.environ["POSTGRES_DB"]
+    return f"postgresql://{user}:{pw}@{host}:{port}/{db}"
 
 
 def _load_schema_sql() -> str:
@@ -49,14 +70,9 @@ class PostgresMemoryStore(MemoryStore):
         import psycopg
         from psycopg_pool import ConnectionPool
 
-        self._dsn = (
-            dsn
-            or os.getenv("KNOWAI_DB_URL")
-            or os.getenv("KNOWLYX_DB_URL")
-            or DEFAULT_DSN
-        )
+        self._dsn = dsn or _build_dsn_from_env()
         self._schema = _validate_schema_name(
-            schema or os.getenv("KNOWAI_DB_SCHEMA") or DEFAULT_SCHEMA
+            schema or os.getenv("POSTGRES_SCHEMA") or DEFAULT_SCHEMA
         )
 
         def _configure(conn):
@@ -124,41 +140,42 @@ class PostgresMemoryStore(MemoryStore):
     # ------------------------------------------------------------------
 
     def save(self, entry: MemoryEntry) -> MemoryEntry:
+        """
+        Append-merge save:
+
+        - Same (kind, domain, title) → same id → update in-place (no merge needed)
+        - Different title but cosine similarity ≥ threshold → merge new body
+          into the existing canonical entry (append, union tags, contributor log)
+        - Otherwise → insert fresh
+
+        Race condition is prevented by pg_advisory_xact_lock(domain) inside a
+        single transaction, so two concurrent saves in the same domain serialize.
+        """
+        import hashlib
+
         if not entry.id:
-            import hashlib
             key = f"{entry.kind.value}:{entry.domain}:{entry.title}"
             entry.id = hashlib.sha256(key.encode()).hexdigest()[:16]
 
-        with self._pool.connection() as conn:
+        vec = self._encode(f"{entry.title} {entry.body}")
+
+        with self._pool.connection() as conn, conn.transaction():
             with conn.cursor() as cur:
+                # Per-domain advisory lock — serializes save() calls for the
+                # same domain. Released automatically at COMMIT.
                 cur.execute(
-                    """
-                    INSERT INTO memory_entries
-                        (id, kind, domain, title, body, tags, approved, approved_by, repo_path, metadata)
-                    VALUES (%s, %s::memory_kind, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-                    ON CONFLICT (id) DO UPDATE SET
-                        title       = EXCLUDED.title,
-                        body        = EXCLUDED.body,
-                        tags        = EXCLUDED.tags,
-                        approved    = EXCLUDED.approved,
-                        approved_by = EXCLUDED.approved_by,
-                        repo_path   = EXCLUDED.repo_path,
-                        metadata    = EXCLUDED.metadata
-                    """,
-                    (
-                        entry.id, entry.kind.value, entry.domain, entry.title, entry.body,
-                        entry.tags, entry.approved, entry.approved_by, entry.repo_path,
-                        json.dumps(entry.metadata, default=str),
-                    ),
-                )
-                cur.execute(
-                    "INSERT INTO memory_audit_log (entry_id, action, actor, diff) VALUES (%s, 'insert', %s, %s::jsonb)",
-                    (entry.id, entry.approved_by or "system", json.dumps({"title": entry.title})),
+                    "SELECT pg_advisory_xact_lock(hashtext(%s)::bigint)",
+                    (entry.domain,),
                 )
 
-            vec = self._encode(f"{entry.title} {entry.body}")
-            if vec is not None:
-                with conn.cursor() as cur:
+                canonical_id = self._find_canonical(cur, entry, vec)
+                if canonical_id and canonical_id != entry.id:
+                    self._merge_into(cur, canonical_id, entry)
+                    entry.id = canonical_id
+                else:
+                    self._insert_or_update(cur, entry)
+
+                if vec is not None:
                     cur.execute(
                         """
                         INSERT INTO memory_entry_embeddings (entry_id, embedding)
@@ -169,35 +186,115 @@ class PostgresMemoryStore(MemoryStore):
                         """,
                         (entry.id, vec),
                     )
-                self._auto_supersede(conn, entry, vec)
 
         return entry
 
-    def _auto_supersede(self, conn, entry: MemoryEntry, vec: list[float]) -> None:
-        """Mark older entries in the same domain as superseded if very similar."""
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT e.id
-                FROM memory_entries e
-                JOIN memory_entry_embeddings em ON em.entry_id = e.id
-                WHERE e.domain = %s
-                  AND e.id <> %s
-                  AND e.superseded_by IS NULL
-                  AND (1 - (em.embedding <=> %s::vector)) >= %s
-                """,
-                (entry.domain, entry.id, vec, SIMILARITY_THRESHOLD),
-            )
-            stale_ids = [r[0] for r in cur.fetchall()]
-            for sid in stale_ids:
-                cur.execute(
-                    "UPDATE memory_entries SET superseded_by = %s, superseded_at = now() WHERE id = %s",
-                    (entry.id, sid),
+    # ------------------------------------------------------------------
+    # save() helpers
+    # ------------------------------------------------------------------
+
+    def _find_canonical(self, cur, entry: MemoryEntry, vec: list[float] | None) -> str | None:
+        """Return the id of an existing entry to merge into, or None."""
+        # 1. Exact id match (same kind+domain+title) → not a merge candidate,
+        #    handled by _insert_or_update's ON CONFLICT.
+        cur.execute(
+            "SELECT id FROM memory_entries WHERE id = %s AND superseded_by IS NULL",
+            (entry.id,),
+        )
+        if cur.fetchone():
+            return entry.id
+
+        # 2. Similar embedding in same domain.
+        if vec is None:
+            return None
+        cur.execute(
+            """
+            SELECT id
+            FROM memory_entries e
+            JOIN memory_entry_embeddings em ON em.entry_id = e.id
+            WHERE e.domain = %s
+              AND e.superseded_by IS NULL
+              AND (1 - (em.embedding <=> %s::vector)) >= %s
+            ORDER BY em.embedding <=> %s::vector
+            LIMIT 1
+            """,
+            (entry.domain, vec, SIMILARITY_THRESHOLD, vec),
+        )
+        row = cur.fetchone()
+        return row[0] if row else None
+
+    def _insert_or_update(self, cur, entry: MemoryEntry) -> None:
+        cur.execute(
+            """
+            INSERT INTO memory_entries
+                (id, kind, domain, title, body, tags, approved, approved_by, repo_path, metadata)
+            VALUES (%s, %s::memory_kind, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            ON CONFLICT (id) DO UPDATE SET
+                title       = EXCLUDED.title,
+                body        = EXCLUDED.body,
+                tags        = EXCLUDED.tags,
+                approved    = EXCLUDED.approved,
+                approved_by = EXCLUDED.approved_by,
+                repo_path   = EXCLUDED.repo_path,
+                metadata    = EXCLUDED.metadata
+            RETURNING (xmax = 0) AS inserted
+            """,
+            (
+                entry.id, entry.kind.value, entry.domain, entry.title, entry.body,
+                entry.tags, entry.approved, entry.approved_by, entry.repo_path,
+                json.dumps(entry.metadata, default=str),
+            ),
+        )
+        inserted = cur.fetchone()[0]
+        action = "insert" if inserted else "update"
+        cur.execute(
+            "INSERT INTO memory_audit_log (entry_id, action, actor, diff) VALUES (%s, %s, %s, %s::jsonb)",
+            (entry.id, action, entry.approved_by or "system", json.dumps({"title": entry.title})),
+        )
+
+    def _merge_into(self, cur, canonical_id: str, incoming: MemoryEntry) -> None:
+        """Append incoming body to the canonical entry, union tags, log contributor."""
+        from datetime import datetime, timezone
+
+        separator = f"\n\n---\n[merge {datetime.now(timezone.utc).isoformat()} from \"{incoming.title}\"]\n"
+        contributor = {
+            "title": incoming.title,
+            "actor": incoming.approved_by or "system",
+            "at": datetime.now(timezone.utc).isoformat(),
+        }
+        cur.execute(
+            """
+            UPDATE memory_entries
+            SET body     = body || %s,
+                tags     = ARRAY(SELECT DISTINCT x FROM unnest(tags || %s) AS x),
+                metadata = jsonb_set(
+                    jsonb_set(
+                        metadata,
+                        '{contributors}',
+                        COALESCE(metadata->'contributors', '[]'::jsonb) || %s::jsonb,
+                        true
+                    ),
+                    '{merge_count}',
+                    to_jsonb(COALESCE((metadata->>'merge_count')::int, 0) + 1),
+                    true
                 )
-                cur.execute(
-                    "INSERT INTO memory_audit_log (entry_id, action, actor, diff) VALUES (%s, 'supersede', 'auto', %s::jsonb)",
-                    (sid, json.dumps({"superseded_by": entry.id})),
-                )
+            WHERE id = %s
+            """,
+            (
+                separator + incoming.body,
+                incoming.tags or [],
+                json.dumps([contributor]),
+                canonical_id,
+            ),
+        )
+        cur.execute(
+            "INSERT INTO memory_audit_log (entry_id, action, actor, diff) VALUES (%s, 'merge', %s, %s::jsonb)",
+            (
+                canonical_id,
+                incoming.approved_by or "system",
+                json.dumps({"merged_from_title": incoming.title, "merged_from_id": incoming.id}),
+            ),
+        )
 
     def get(self, entry_id: str) -> MemoryEntry | None:
         with self._pool.connection() as conn:
