@@ -187,11 +187,10 @@ If `command not found`, open a new terminal (uv/pipx adds to your PATH on first 
 
 ### Step 6 — Point the CLI at the same database
 
-knowai needs your Postgres credentials. The fastest setup is one file in your home directory — works in every repo, no per-project setup:
+knowai needs your Postgres credentials. Drop one file in your home directory — works in every repo, no per-project setup:
 
 ```bash
-mkdir -p ~/.config/knowai
-cat > ~/.config/knowai/config.toml <<'EOF'
+cat > ~/.knowai.config <<'EOF'
 [database]
 host     = "localhost"
 port     = 5432
@@ -208,13 +207,13 @@ Verify:
 knowai memory list   # should print [] or your existing entries — no error
 ```
 
-**Per-project override:** drop a `knowai.toml` at any repo root and it wins over the global one. Useful if a repo points at a different database. See [`knowai.toml.example`](knowai.toml.example) for the format.
+**Per-project override:** drop a `knowai.config` at any repo root and it wins over the global one. Useful if a repo points at a different database. See [`knowai.config.example`](knowai.config.example) for the format.
 
 **Precedence** (highest first):
 
 1. Process env vars already set (CI / Docker / shell exports win)
-2. `knowai.toml` in cwd or any parent dir (project-specific)
-3. `~/.config/knowai/config.toml` (user-global)
+2. `./knowai.config` in cwd or any parent dir (project-specific)
+3. `~/.knowai.config` (user-global)
 4. `.env` (the same file `docker compose` uses — kept as a fallback)
 
 > **Note on the password.** For local dev `localhost`, the value in the file is fine. For shared dev / prod, omit the password and set `POSTGRES_PASSWORD` via your shell or your team's secrets manager — process env vars override the file.
@@ -264,7 +263,7 @@ In your AI chat, type:
 If you see no MCP call:
 
 - Confirm registration: `claude mcp list` should show `knowai ✓`. If it shows `✗`, run `knowai mcp` manually in a terminal — the error tells you what's missing (usually credentials).
-- Make sure `~/.config/knowai/config.toml` exists (Step 6), or that the repo you ran Claude in has its own `knowai.toml`.
+- Make sure `~/.knowai.config` exists (Step 6), or that the repo you ran Claude in has its own `knowai.config`.
 
 ---
 
