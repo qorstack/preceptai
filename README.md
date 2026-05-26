@@ -135,17 +135,30 @@ claude mcp add --scope user knowai -- knowai mcp
 claude mcp list   # should show: knowai ✓
 ```
 
-### 7. Seed memory from existing code
+### 7. Install the slash commands
 
 ```bash
-knowai install-claude-commands     # one-time, copies /knowai-generate
+knowai install-claude-commands     # copies /knowai and /knowai-generate to ~/.claude/commands/
 ```
 
-In Claude Code, run `/knowai-generate` — Claude reads the repo and writes meaningful entries via MCP.
+Two commands ship:
+
+| Command | Use it when |
+| --- | --- |
+| `/knowai <request>` | **Every feature / refactor / fix.** Forces Claude to run the full pipeline (analyze_intent → recall_context → get_reusable_assets → assess_risk_in_context) and open with a `Risk:` / `Decision:` header before writing code. |
+| `/knowai-generate` | **Once, then occasionally.** Have Claude read this repo and seed meaningful memory entries. Safe to re-run after refactors. |
+
+> Why a slash command? MCP tool descriptions only reach Claude when it _decides_ to use a tool — a plain prompt can slip past the pipeline. `/knowai` makes the consult mandatory.
 
 ### 8. Verify
 
-In Claude, try: _"Add a refund endpoint to /payments"_ — you should see a `knowai` tool call and a reply that references your stored knowledge.
+In Claude, try:
+
+```text
+/knowai add a refund endpoint to /payments
+```
+
+You should see a reply that opens with `Risk: <level> — <why>` / `Decision: ...` and references your stored memory in the `Memory:` line.
 
 If not: `claude mcp list` shows `✗` → run `knowai mcp` in a terminal to see the error (usually missing DB credentials).
 
