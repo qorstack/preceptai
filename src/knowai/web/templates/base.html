@@ -4,13 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}knowai{% endblock %} — knowai</title>
+  <link rel="icon" type="image/png" href="/static/logo.png">
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
   <script src="/static/editor.js" defer></script>
 </head>
 <body>
   <header class="topbar">
-    <a href="/" class="brand" style="text-decoration:none">knowai</a>
+    <a href="/" class="brand" style="text-decoration:none;display:inline-flex;align-items:center;gap:10px">
+      <img src="/static/logo-full.png" alt="knowai" style="height:32px;display:block">
+    </a>
     <nav>
       <a href="/"           class="{{ 'on' if active == 'dashboard' else '' }}">Home</a>
       <a href="/entries"    class="{{ 'on' if active == 'entries'   else '' }}">Knowledge</a>

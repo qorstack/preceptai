@@ -18,6 +18,16 @@ class MemoryKind(str, Enum):
     WORKFLOW = "workflow"
 
 
+class MemoryScope(str, Enum):
+    GLOBAL = "global"        # applies to every workspace
+    WORKSPACE = "workspace"  # scoped to one workspace (must set `workspace`)
+
+
+class MemorySource(str, Enum):
+    HUMAN = "human"  # added by a person via dashboard / CLI
+    AI = "ai"        # written by Claude (or other AI) through MCP
+
+
 class MemoryEntry(BaseModel):
     id: str
     kind: MemoryKind
@@ -28,5 +38,9 @@ class MemoryEntry(BaseModel):
     approved_by: str = ""
     approved: bool = False
     repo_path: str = ""
+    scope: MemoryScope = MemoryScope.GLOBAL
+    source: MemorySource = MemorySource.HUMAN
+    workspace: str = ""   # required when scope == WORKSPACE
+    repo_name: str = ""   # set by AI auto-tagging from knowai.config
     created_at: datetime = Field(default_factory=datetime.utcnow)
     metadata: dict[str, Any] = Field(default_factory=dict)

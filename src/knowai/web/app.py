@@ -10,6 +10,7 @@ Uses the same POSTGRES_* / KNOWAI_DB_SCHEMA env vars as the store, so a single
 
 from __future__ import annotations
 
+import json
 from importlib import resources
 from pathlib import Path
 
@@ -70,12 +71,15 @@ def dashboard(request: Request):
             (SELECT COUNT(*) FROM memory_entries WHERE superseded_by IS NULL) AS active_entries,
             (SELECT COUNT(*) FROM memory_entries WHERE superseded_by IS NOT NULL) AS superseded_entries,
             (SELECT COUNT(*) FROM memory_entries WHERE approved) AS approved_entries,
+            (SELECT COUNT(*) FROM memory_entries WHERE source = 'ai' AND NOT approved AND superseded_by IS NULL) AS pending_ai,
+            (SELECT COUNT(*) FROM memory_entries WHERE scope = 'global' AND superseded_by IS NULL) AS global_entries,
             (SELECT COUNT(*) FROM memory_syntheses) AS syntheses,
             (SELECT COUNT(*) FROM memory_syntheses WHERE stale) AS stale_syntheses,
             (SELECT COUNT(*) FROM memory_audit_log WHERE at > now() - interval '24 hours') AS audit_24h,
             (SELECT COUNT(*) FROM memory_audit_log WHERE action = 'merge') AS merges
         """,
     ) or {}
+    workspaces = _list_workspaces()
 
     by_domain = _fetch_all(
         """
@@ -116,6 +120,7 @@ def dashboard(request: Request):
             "stats": stats,
             "by_domain": by_domain,
             "by_kind": by_kind,
+            "workspaces": workspaces,
             "recent_activity": recent_activity,
             "active": "dashboard",
         },
@@ -127,11 +132,17 @@ def _render_entries(
     *,
     q: str = "",
     domain: str = "",
+    workspace: str = "",
+    scope: str = "",
+    source: str = "",
+    status: str = "",
     show_superseded: bool = False,
     show_add: bool = False,
     form_title: str = "",
     form_body: str = "",
     form_approve: bool = False,
+    form_scope: str = "global",
+    form_workspace: str = "",
     error: str = "",
 ):
     where = []
@@ -141,6 +152,21 @@ def _render_entries(
     if domain:
         where.append("domain = %s")
         params.append(domain)
+    if workspace == "__global__":
+        where.append("scope = 'global'")
+    elif workspace:
+        where.append("scope = 'workspace' AND workspace = %s")
+        params.append(workspace)
+    if scope in ("global", "workspace"):
+        where.append("scope = %s::memory_scope")
+        params.append(scope)
+    if source in ("human", "ai"):
+        where.append("source = %s::memory_source")
+        params.append(source)
+    if status == "pending":
+        where.append("NOT approved")
+    elif status == "approved":
+        where.append("approved")
     if q:
         where.append("search_tsv @@ plainto_tsquery('simple', %s)")
         params.append(q)
@@ -150,6 +176,8 @@ def _render_entries(
         f"""
         SELECT id, kind::text AS kind, domain, title,
                approved, updated_at, superseded_by,
+               scope::text AS scope, source::text AS source,
+               workspace, repo_name,
                COALESCE((metadata->>'merge_count')::int, 0) AS merge_count
         FROM memory_entries
         {where_sql}
@@ -165,13 +193,20 @@ def _render_entries(
         {
             "rows": rows,
             "domains": _list_domains(),
+            "workspaces": _list_workspaces(),
             "filter_domain": domain,
+            "filter_workspace": workspace,
+            "filter_scope": scope,
+            "filter_source": source,
+            "filter_status": status,
             "filter_q": q,
             "show_superseded": show_superseded,
             "show_add": show_add or bool(error),
             "form_title": form_title,
             "form_body": form_body,
             "form_approve": form_approve,
+            "form_scope": form_scope,
+            "form_workspace": form_workspace,
             "error": error,
             "active": "entries",
         },
@@ -182,6 +217,10 @@ def _render_entries(
 def entries(
     request: Request,
     domain: str = Query("", alias="domain"),
+    workspace: str = Query(""),
+    scope: str = Query(""),
+    source: str = Query(""),
+    status: str = Query(""),
     q: str = Query("", alias="q"),
     show_superseded: bool = Query(False),
     add: bool = Query(False),
@@ -190,6 +229,10 @@ def entries(
         request,
         q=q,
         domain=domain,
+        workspace=workspace,
+        scope=scope,
+        source=source,
+        status=status,
         show_superseded=show_superseded,
         show_add=add,
     )
@@ -201,6 +244,8 @@ def entry_detail(request: Request, entry_id: str):
         """
         SELECT id, kind::text AS kind, domain, title, body, tags,
                approved, approved_by, repo_path, metadata,
+               scope::text AS scope, source::text AS source,
+               workspace, repo_name,
                created_at, updated_at, superseded_by, superseded_at
         FROM memory_entries
         WHERE id = %s
@@ -297,6 +342,21 @@ def _list_domains() -> list[str]:
     )]
 
 
+def _list_workspaces() -> list[dict]:
+    """Workspaces that have at least one entry, with counts."""
+    return _fetch_all(
+        """
+        SELECT workspace,
+               COUNT(*) FILTER (WHERE approved)     AS approved,
+               COUNT(*) FILTER (WHERE NOT approved) AS pending
+        FROM memory_entries
+        WHERE scope = 'workspace' AND workspace <> '' AND superseded_by IS NULL
+        GROUP BY workspace
+        ORDER BY workspace
+        """
+    )
+
+
 _DEFAULT_DOMAIN = "general"
 _DEFAULT_KIND = "team_decision"
 
@@ -325,14 +385,21 @@ def knowledge_create(
     title: str = Form(""),
     body: str = Form(""),
     approve: bool = Form(False),
+    scope: str = Form("global"),
+    workspace: str = Form(""),
 ):
+    from knowai.memory.schema import MemoryScope, MemorySource
+
     kind = _DEFAULT_KIND
     domain = _DEFAULT_DOMAIN
     err = _validate_fields(kind, domain, title, body)
+    if not err and scope == "workspace" and not workspace.strip():
+        err = "Workspace is required when scope is 'workspace'."
     if err:
         return _render_entries(
             request,
             form_title=title, form_body=body, form_approve=approve,
+            form_scope=scope, form_workspace=workspace,
             error=err, show_add=True,
         )
 
@@ -346,6 +413,9 @@ def knowledge_create(
         approved=approve,
         approved_by=_author_from(request),
         repo_path="",
+        scope=MemoryScope(scope) if scope in ("global", "workspace") else MemoryScope.GLOBAL,
+        source=MemorySource.HUMAN,
+        workspace=workspace.strip() if scope == "workspace" else "",
     )
     saved = _store().save(entry)
     return RedirectResponse(url=f"/entries/{saved.id}", status_code=303)
@@ -371,6 +441,33 @@ def entry_approve(request: Request, entry_id: str, approver: str = Form("")):
 def entry_delete(entry_id: str):
     _store().delete(entry_id)
     return RedirectResponse(url="/entries", status_code=303)
+
+
+@app.post("/entries/{entry_id}/rescope")
+def entry_rescope(
+    request: Request,
+    entry_id: str,
+    scope: str = Form("global"),
+    workspace: str = Form(""),
+):
+    """Promote workspace → global, or move global → workspace."""
+    if scope not in ("global", "workspace"):
+        return RedirectResponse(url=f"/entries/{entry_id}", status_code=303)
+    ws = workspace.strip() if scope == "workspace" else ""
+    if scope == "workspace" and not ws:
+        return RedirectResponse(url=f"/entries/{entry_id}", status_code=303)
+    actor = _author_from(request)
+    with _pool().connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE memory_entries SET scope = %s::memory_scope, workspace = %s WHERE id = %s",
+            (scope, ws, entry_id),
+        )
+        if cur.rowcount:
+            cur.execute(
+                "INSERT INTO memory_audit_log (entry_id, action, actor, diff) VALUES (%s, 'update', %s, %s::jsonb)",
+                (entry_id, actor, json.dumps({"rescope": scope, "workspace": ws})),
+            )
+    return RedirectResponse(url=f"/entries/{entry_id}", status_code=303)
 
 
 def _render_entry_edit(

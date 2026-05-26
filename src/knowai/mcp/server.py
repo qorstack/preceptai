@@ -19,7 +19,7 @@ from fastmcp import FastMCP
 
 from knowai import audit
 from knowai.graph.cognitive_graph import CognitiveGraph
-from knowai.memory.schema import MemoryEntry, MemoryKind
+from knowai.memory.schema import MemoryEntry, MemoryKind, MemoryScope, MemorySource
 from knowai.memory.store import create_store
 from knowai.packs.builtin import get_pack, get_packs_for_domains
 from knowai.reasoning.engine import ReasoningEngine
@@ -88,6 +88,23 @@ def _workspace_name_for(repo_path: str) -> str | None:
         return res.workspace_name if res else None
     except Exception:
         return None
+
+
+def _ai_scope_tag(repo_path: str) -> tuple[MemoryScope, str, str]:
+    """
+    For AI-written memory: derive (scope, workspace, repo_name) from the repo's
+    knowai.config. If the repo isn't linked to a workspace, fall back to global
+    so the entry is still visible (Claude shouldn't lose work just because the
+    user forgot to run `knowai link`).
+    """
+    try:
+        from knowai.link.config import load_link
+        link = load_link(repo_path)
+    except Exception:
+        link = None
+    if link and link.workspace:
+        return MemoryScope.WORKSPACE, link.workspace, (link.repo_name or "")
+    return MemoryScope.GLOBAL, "", ""
 
 
 # Throttle auto-pull so we don't hammer git on every MCP read. One pull per
@@ -523,6 +540,7 @@ def remember_business_context(
         repo_path: path to the repository
     """
     store = _get_store(repo_path)
+    scope, workspace, repo_name = _ai_scope_tag(repo_path)
     entry = MemoryEntry(
         id="",
         kind=MemoryKind.BUSINESS_CONTEXT,
@@ -532,6 +550,10 @@ def remember_business_context(
         tags=[t.strip() for t in tags.split(",") if t.strip()],
         approved=False,
         repo_path=repo_path,
+        scope=scope,
+        source=MemorySource.AI,
+        workspace=workspace,
+        repo_name=repo_name,
     )
     saved = store.save(entry)
     _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]} (pending approval)")
@@ -624,6 +646,7 @@ def remember_team_decision(
     Decisions are automatically approved (they come from the human caller).
     """
     store = _get_store(repo_path)
+    scope, workspace, repo_name = _ai_scope_tag(repo_path)
     body = decision if not reason else f"{decision}\n\nReason: {reason}"
     entry = MemoryEntry(
         id="",
@@ -634,6 +657,10 @@ def remember_team_decision(
         approved=True,
         approved_by="team",
         repo_path=repo_path,
+        scope=scope,
+        source=MemorySource.AI,
+        workspace=workspace,
+        repo_name=repo_name,
     )
     saved = store.save(entry)
     _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]}")

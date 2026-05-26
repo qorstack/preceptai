@@ -252,6 +252,15 @@ section h2 { margin-top: 0; }
 .tag-delete    { background: var(--bad-soft);      color: var(--bad); }
 .tag-merge     { background: var(--merge-soft);    color: var(--merge); }
 
+/* Scope / source / status badges — used on entries list + detail */
+.tag-scope-global    { background: #dbeafe; color: #1d4ed8; }
+.tag-scope-workspace { background: #dcfce7; color: #166534; }
+.tag-source-human    { background: #f3f4f6; color: #374151; }
+.tag-source-ai       { background: #fed7aa; color: #9a3412; }
+.tag-pending         { background: #fef3c7; color: #92400e; }
+.tag-approved        { background: var(--good-soft); color: var(--good); }
+.badges { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+
 /* ─── Filters bar ────────────────────────────────────── */
 .filters {
   display: flex;

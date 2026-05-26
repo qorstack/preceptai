@@ -6,18 +6,19 @@
   {# ──────── Add mode: full-page focused form ──────── #}
   <a href="/entries" class="back-link">← Back to Knowledge</a>
   <h1>Add knowledge</h1>
-  <p class="subtitle">Title + content. That's it.</p>
+  <p class="subtitle">Pick a scope, then write title + content.</p>
 
   {% with action_url="/knowledge/create",
           submit_label="Save",
           show_approve=True,
           show_cancel=True,
+          show_scope=True,
           cancel_url="/entries" %}
     {% include "_entry_form.html" %}
   {% endwith %}
 
 {% else %}
-  {# ──────── Browse mode: list + filters ──────── #}
+  {# ──────── Browse mode: workspace switcher + filters + list ──────── #}
   <div class="page-head">
     <div>
       <h1>Knowledge</h1>
@@ -26,11 +27,38 @@
     <a href="/entries?add=true" class="btn">+ Add new</a>
   </div>
 
+  {# Workspace pills — quick filter for the most common axis #}
+  <div class="filters" style="margin-bottom:8px">
+    <span class="muted" style="font-size:13px">Show:</span>
+    <a href="/entries"
+       class="tag {{ 'tag-approved' if not filter_workspace else '' }}"
+       style="text-decoration:none;cursor:pointer">All</a>
+    <a href="/entries?workspace=__global__"
+       class="tag tag-scope-global"
+       style="text-decoration:none;cursor:pointer;{{ 'outline:2px solid currentColor' if filter_workspace == '__global__' else '' }}">🌐 Global</a>
+    {% for ws in workspaces %}
+      <a href="/entries?workspace={{ ws.workspace }}"
+         class="tag tag-scope-workspace"
+         style="text-decoration:none;cursor:pointer;{{ 'outline:2px solid currentColor' if filter_workspace == ws.workspace else '' }}">📁 {{ ws.workspace }}</a>
+    {% endfor %}
+  </div>
+
   <form class="filters" method="get" action="/entries">
     <input type="text" name="q" placeholder="Search title or content…" value="{{ filter_q }}">
+    {% if filter_workspace %}<input type="hidden" name="workspace" value="{{ filter_workspace }}">{% endif %}
+    <select name="source">
+      <option value="">Any source</option>
+      <option value="human" {% if filter_source == 'human' %}selected{% endif %}>👤 Human</option>
+      <option value="ai"    {% if filter_source == 'ai'    %}selected{% endif %}>🤖 AI</option>
+    </select>
+    <select name="status">
+      <option value="">Any status</option>
+      <option value="approved" {% if filter_status == 'approved' %}selected{% endif %}>✓ Approved</option>
+      <option value="pending"  {% if filter_status == 'pending'  %}selected{% endif %}>⏳ Pending</option>
+    </select>
     {% if domains %}
       <select name="domain">
-        <option value="">All topics</option>
+        <option value="">All domains</option>
         {% for d in domains %}
           <option value="{{ d }}" {% if d == filter_domain %}selected{% endif %}>{{ d }}</option>
         {% endfor %}
@@ -40,12 +68,12 @@
       <input type="checkbox" name="show_superseded" value="true" {% if show_superseded %}checked{% endif %} style="accent-color:var(--primary)">
       Include replaced
     </label>
-    <button type="submit">Search</button>
+    <button type="submit">Apply</button>
   </form>
 
   <table class="tbl">
     <thead>
-      <tr><th>Title</th><th>Status</th><th class="num-col">Merges</th><th>Updated</th></tr>
+      <tr><th>Title</th><th>Scope</th><th>Source</th><th>Status</th><th>Updated</th></tr>
     </thead>
     <tbody>
     {% for r in rows %}
@@ -57,16 +85,30 @@
           {% endif %}
         </td>
         <td>
-          {% if r.superseded_by %}<span class="tag tag-supersede">replaced</span>
-          {% elif r.approved %}<span class="tag tag-approve">approved</span>
-          {% else %}<span class="tag">pending</span>{% endif %}
+          {% if r.scope == 'workspace' %}
+            <span class="tag tag-scope-workspace">📁 {{ r.workspace }}{% if r.repo_name %} · {{ r.repo_name }}{% endif %}</span>
+          {% else %}
+            <span class="tag tag-scope-global">🌐 Global</span>
+          {% endif %}
         </td>
-        <td class="num-col">{% if r.merge_count > 0 %}<span class="tag tag-merge">{{ r.merge_count }}</span>{% else %}—{% endif %}</td>
+        <td>
+          {% if r.source == 'ai' %}
+            <span class="tag tag-source-ai">🤖 AI</span>
+          {% else %}
+            <span class="tag tag-source-human">👤 Human</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if r.superseded_by %}<span class="tag tag-supersede">replaced</span>
+          {% elif r.approved %}<span class="tag tag-approved">✓ approved</span>
+          {% else %}<span class="tag tag-pending">⏳ pending</span>{% endif %}
+        </td>
         <td class="mono"><small>{{ r.updated_at.strftime('%Y-%m-%d %H:%M') if r.updated_at else '' }}</small></td>
       </tr>
     {% else %}
-      <tr><td colspan="4" class="muted">
-        {% if filter_q or filter_domain %}No items match. Try a different search.
+      <tr><td colspan="5" class="muted">
+        {% if filter_q or filter_domain or filter_workspace or filter_source or filter_status %}
+          No items match. <a href="/entries">Clear filters</a>.
         {% else %}Nothing here yet. Click <strong>+ Add new</strong> to write your first item.
         {% endif %}
       </td></tr>

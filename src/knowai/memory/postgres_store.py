@@ -121,6 +121,7 @@ class PostgresMemoryStore(MemoryStore):
 
     @staticmethod
     def _row_to_entry(row: dict) -> MemoryEntry:
+        from knowai.memory.schema import MemoryScope, MemorySource
         return MemoryEntry(
             id=row["id"],
             kind=MemoryKind(row["kind"]),
@@ -131,6 +132,10 @@ class PostgresMemoryStore(MemoryStore):
             approved=row.get("approved", False),
             approved_by=row.get("approved_by") or "",
             repo_path=row.get("repo_path") or "",
+            scope=MemoryScope(row.get("scope") or "global"),
+            source=MemorySource(row.get("source") or "human"),
+            workspace=row.get("workspace") or "",
+            repo_name=row.get("repo_name") or "",
             created_at=row["created_at"],
             metadata=row.get("metadata") or {},
         )
@@ -227,8 +232,10 @@ class PostgresMemoryStore(MemoryStore):
         cur.execute(
             """
             INSERT INTO memory_entries
-                (id, kind, domain, title, body, tags, approved, approved_by, repo_path, metadata)
-            VALUES (%s, %s::memory_kind, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                (id, kind, domain, title, body, tags, approved, approved_by, repo_path,
+                 scope, source, workspace, repo_name, metadata)
+            VALUES (%s, %s::memory_kind, %s, %s, %s, %s, %s, %s, %s,
+                    %s::memory_scope, %s::memory_source, %s, %s, %s::jsonb)
             ON CONFLICT (id) DO UPDATE SET
                 title       = EXCLUDED.title,
                 body        = EXCLUDED.body,
@@ -236,12 +243,17 @@ class PostgresMemoryStore(MemoryStore):
                 approved    = EXCLUDED.approved,
                 approved_by = EXCLUDED.approved_by,
                 repo_path   = EXCLUDED.repo_path,
+                scope       = EXCLUDED.scope,
+                source      = EXCLUDED.source,
+                workspace   = EXCLUDED.workspace,
+                repo_name   = EXCLUDED.repo_name,
                 metadata    = EXCLUDED.metadata
             RETURNING (xmax = 0) AS inserted
             """,
             (
                 entry.id, entry.kind.value, entry.domain, entry.title, entry.body,
                 entry.tags, entry.approved, entry.approved_by, entry.repo_path,
+                entry.scope.value, entry.source.value, entry.workspace, entry.repo_name,
                 json.dumps(entry.metadata, default=str),
             ),
         )

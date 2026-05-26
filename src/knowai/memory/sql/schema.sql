@@ -15,6 +15,14 @@ DO $$ BEGIN
   );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+DO $$ BEGIN
+  CREATE TYPE memory_scope AS ENUM ('global', 'workspace');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE memory_source AS ENUM ('human', 'ai');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- IMMUTABLE wrapper so the generated column below is allowed.
 -- array_to_string is STABLE in core PG, which Postgres rejects in GENERATED ... STORED.
 CREATE OR REPLACE FUNCTION knowai_tags_to_text(tags TEXT[])
@@ -56,6 +64,18 @@ CREATE INDEX IF NOT EXISTS idx_entries_tsv        ON memory_entries USING GIN (s
 CREATE INDEX IF NOT EXISTS idx_entries_tags       ON memory_entries USING GIN (tags);
 CREATE INDEX IF NOT EXISTS idx_entries_title_trgm ON memory_entries USING GIN (title gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_entries_repo_path  ON memory_entries(repo_path);
+
+-- Phase 1 scope/source model: where this entry applies + who created it.
+-- scope=workspace + workspace must be non-null; scope=global keeps workspace = ''.
+-- source=ai entries also stash repo_name when known (from knowai.config).
+ALTER TABLE memory_entries ADD COLUMN IF NOT EXISTS scope     memory_scope  NOT NULL DEFAULT 'global';
+ALTER TABLE memory_entries ADD COLUMN IF NOT EXISTS source    memory_source NOT NULL DEFAULT 'human';
+ALTER TABLE memory_entries ADD COLUMN IF NOT EXISTS workspace TEXT          NOT NULL DEFAULT '';
+ALTER TABLE memory_entries ADD COLUMN IF NOT EXISTS repo_name TEXT          NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS idx_entries_scope_workspace ON memory_entries(scope, workspace);
+CREATE INDEX IF NOT EXISTS idx_entries_source          ON memory_entries(source);
+CREATE INDEX IF NOT EXISTS idx_entries_pending_ai      ON memory_entries(source) WHERE source = 'ai' AND NOT approved;
 
 CREATE TABLE IF NOT EXISTS memory_entry_embeddings (
   entry_id    TEXT PRIMARY KEY REFERENCES memory_entries(id) ON DELETE CASCADE,

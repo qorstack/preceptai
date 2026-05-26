@@ -7,11 +7,19 @@
   <p class="muted">This item was not found. It may have been deleted.</p>
 {% else %}
   <h1>{{ entry.title }}</h1>
-  <div class="meta">
+  <div class="meta badges">
+    {% set scope = entry.metadata.get('_scope') or (entry.get('scope') if entry is mapping else None) %}
+    {% if entry.scope == 'workspace' or scope == 'workspace' %}
+      <span class="tag tag-scope-workspace">📁 {{ entry.workspace or '?' }}{% if entry.repo_name %} · {{ entry.repo_name }}{% endif %}</span>
+    {% else %}
+      <span class="tag tag-scope-global">🌐 Global</span>
+    {% endif %}
+    {% if entry.source == 'ai' %}<span class="tag tag-source-ai">🤖 AI</span>
+    {% else %}<span class="tag tag-source-human">👤 Human</span>{% endif %}
+    {% if entry.approved %}<span class="tag tag-approved">✓ approved by {{ entry.approved_by or 'team' }}</span>
+    {% else %}<span class="tag tag-pending">⏳ pending approval</span>{% endif %}
     <span class="tag">{{ entry.kind.replace('_', ' ') }}</span>
     <span class="tag">topic: {{ entry.domain }}</span>
-    {% if entry.approved %}<span class="tag tag-approve">approved by {{ entry.approved_by or 'team' }}</span>
-    {% else %}<span class="tag">pending approval</span>{% endif %}
     {% if entry.superseded_by %}
       <span class="tag tag-supersede">replaced by <a href="/entries/{{ entry.superseded_by }}" style="color:inherit">{{ entry.superseded_by }}</a></span>
     {% endif %}
@@ -24,6 +32,18 @@
       <form method="post" action="/entries/{{ entry.id }}/approve" class="inline">
         <input type="text" name="approver" placeholder="your name (optional)">
         <button type="submit" class="btn">Approve</button>
+      </form>
+    {% endif %}
+    {% if entry.scope == 'workspace' %}
+      <form method="post" action="/entries/{{ entry.id }}/rescope" class="inline" onsubmit="return confirm('Promote to global? It will apply to every workspace.');">
+        <input type="hidden" name="scope" value="global">
+        <button type="submit" class="btn btn-secondary">↑ Move to Global</button>
+      </form>
+    {% else %}
+      <form method="post" action="/entries/{{ entry.id }}/rescope" class="inline">
+        <input type="hidden" name="scope" value="workspace">
+        <input type="text" name="workspace" placeholder="workspace name" required style="max-width:160px">
+        <button type="submit" class="btn btn-secondary">↓ Move to Workspace</button>
       </form>
     {% endif %}
     <form method="post" action="/entries/{{ entry.id }}/delete" class="inline" onsubmit="return confirm('Delete this item? This cannot be undone.');">
