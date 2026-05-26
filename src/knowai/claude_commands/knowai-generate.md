@@ -12,9 +12,18 @@ You are seeding the **knowai memory store** for this repository. Your job is to 
 
 Call `get_project_context` to learn the repo's language, framework, architecture, and detected domains. Use the detected domains as the primary `domain` field for every entry below. Fall back to `general` only when nothing fits.
 
-### 1b. Check what's already there
+### 1b. Diff against what's already stored
 
-Before adding anything, call `list_memory` (or `recall_context` per domain) to fetch existing entries for this repo's workspace. Skip any candidate that's already covered. If you're re-running because the code changed, edit (don't duplicate) entries that need to be updated.
+Before writing anything, call `list_memory` (or `recall_context` per domain) to fetch existing entries for this repo's workspace. For every candidate you'd otherwise create, **compare it to the closest existing entry** and pick one of three actions:
+
+| Existing entry | Candidate matches the code today? | Action |
+| --- | --- | --- |
+| None similar | — | **Create** (call `remember_*`) |
+| Same kind + title, body still accurate | Yes | **Skip** — nothing changed |
+| Same kind + title, body is stale (code moved, signature changed, rule evolved) | No | **Update** — call `remember_*` with the same kind + title; the store upserts by `sha256(kind:domain:title)` so the body / tags / metadata get refreshed in place |
+| Title drifted (e.g. you'd now name it differently) | — | **Update** the existing entry's body to match reality. Don't create a near-duplicate with a slightly different title |
+
+When in doubt about whether something is "stale," re-read the source file and quote the line that contradicts the stored body in your re-run summary so the human can sanity-check.
 
 ### 2. Pull scanner findings
 
