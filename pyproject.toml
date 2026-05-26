@@ -71,6 +71,7 @@ packages = ["src/knowai"]
 "src/knowai/memory/sql/schema.sql" = "knowai/memory/sql/schema.sql"
 "src/knowai/web/templates" = "knowai/web/templates"
 "src/knowai/web/static" = "knowai/web/static"
+"src/knowai/claude_commands" = "knowai/claude_commands"
 
 [tool.hatch.version]
 path = "src/knowai/__init__.py"

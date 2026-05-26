@@ -178,101 +178,46 @@ def scan(
                           (f" (+{len(assets)-5} more)" if len(assets) > 5 else ""))
 
 
-@app.command()
-def generate(
-    repo_path: str = typer.Option(".", "--repo", "-r", help="Path to the repository"),
-    domain: str = typer.Option("", "--domain", "-d", help="Override domain (default: repo_name or 'general')"),
+@app.command(name="install-claude-commands")
+def install_claude_commands(
+    user: bool = typer.Option(True, "--user/--project", help="Install to ~/.claude/commands (user) or ./.claude/commands (project)"),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing files"),
 ):
-    """Generate memory entries from what's already in this repo.
+    """Install knowai's Claude Code slash commands (e.g. /knowai-seed).
 
-    Scans the repo, turns each finding (framework, conventions, reusable
-    assets, forbidden patterns) into a memory entry, and persists every
-    entry as approved. Re-running upserts on title — safe to repeat.
+    Copies the bundled command templates into your Claude Code commands
+    directory. After install, type `/knowai-seed` in Claude Code to have
+    Claude scan the repo and write semantically meaningful memory entries.
     """
-    from knowai.link.config import load_link
-    from knowai.memory.schema import MemoryEntry, MemoryKind
-    from knowai.scanner.repo_scanner import RepoScanner
+    import importlib.resources as _res
+    import shutil
 
-    root = Path(repo_path).resolve()
-    with console.status("[bold cyan]Scanning…"):
-        scan = RepoScanner(repo_path).scan()
-
-    link = load_link(repo_path)
-    inferred_repo = link.repo_name if link and link.repo_name else root.name
-    target_domain = (domain or (link.repo_name if link else "") or "general").strip()
-
-    entries: list[MemoryEntry] = []
-
-    # 1. Overview as business_context
-    overview = [
-        f"**Repo:** {inferred_repo}",
-        f"**Language:** {scan.language}",
-        f"**Framework:** {scan.framework}",
-        f"**Architecture:** {scan.architecture.value if hasattr(scan.architecture, 'value') else scan.architecture}",
-    ]
-    if scan.domains:
-        overview.append(f"**Domains detected:** {', '.join(scan.domains)}")
-    if scan.api_clients:
-        overview.append(f"**External clients:** {', '.join(scan.api_clients)}")
-    entries.append(MemoryEntry(
-        id="", kind=MemoryKind.BUSINESS_CONTEXT, domain=target_domain,
-        title=f"{inferred_repo} — repo overview",
-        body="\n".join(overview),
-        tags=[t for t in (scan.language, scan.framework) if t and t != "unknown"],
-        approved=True, approved_by="generate",
-    ))
-
-    # 2. Conventions
-    for conv in scan.conventions:
-        body = conv.rule
-        if conv.examples:
-            body += "\n\nExamples:\n" + "\n".join(f"- {e}" for e in conv.examples)
-        entries.append(MemoryEntry(
-            id="", kind=MemoryKind.APPROVED_CONVENTION, domain=target_domain,
-            title=conv.name, body=body, tags=["convention"],
-            approved=True, approved_by="generate",
-        ))
-
-    # 3. Reusable assets
-    for asset in scan.reusable_assets:
-        body = f"{asset.description or 'Existing asset in this repo.'}\n\n**Path:** `{asset.path}`"
-        entries.append(MemoryEntry(
-            id="", kind=MemoryKind.REUSABLE_ASSET, domain=target_domain,
-            title=f"{asset.asset_type}: {asset.name}", body=body,
-            tags=[asset.asset_type, *asset.tags],
-            approved=True, approved_by="generate",
-        ))
-
-    # 4. Forbidden / risk patterns
-    for fp in scan.forbidden_patterns:
-        entries.append(MemoryEntry(
-            id="", kind=MemoryKind.RISK_PATTERN, domain=target_domain,
-            title=f"Avoid: {fp}",
-            body="Pattern flagged as risky/forbidden by repo scan.",
-            tags=["forbidden"],
-            approved=True, approved_by="generate",
-        ))
-
-    console.print(f"\n[bold]Generated {len(entries)} entries[/bold] (domain: [cyan]{target_domain}[/cyan])\n")
-    for e in entries:
-        console.print(f"  [magenta]{e.kind.value:22}[/magenta] {e.title}")
+    target_dir = Path.home() / ".claude" / "commands" if user else Path.cwd() / ".claude" / "commands"
+    target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        from knowai.memory.postgres_store import PostgresMemoryStore
-        store = PostgresMemoryStore()
-    except Exception as exc:
-        console.print(f"\n[red]Could not connect to memory store:[/red] {exc}")
-        console.print("Check that Postgres is running and knowai.config (or ~/.knowai.config) has a valid [database] section — see README Step 5.")
+        bundle = _res.files("knowai.claude_commands")
+    except ModuleNotFoundError:
+        console.print("[red]knowai.claude_commands package not found — reinstall knowai.[/red]")
         raise typer.Exit(1)
 
-    saved = 0
-    for e in entries:
-        try:
-            store.save(e)
-            saved += 1
-        except Exception as exc:
-            console.print(f"  [red]failed[/red] {e.title}: {exc}")
-    console.print(f"\n[green]Saved {saved}/{len(entries)} entries (approved).[/green]")
+    copied: list[str] = []
+    for entry in bundle.iterdir():
+        if entry.name.endswith(".md"):
+            target = target_dir / entry.name
+            if target.exists() and not force:
+                console.print(f"  [yellow]skip[/yellow]  {target} (exists — re-run with --force)")
+                continue
+            with _res.as_file(entry) as src:
+                shutil.copy(src, target)
+            copied.append(entry.name)
+            console.print(f"  [green]wrote[/green] {target}")
+
+    if copied:
+        console.print(f"\n[green]Installed {len(copied)} command(s)[/green] to {target_dir}")
+        console.print("Open Claude Code and try [cyan]/knowai-seed[/cyan].")
+    else:
+        console.print(f"\n[yellow]Nothing installed.[/yellow] Re-run with --force to overwrite {target_dir}.")
 
 
 @app.command()

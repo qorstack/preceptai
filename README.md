@@ -178,17 +178,7 @@ schema   = "public"
 
 **Why explicit `repo_name`:** folder names get renamed locally; repo identity shouldn't drift with them.
 
-### Step 6 — Seed knowledge from existing code
-
-For repos you've already built, `knowai generate` scans the code and turns each finding (overview, conventions, reusable assets, risk patterns) into an **approved** knowledge entry:
-
-```bash
-knowai generate
-```
-
-Safe to re-run — entries upsert on title. Refine in the dashboard afterward: edit titles, delete noise, or unapprove items you don't actually trust.
-
-### Step 7 — Connect to Claude Code
+### Step 6 — Connect to Claude Code
 
 Register knowai **once at user scope** so it works in every project — no need to re-register per repo:
 
@@ -218,6 +208,22 @@ Edit `~/.cursor/mcp.json`:
 ```
 
 Restart Cursor.
+
+### Step 7 — (optional) Seed knowledge by letting Claude read the repo
+
+Install the bundled `/knowai-seed` slash command, then ask Claude to seed memory by actually reading the code (rather than rule-based file enumeration):
+
+```bash
+knowai install-claude-commands         # writes /knowai-seed into ~/.claude/commands/
+```
+
+Open Claude Code in the repo and run:
+
+```text
+/knowai-seed
+```
+
+Claude will scan via knowai MCP, read the relevant files itself, and write meaningful entries (`PaymentService — Stripe wrapper with idempotency`, not `service: service`). Skip this step if you'd rather build the knowledge base by hand in the dashboard ([Add knowledge manually](#add-knowledge-manually)).
 
 ### Step 8 — Confirm the AI uses it
 
