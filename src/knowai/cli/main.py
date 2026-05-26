@@ -181,15 +181,13 @@ def scan(
 @app.command()
 def generate(
     repo_path: str = typer.Option(".", "--repo", "-r", help="Path to the repository"),
-    save: bool = typer.Option(False, "--save", help="Persist entries to the memory store"),
     domain: str = typer.Option("", "--domain", "-d", help="Override domain (default: repo_name or 'general')"),
-    approve: bool = typer.Option(False, "--approve", help="Mark generated entries as approved"),
 ):
     """Generate memory entries from what's already in this repo.
 
-    Runs the scanner, then turns each finding (framework, conventions, reusable
-    assets, forbidden patterns) into a pending memory entry. Dry-run by default;
-    pass --save to persist.
+    Scans the repo, turns each finding (framework, conventions, reusable
+    assets, forbidden patterns) into a memory entry, and persists every
+    entry as approved. Re-running upserts on title — safe to repeat.
     """
     from knowai.link.config import load_link
     from knowai.memory.schema import MemoryEntry, MemoryKind
@@ -221,7 +219,7 @@ def generate(
         title=f"{inferred_repo} — repo overview",
         body="\n".join(overview),
         tags=[t for t in (scan.language, scan.framework) if t and t != "unknown"],
-        approved=approve, approved_by="generate" if approve else "",
+        approved=True, approved_by="generate",
     ))
 
     # 2. Conventions
@@ -232,7 +230,7 @@ def generate(
         entries.append(MemoryEntry(
             id="", kind=MemoryKind.APPROVED_CONVENTION, domain=target_domain,
             title=conv.name, body=body, tags=["convention"],
-            approved=approve, approved_by="generate" if approve else "",
+            approved=True, approved_by="generate",
         ))
 
     # 3. Reusable assets
@@ -242,7 +240,7 @@ def generate(
             id="", kind=MemoryKind.REUSABLE_ASSET, domain=target_domain,
             title=f"{asset.asset_type}: {asset.name}", body=body,
             tags=[asset.asset_type, *asset.tags],
-            approved=approve, approved_by="generate" if approve else "",
+            approved=True, approved_by="generate",
         ))
 
     # 4. Forbidden / risk patterns
@@ -252,16 +250,12 @@ def generate(
             title=f"Avoid: {fp}",
             body="Pattern flagged as risky/forbidden by repo scan.",
             tags=["forbidden"],
-            approved=approve, approved_by="generate" if approve else "",
+            approved=True, approved_by="generate",
         ))
 
-    console.print(f"\n[bold]Proposed {len(entries)} entries[/bold] (domain: [cyan]{target_domain}[/cyan])\n")
+    console.print(f"\n[bold]Generated {len(entries)} entries[/bold] (domain: [cyan]{target_domain}[/cyan])\n")
     for e in entries:
         console.print(f"  [magenta]{e.kind.value:22}[/magenta] {e.title}")
-
-    if not save:
-        console.print("\n[yellow]Dry run.[/yellow] Re-run with [cyan]--save[/cyan] to persist (add [cyan]--approve[/cyan] to mark them approved).")
-        return
 
     try:
         from knowai.memory.postgres_store import PostgresMemoryStore
@@ -278,7 +272,7 @@ def generate(
             saved += 1
         except Exception as exc:
             console.print(f"  [red]failed[/red] {e.title}: {exc}")
-    console.print(f"\n[green]Saved {saved}/{len(entries)} entries.[/green]")
+    console.print(f"\n[green]Saved {saved}/{len(entries)} entries (approved).[/green]")
 
 
 @app.command()

@@ -50,11 +50,7 @@ docker compose version
 
 ## Part 1 — Dashboard (no clone, no Python)
 
-### Step 1 — Make a folder and two files
-
-```bash
-mkdir knowai && cd knowai
-```
+### Step 1 — Create docker-compose.yml and .env
 
 Create **`.env`** with this content (defaults work for local use; for a team change `POSTGRES_PASSWORD`):
 
