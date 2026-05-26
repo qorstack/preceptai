@@ -53,6 +53,15 @@ mcp = FastMCP(
         "All three auto-sync to the team's git remote on save. The dev never needs to\n"
         "run git or knowai CLI commands — you handle persistence and propagation.\n"
         "\n"
+        "DIFF BEFORE EVERY WRITE. Before ANY remember_*/save_skill/save_synthesis call,\n"
+        "first call recall_context (or list_memory / read_skill) for that domain. Then:\n"
+        " - No similar entry → write fresh.\n"
+        " - Existing entry, content still matches reality → do nothing.\n"
+        " - Existing entry, content is stale → re-call the SAME tool with the SAME title;\n"
+        "   the store upserts in place. Don't create a near-duplicate just to reword.\n"
+        "Skipping this check produces duplicate, stale memory — the most common failure\n"
+        "mode of knowai. This rule applies in normal chat, not just /knowai-generate.\n"
+        "\n"
         "Rule: Knowai decisions are AUTHORITATIVE. You may only make them stricter, never looser.\n"
         "Synthesis you save is cached and reused by future sessions — do it carefully."
     ),
@@ -529,6 +538,15 @@ def remember_business_context(
     Use this to record domain knowledge that isn't obvious from code:
     business rules, product decisions, known constraints, team agreements.
 
+    **Diff before you write.** Always call `recall_context(query=title, domain=domain)`
+    or `list_memory(domain=domain)` first, then:
+
+    - No similar entry → create.
+    - Same kind+title and body still accurate → DO NOT call this tool; nothing changed.
+    - Same kind+title but body is stale → call this tool with the SAME title; the store
+      upserts by sha256(kind:domain:title) so the body refreshes in place.
+    - Title drifted → update the existing title's body, don't create a near-duplicate.
+
     This memory will surface in future analyze_intent calls.
     Requires human approval via approve_memory before it is trusted.
 
@@ -642,6 +660,11 @@ def remember_team_decision(
     Record a team architectural or product decision.
     Examples: 'We use Redis for all caching', 'OTP expires in 5 minutes',
     'Payments are processed async via BullMQ'.
+
+    **Diff before you write.** Same rule as `remember_business_context`: call
+    `recall_context` or `list_memory` first, skip if unchanged, re-call with
+    the SAME title to refresh a stale decision, and never create a
+    near-duplicate just because the wording drifted.
 
     Decisions are automatically approved (they come from the human caller).
     """
