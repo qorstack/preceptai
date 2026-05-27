@@ -63,8 +63,10 @@ A small upfront investment makes this possible: seed memory once with `/knowai-g
 
 ## Prerequisites
 
-- Docker + Docker Compose v2
-- Python 3.11+ with `uv` (only for Part 2)
+- Docker + Docker Compose v2 (the published image supports `linux/amd64` and `linux/arm64`, so Apple Silicon Macs work natively)
+- Python 3.11+ with [`uv`](https://docs.astral.sh/uv/) (only for Part 2). Install it:
+  - macOS / Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh` (or `brew install uv`)
+  - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 - ~2GB free RAM
 
 ---
@@ -74,7 +76,7 @@ A small upfront investment makes this possible: seed memory once with `/knowai-g
 ### 1. Create `.env`
 
 ```env
-POSTGRES_USER=knowai
+POSTGRES_USER=knowais
 POSTGRES_PASSWORD=knowai
 POSTGRES_DB=knowai
 POSTGRES_PORT=5432
@@ -129,10 +131,26 @@ Use the dashboard to add knowledge entries by hand. Done — or continue to Part
 
 ### 4. Install the CLI
 
+First install [`uv`](https://docs.astral.sh/uv/) if you don't have it:
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# or: brew install uv
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Open a new terminal so `uv` is picked up on `PATH`, then:
+
 ```bash
 uv tool install git+https://github.com/qorstack/knowai.git
 knowai --version
 ```
+
+> Already have `uv`? Just run the two commands above.
+> Hit `bash: uv: command not found` right after installing? Close and reopen the terminal (or `exec $SHELL`) so the new `PATH` takes effect.
 
 ### 5. Create `knowai.config` at each repo root
 
