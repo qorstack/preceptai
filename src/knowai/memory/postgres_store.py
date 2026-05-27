@@ -315,6 +315,35 @@ class PostgresMemoryStore(MemoryStore):
             ).fetchone()
         return self._row_to_entry(self._as_dict(conn, row)) if row else None
 
+    def mark_superseded(self, old_id: str, new_id: str) -> bool:
+        """Flag `old_id` as replaced by `new_id`.
+
+        Returns True if exactly one not-yet-superseded row was updated.
+        Idempotent: re-marking an already-superseded entry returns False so
+        the caller can detect duplicate or stale supersede requests.
+        """
+        if not old_id or old_id == new_id:
+            return False
+        with self._pool.connection() as conn, conn.transaction():
+            cur = conn.execute(
+                """
+                UPDATE memory_entries
+                SET superseded_by = %s,
+                    superseded_at = now()
+                WHERE id = %s
+                  AND superseded_by IS NULL
+                """,
+                (new_id, old_id),
+            )
+            updated = (cur.rowcount or 0) > 0
+            if updated:
+                conn.execute(
+                    "INSERT INTO memory_audit_log (entry_id, action, actor, diff) "
+                    "VALUES (%s, 'supersede', %s, %s::jsonb)",
+                    (old_id, "ai", json.dumps({"superseded_by": new_id})),
+                )
+        return updated
+
     def _as_dict(self, conn, row) -> dict:
         cols = [d[0] for d in conn.cursor().description] if row else []
         return dict(zip(cols, row)) if row else {}

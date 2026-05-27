@@ -12,6 +12,7 @@ Run:
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,55 @@ from knowai.reasoning.engine import ReasoningEngine
 from knowai.scanner.repo_scanner import RepoScanner
 from knowai.skills import load_workspace_skills
 from knowai.skills import read_skill as _read_skill
+
+# ---------------------------------------------------------------------------
+# Memory body sanitization
+# ---------------------------------------------------------------------------
+# Strips Anthropic-style tool-call XML that occasionally leaks into memory
+# text when the agent mis-formats nested invoke blocks (observed in real
+# entries: `</invoke>`, `<parameter name="reason">…`, `</decision>`).
+#
+# We intentionally limit the tag list to ones that belong to the tool-call
+# protocol (invoke / parameter / decision / reason / tags) so that genuine
+# HTML inside a memory body (e.g. `<div>`, `<form>`) is preserved. The stray
+# `<body>` case is handled only when it appears next to another known leak
+# tag — this catches the `</body>\n</invoke>` pattern without harming
+# memory entries that legitimately describe HTML pages.
+_TOOL_LEAK_RE = re.compile(
+    r"</?\s*(?:invoke|parameter|decision|reason|tags)\b[^>]*>",
+    re.IGNORECASE,
+)
+_STRAY_BODY_RE = re.compile(
+    r"</?\s*body\s*>(?=\s*(?:</?\s*(?:invoke|parameter|decision|reason|tags)\b|\Z))",
+    re.IGNORECASE,
+)
+
+
+def _sanitize_memory_text(text: str) -> str:
+    """Remove leaked tool-call XML fragments before persisting memory text."""
+    if not text:
+        return text
+    cleaned = _TOOL_LEAK_RE.sub("", text)
+    cleaned = _STRAY_BODY_RE.sub("", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def _apply_supersedes(store, supersedes_id: str, new_id: str) -> dict:
+    """Mark `supersedes_id` as superseded by `new_id` if both are valid.
+
+    Returns a small status dict so the caller can include it in the tool
+    response. Failures are non-fatal — the new save has already succeeded.
+    """
+    if not supersedes_id or supersedes_id == new_id:
+        return {"status": "noop"}
+    if not hasattr(store, "mark_superseded"):
+        return {"status": "unsupported"}
+    try:
+        ok = store.mark_superseded(supersedes_id, new_id)
+    except Exception as exc:  # pragma: no cover — defensive, log via audit
+        return {"status": "error", "reason": str(exc), "id": supersedes_id}
+    return {"status": "ok" if ok else "not_found", "id": supersedes_id, "by": new_id}
 
 mcp = FastMCP(
     name="knowai",
@@ -540,6 +590,7 @@ def remember_business_context(
     body: str,
     tags: str = "",
     repo_path: str = ".",
+    supersedes_id: str = "",
 ) -> str:
     """
     Save a business context memory for this project.
@@ -564,7 +615,13 @@ def remember_business_context(
         body: full description of the business context
         tags: comma-separated tags (optional)
         repo_path: path to the repository
+        supersedes_id: if this entry replaces an older one whose information
+            is now wrong or out of date, pass its id — the old entry will be
+            marked superseded (preserved for audit, hidden from recall).
     """
+    title = _sanitize_memory_text(title)
+    body = _sanitize_memory_text(body)
+    tags = _sanitize_memory_text(tags)
     store = _get_store(repo_path)
     scope, workspace, repo_name = _ai_scope_tag(repo_path)
     entry = MemoryEntry(
@@ -582,12 +639,14 @@ def remember_business_context(
         repo_name=repo_name,
     )
     saved = store.save(entry)
+    superseded = _apply_supersedes(store, supersedes_id, saved.id)
     _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]} (pending approval)")
     return json.dumps(
         {
             "status": "saved",
             "id": saved.id,
             "approved": False,
+            "superseded": superseded,
             "next_step": f"Call approve_memory('{saved.id}') to mark this as human-approved and trusted.",
         },
         indent=2,
@@ -663,6 +722,7 @@ def remember_team_decision(
     decision: str,
     reason: str = "",
     repo_path: str = ".",
+    supersedes_id: str = "",
 ) -> str:
     """
     Record a team architectural or product decision.
@@ -675,7 +735,16 @@ def remember_team_decision(
     near-duplicate just because the wording drifted.
 
     Decisions are automatically approved (they come from the human caller).
+
+    Args:
+        supersedes_id: if this decision replaces an older one whose conclusion
+            is now wrong or has been flipped by the team, pass its id — the old
+            entry will be marked superseded (preserved for audit, hidden from
+            recall) so future sessions don't see contradictory guidance.
     """
+    title = _sanitize_memory_text(title)
+    decision = _sanitize_memory_text(decision)
+    reason = _sanitize_memory_text(reason)
     store = _get_store(repo_path)
     scope, workspace, repo_name = _ai_scope_tag(repo_path)
     body = decision if not reason else f"{decision}\n\nReason: {reason}"
@@ -694,9 +763,15 @@ def remember_team_decision(
         repo_name=repo_name,
     )
     saved = store.save(entry)
+    superseded = _apply_supersedes(store, supersedes_id, saved.id)
     _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]}")
     return json.dumps(
-        {"status": "saved_and_approved", "id": saved.id, "title": saved.title},
+        {
+            "status": "saved_and_approved",
+            "id": saved.id,
+            "title": saved.title,
+            "superseded": superseded,
+        },
         indent=2,
         ensure_ascii=False,
     )
@@ -996,11 +1071,14 @@ def save_synthesis(
     _, _, _, store = _get_engine(repo_path)
     if not hasattr(store, "save_synthesis"):
         return json.dumps({"error": "store does not support synthesis caching"})
+    summary = _sanitize_memory_text(summary)
+    key_themes = [_sanitize_memory_text(t) for t in (key_themes or [])]
+    open_questions = [_sanitize_memory_text(q) for q in (open_questions or [])]
     saved = store.save_synthesis(
         domain=domain,
         summary=summary,
         key_themes=key_themes,
-        open_questions=open_questions or [],
+        open_questions=open_questions,
         synthesized_by="ai",
     )
     audit.log(repo_path, "save_synthesis", domain=domain, themes=len(key_themes))
@@ -1279,6 +1357,10 @@ def save_skill(
     ws_name = _workspace_name_for(repo_path)
     if not ws_name:
         return json.dumps({"error": "Repo not linked to a workspace. Run `knowai init` first."}, indent=2)
+
+    description = _sanitize_memory_text(description)
+    body = _sanitize_memory_text(body)
+    tags = _sanitize_memory_text(tags)
 
     from knowai.paths import workspace_skills_dir
     skills_dir = workspace_skills_dir(ws_name)

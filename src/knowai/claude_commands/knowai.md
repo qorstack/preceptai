@@ -65,30 +65,60 @@ If your reply includes code changes, call `validate_generated_code(code)` before
 
 > ⚠️ This step is **not optional** and is **not contingent on the user asking**. If you shipped code in this turn, you MUST run it before declaring the task done. Skipping this step defeats the entire purpose of `/knowai` — next session's Claude will reinvent what you just built.
 
-After the code is written and validated, do BOTH of the following — silently, without asking permission:
+After the code is written and validated, do ALL of the following — silently, without asking permission:
 
-1. **Save every non-obvious decision, new asset, or domain quirk uncovered in this turn.** One entry per distinct piece of knowledge. Use:
-   - `remember_team_decision(domain, title, decision, reason)` — for choices with a reason ("we render the banner red when revoked, yellow when expired, because…")
-   - `remember_business_context(domain, title, body)` — for facts about the system ("the `isActive` field was removed from the API, so revoked state is currently unreachable until backend re-adds it")
-   - `save_skill(name, description, body)` — for reusable how-to guidance
-   - **Diff before you write:** re-call with the same title to refresh; never create near-duplicates.
-2. **Call `refresh_scan(repo_path)`** so the cognitive graph picks up new files/assets/conventions you just added.
+#### 9.1 Identify what is worth saving (be generous, not conservative)
 
-What counts as "worth saving" — be generous, not conservative:
-
-- A new component / widget / helper you created (so the next request reuses it instead of duplicating)
+- A new component / widget / helper you created
 - A field or API behavior that surprised you (nullable, removed, renamed, special-cased)
-- A convention you followed because of how the surrounding code looked (color usage, naming, layout pattern)
+- A convention you followed because of how the surrounding code looked
 - A workaround for a known limitation
 - Any tradeoff you made between two reasonable approaches
 
-After saving, end your reply with a short line listing what got persisted, e.g.:
+#### 9.2 For EACH candidate — **diff against existing memory before you write**
+
+> ⚠️ This is the rule that prevents the duplicate / contradicting / stale entries we keep finding in the DB. Do NOT call `remember_*` blindly. Run this decision flow first:
+
+1. Call `recall_context(query=<your title or 3-5 keywords>, domain=<domain>)` AND `list_memory(domain=<domain>)`.
+2. For each existing entry that comes back, classify your new piece against it:
+
+| Relationship to existing entry | Action |
+| --- | --- |
+| **(a) Already saved, body still correct** | **Skip.** Do not save. Mention it in your `📌` line as "already recorded". |
+| **(b) Same topic, your version is a refinement / fills a gap** | Re-call the same `remember_*` tool with the **EXACT SAME `title`** as the existing entry — the store upserts by `sha256(kind:domain:title)`, so the body is replaced in place (no duplicate id). |
+| **(c) Same topic, but your version CONTRADICTS / FLIPS / OBSOLETES the old conclusion** | Save your new entry AND pass `supersedes_id="<old entry id>"`. The old entry is marked superseded automatically — hidden from recall, preserved for audit. |
+| **(d) Genuinely new topic** | Save fresh, no `supersedes_id`. |
+
+Two hard rules on top of the table:
+
+- **Never** create a second entry whose title is just a rephrasing of an existing one. If titles differ but the topic is the same, treat it as (b) or (c).
+- **Never** leave an outdated entry alive next to its replacement. If you save (c), `supersedes_id` is mandatory — not optional.
+
+#### 9.3 Write the entries
+
+- `remember_team_decision(domain, title, decision, reason, supersedes_id="")` — choices with a reason. Auto-approved.
+- `remember_business_context(domain, title, body, tags="", supersedes_id="")` — facts about the system. Lands as pending.
+- `save_skill(name, description, body)` — reusable how-to guidance.
+
+Body text must be plain prose. **Do not include tool-call XML** (`<invoke>`, `<parameter>`, `</decision>`, `</body>` etc.) — the server strips known tool-call tags before storage, but you should write clean text in the first place.
+
+#### 9.4 Refresh the scan
+
+Call `refresh_scan(repo_path)` so the cognitive graph picks up new files/assets/conventions you just added.
+
+#### 9.5 Report what happened
+
+End your reply with one short line listing what got persisted, what got superseded, and what was already on file. Examples:
 
 ```text
-📌 Saved to knowai: "Passport status banner pattern" (decision), "isActive removed from API" (context). Scan refreshed.
+📌 Saved: "Passport status banner pattern" (decision). Superseded: 5d50ea3e2a8da037 (old "buttons" rule). Already on file: "AppColors.warning palette". Scan refreshed.
 ```
 
-If genuinely nothing new came up (pure rename / typo / formatting), say so explicitly: `📌 Nothing new to persist this turn.` — don't silently skip.
+```text
+📌 Nothing new to persist this turn — all relevant rules already on file.
+```
+
+Do not silently skip the report line. The user is auditing whether you actually ran this step.
 
 ---
 

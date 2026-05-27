@@ -64,6 +64,11 @@ class MemoryStore(ABC):
     @abstractmethod
     def all(self) -> list[MemoryEntry]: ...
 
+    def mark_superseded(self, old_id: str, new_id: str) -> bool:
+        """Mark `old_id` as replaced by `new_id`. Default no-op for stores
+        that don't track supersession; override in concrete stores."""
+        return False
+
 
 # ------------------------------------------------------------------
 # File-based store — directory of small files, conflict-free across devs
@@ -152,13 +157,42 @@ class FileMemoryStore(MemoryStore):
             return
         yield from self.entries_dir.glob("*.json")
 
-    def _load_all_entries(self) -> list[dict]:
+    def _load_all_entries(self, include_superseded: bool = False) -> list[dict]:
         out: list[dict] = []
         for p in self._iter_entry_files():
             raw = self._read_json(p)
-            if raw is not None:
-                out.append(raw)
+            if raw is None:
+                continue
+            if not include_superseded and isinstance(raw.get("metadata"), dict) \
+                    and raw["metadata"].get("superseded_by"):
+                continue
+            out.append(raw)
         return out
+
+    def mark_superseded(self, old_id: str, new_id: str) -> bool:
+        """Flag `old_id` as replaced by `new_id` via metadata.superseded_by.
+
+        Superseded entries stay on disk for audit but are hidden from
+        search / list / all (see `_load_all_entries`). Direct `get(id)`
+        still returns them.
+        """
+        if not old_id or old_id == new_id:
+            return False
+        path = self._entry_file(old_id)
+        raw = self._read_json(path)
+        if raw is None:
+            return False
+        meta = raw.get("metadata") or {}
+        if not isinstance(meta, dict):
+            meta = {}
+        if meta.get("superseded_by"):
+            return False
+        from datetime import datetime, timezone
+        meta["superseded_by"] = new_id
+        meta["superseded_at"] = datetime.now(timezone.utc).isoformat()
+        raw["metadata"] = meta
+        self._write_entry_file(old_id, raw)
+        return True
 
     # ------------------------------------------------------------------
     # Public API — entries
@@ -359,6 +393,9 @@ class QdrantMemoryStore(MemoryStore):
 
     def all(self) -> list[MemoryEntry]:
         return self._fallback.all()
+
+    def mark_superseded(self, old_id: str, new_id: str) -> bool:
+        return self._fallback.mark_superseded(old_id, new_id)
 
     def get_synthesis(self, domain: str) -> dict | None:
         return self._fallback.get_synthesis(domain)
