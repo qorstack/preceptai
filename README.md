@@ -131,40 +131,26 @@ Use the dashboard to add knowledge entries by hand. Done — or continue to Part
 
 ### 4. Install the CLI
 
-First install [`uv`](https://docs.astral.sh/uv/) if you don't have it:
+Install [`uv`](https://docs.astral.sh/uv/), then the CLI:
+
+On macOS / Linux:
 
 ```bash
-# macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# or: brew install uv
-
-# Windows (PowerShell)
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-Load `uv` onto your `PATH` for the current shell (the installer prints this same hint):
-
-```bash
-# macOS / Linux (bash / zsh)
-source $HOME/.local/bin/env
-# fish: source $HOME/.local/bin/env.fish
-```
-
-To make it permanent, add the same line to your shell rc file so new terminals pick it up automatically:
-
-```bash
-echo '. "$HOME/.local/bin/env"' >> ~/.zshrc   # zsh (macOS default)
-# or: echo '. "$HOME/.local/bin/env"' >> ~/.bashrc
-```
-
-Then install the CLI:
-
-```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env
 uv tool install git+https://github.com/qorstack/knowai.git
 knowai --version
 ```
 
-> Still seeing `bash: uv: command not found`? Opening a new terminal alone isn't enough — your shell rc file doesn't know about `~/.local/bin` yet. Run the `source` command above (or the `echo … >> ~/.zshrc` one-liner and reopen the terminal).
+On Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+# close & reopen PowerShell so PATH refreshes, then:
+uv tool install git+https://github.com/qorstack/knowai.git
+knowai --version
+```
+
+> `uv: command not found` after install? Run `source $HOME/.local/bin/env` (mac/Linux) or reopen the terminal (Windows). To make it permanent on mac/Linux: `echo '. "$HOME/.local/bin/env"' >> ~/.zshrc`.
 
 ### 5. Create `knowai.config` at each repo root
 
