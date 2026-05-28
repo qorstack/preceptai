@@ -1,4 +1,4 @@
-"""Knowai CLI — cognitive enforcement for AI development."""
+"""Precept CLI — cognitive enforcement for AI development."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 app = typer.Typer(
-    name="knowai",
+    name="precept",
     help="Cognitive enforcement layer for AI software development.",
     no_args_is_help=True,
 )
@@ -30,8 +30,8 @@ console = Console()
 
 def _version_callback(value: bool) -> None:
     if value:
-        from knowai import __version__
-        console.print(f"knowai {__version__}")
+        from precept import __version__
+        console.print(f"precept {__version__}")
         raise typer.Exit()
 
 
@@ -50,9 +50,9 @@ def _main(
 
 
 def _load_engine(repo_path: str):
-    from knowai.graph.cognitive_graph import CognitiveGraph
-    from knowai.reasoning.engine import ReasoningEngine
-    from knowai.scanner.repo_scanner import RepoScanner
+    from precept.graph.cognitive_graph import CognitiveGraph
+    from precept.reasoning.engine import ReasoningEngine
+    from precept.scanner.repo_scanner import RepoScanner
 
     _print_workspace_hint(repo_path)
     scanner = RepoScanner(repo_path)
@@ -78,7 +78,7 @@ def _resolve_workspace_dir(repo_path: str | Path) -> Path | None:
             break
         p = p.parent
     try:
-        from knowai.link.resolver import resolve_workspace
+        from precept.link.resolver import resolve_workspace
         res = resolve_workspace(repo_path)
         if res is not None and (res.workspace_dir / "workspace.toml").exists():
             return res.workspace_dir
@@ -91,11 +91,11 @@ def _auto_sync_workspace(repo_path: str | Path, message: str, files: list[str] |
     """Schedule pull → commit → push in a detached background process.
 
     Returns instantly so the calling CLI command doesn't block on git I/O.
-    Failures are written to `<workspace>/.knowai-sync-status.json` for
-    `knowai doctor` to surface.
+    Failures are written to `<workspace>/.precept-sync-status.json` for
+    `precept doctor` to surface.
     """
     try:
-        from knowai import sync as _sync
+        from precept import sync as _sync
         if not _sync.sync_enabled():
             return
         ws = _resolve_workspace_dir(repo_path)
@@ -109,7 +109,7 @@ def _auto_sync_workspace(repo_path: str | Path, message: str, files: list[str] |
 def _print_workspace_hint(repo_path: str) -> None:
     """Print a one-line setup hint if the shared knowledge isn't on this machine."""
     try:
-        from knowai.link.resolver import workspace_setup_hint
+        from precept.link.resolver import workspace_setup_hint
         hint = workspace_setup_hint(repo_path)
         if hint:
             console.print(f"[yellow]ℹ {hint}[/yellow]")
@@ -128,7 +128,7 @@ def scan(
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
 ):
     """Scan a repository and show its cognitive profile."""
-    from knowai.scanner.repo_scanner import RepoScanner
+    from precept.scanner.repo_scanner import RepoScanner
 
     scanner = RepoScanner(repo_path)
     with console.status("[bold cyan]Scanning…"):
@@ -145,7 +145,7 @@ def scan(
         f"Files: {result.metadata.get('total_files', '?')}  "
         f"Monorepo: {'yes' if result.metadata.get('monorepo') else 'no'}  "
         f"Docker: {'yes' if result.metadata.get('has_docker') else 'no'}",
-        title="[bold green]Knowai Scan[/bold green]",
+        title="[bold green]Precept Scan[/bold green]",
     ))
 
     if result.domains:
@@ -183,10 +183,10 @@ def install_claude_commands(
     user: bool = typer.Option(True, "--user/--project", help="Install to ~/.claude/commands (user) or ./.claude/commands (project)"),
     force: bool = typer.Option(False, "--force", help="Overwrite existing files"),
 ):
-    """Install knowai's Claude Code slash commands (e.g. /knowai-generate).
+    """Install precept's Claude Code slash commands (e.g. /precept-generate).
 
     Copies the bundled command templates into your Claude Code commands
-    directory. After install, type `/knowai-generate` in Claude Code to have
+    directory. After install, type `/precept-generate` in Claude Code to have
     Claude scan the repo and write semantically meaningful memory entries.
     """
     import importlib.resources as _res
@@ -196,9 +196,9 @@ def install_claude_commands(
     target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        bundle = _res.files("knowai.claude_commands")
+        bundle = _res.files("precept.claude_commands")
     except ModuleNotFoundError:
-        console.print("[red]knowai.claude_commands package not found — reinstall knowai.[/red]")
+        console.print("[red]precept.claude_commands package not found — reinstall precept.[/red]")
         raise typer.Exit(1)
 
     copied: list[str] = []
@@ -215,7 +215,7 @@ def install_claude_commands(
 
     if copied:
         console.print(f"\n[green]Installed {len(copied)} command(s)[/green] to {target_dir}")
-        console.print("Open Claude Code and try [cyan]/knowai-generate[/cyan].")
+        console.print("Open Claude Code and try [cyan]/precept-generate[/cyan].")
     else:
         console.print(f"\n[yellow]Nothing installed.[/yellow] Re-run with --force to overwrite {target_dir}.")
 
@@ -295,7 +295,7 @@ def conventions(
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
 ):
     """List all detected conventions for the repository."""
-    from knowai.scanner.repo_scanner import RepoScanner
+    from precept.scanner.repo_scanner import RepoScanner
     scanner = RepoScanner(repo_path)
     with console.status("[bold cyan]Scanning…"):
         result = scanner.scan()
@@ -326,8 +326,8 @@ def impact(
 ):
     """Show the blast radius of a planned change."""
     _, scan, graph = _load_engine(repo_path)
-    from knowai.reasoning.impact_analyzer import ImpactAnalyzer
-    from knowai.reasoning.intent_analyzer import IntentAnalyzer
+    from precept.reasoning.impact_analyzer import ImpactAnalyzer
+    from precept.reasoning.intent_analyzer import IntentAnalyzer
 
     with console.status("[bold cyan]Analyzing impact…"):
         intent = IntentAnalyzer(scan).analyze(change)
@@ -360,7 +360,7 @@ def assets(
     json_output: bool = typer.Option(False, "--json"),
 ):
     """List reusable assets. Check before creating new code."""
-    from knowai.scanner.repo_scanner import RepoScanner
+    from precept.scanner.repo_scanner import RepoScanner
     scanner = RepoScanner(repo_path)
     with console.status("[bold cyan]Scanning assets…"):
         result = scanner.scan()
@@ -392,16 +392,16 @@ def memory(
     repo_path: str = typer.Option(".", "--repo", "-r"),
 ):
     """
-    Manage Knowai memory.
+    Manage Precept memory.
 
     \b
-    knowai memory list                        # list all entries
-    knowai memory recall "payment idempotency"
-    knowai memory decide payment "Use Redis queue" --body "All async jobs via BullMQ"
-    knowai memory forget <entry-id>
+    precept memory list                        # list all entries
+    precept memory recall "payment idempotency"
+    precept memory decide payment "Use Redis queue" --body "All async jobs via BullMQ"
+    precept memory forget <entry-id>
     """
-    from knowai.memory.schema import MemoryEntry, MemoryKind
-    from knowai.memory.store import create_store
+    from precept.memory.schema import MemoryEntry, MemoryKind
+    from precept.memory.store import create_store
     _print_workspace_hint(repo_path)
     store = create_store(repo_path)
 
@@ -430,7 +430,7 @@ def memory(
         # Accept title from either the positional `title_arg` or the --title flag.
         resolved_title = title or title_arg
         if not query or not body:
-            console.print("[red]Usage:[/red] knowai memory decide <domain> \"<title>\" --body \"<decision>\"")
+            console.print("[red]Usage:[/red] precept memory decide <domain> \"<title>\" --body \"<decision>\"")
             raise typer.Exit(1)
         entry = MemoryEntry(
             id="",
@@ -461,7 +461,7 @@ def pack(
     domain: str = typer.Argument(..., help="Domain name (auth, payment, webhook, order, otp, notification, worker)"),
 ):
     """Show the built-in cognition pack for a domain."""
-    from knowai.packs.builtin import get_pack
+    from precept.packs.builtin import get_pack
     p = get_pack(domain)
     if not p:
         console.print(f"[red]No pack for '{domain}'.[/red] Available: auth, otp, payment, webhook, order, notification, worker")
@@ -498,30 +498,30 @@ def workspace(
     Multi-repo workspace commands.
 
     \b
-    knowai workspace init                        # create knowai.toml in cwd (legacy)
-    knowai workspace create my-product           # create central workspace at ~/.knowai/workspaces/
-    knowai workspace list                        # list all central workspaces
-    knowai workspace scan                        # scan all repos
-    knowai workspace impact api -c "rename users.email"
-    knowai workspace graph                       # print mermaid diagram
-    knowai workspace graph react_flow --json     # React Flow JSON
+    precept workspace init                        # create precept.toml in cwd (legacy)
+    precept workspace create my-product           # create central workspace at ~/.precept/workspaces/
+    precept workspace list                        # list all central workspaces
+    precept workspace scan                        # scan all repos
+    precept workspace impact api -c "rename users.email"
+    precept workspace graph                       # print mermaid diagram
+    precept workspace graph react_flow --json     # React Flow JSON
     """
-    from knowai.workspace.config_loader import init, load
-    from knowai.workspace.multi_scanner import CrossRepoImpactAnalyzer, WorkspaceScanner
+    from precept.workspace.config_loader import init, load
+    from precept.workspace.multi_scanner import CrossRepoImpactAnalyzer, WorkspaceScanner
 
     if action == "init":
         cfg = init(workspace_path)
-        console.print(f"[green]Created[/green] knowai.toml for workspace '{cfg.name}'")
-        console.print("Edit knowai.toml to add [[repos]] and [[dependencies]] sections.")
+        console.print(f"[green]Created[/green] precept.toml for workspace '{cfg.name}'")
+        console.print("Edit precept.toml to add [[repos]] and [[dependencies]] sections.")
         return
 
     if action == "create":
         if not target:
-            console.print("[red]Provide workspace name:[/red] knowai workspace create <name>")
+            console.print("[red]Provide workspace name:[/red] precept workspace create <name>")
             raise typer.Exit(1)
-        from knowai.paths import ensure_workspace_dir, workspace_toml_path
-        from knowai.workspace.config_loader import _serialize
-        from knowai.workspace.schema import WorkspaceConfig
+        from precept.paths import ensure_workspace_dir, workspace_toml_path
+        from precept.workspace.config_loader import _serialize
+        from precept.workspace.schema import WorkspaceConfig
         ws_dir = ensure_workspace_dir(target)
         toml_path = workspace_toml_path(target)
         if toml_path.exists():
@@ -533,18 +533,18 @@ def workspace(
         console.print(f"  Topology: {toml_path}")
         console.print(f"  Memory: {ws_dir / 'memory.json'}")
         console.print(f"  Approvals: {ws_dir / 'approvals.json'}")
-        console.print(f"\nNext: in each repo, run [cyan]knowai link {target}[/cyan]")
+        console.print(f"\nNext: in each repo, run [cyan]precept link {target}[/cyan]")
         return
 
     if action == "list":
-        from knowai.paths import knowai_home, list_workspaces
+        from precept.paths import list_workspaces, precept_home
         names = list_workspaces()
         if json_output:
-            print(json.dumps({"home": str(knowai_home()), "workspaces": names}, indent=2))
+            print(json.dumps({"home": str(precept_home()), "workspaces": names}, indent=2))
             return
-        console.print(f"[bold]Central workspaces[/bold] at {knowai_home()}")
+        console.print(f"[bold]Central workspaces[/bold] at {precept_home()}")
         if not names:
-            console.print("  [dim](none — run `knowai workspace create <name>` to add one)[/dim]")
+            console.print("  [dim](none — run `precept workspace create <name>` to add one)[/dim]")
             return
         for n in names:
             console.print(f"  • [cyan]{n}[/cyan]")
@@ -552,12 +552,12 @@ def workspace(
 
     config = load(workspace_path)
     if not config.repos and action != "init":
-        console.print("[yellow]No repos in knowai.toml. Add [[repos]] entries first.[/yellow]")
+        console.print("[yellow]No repos in precept.toml. Add [[repos]] entries first.[/yellow]")
         raise typer.Exit(1)
 
     if action == "cache":
-        from knowai.cache.scan_cache import ScanCache
-        from knowai.link.resolver import resolve_workspace
+        from precept.cache.scan_cache import ScanCache
+        from precept.link.resolver import resolve_workspace
         res = resolve_workspace(workspace_path)
         ws_name = res.workspace_name if res else config.name
         cache = ScanCache(ws_name)
@@ -567,7 +567,7 @@ def workspace(
             return
         if not names:
             console.print(f"[yellow]No cached scans for workspace '{ws_name}'.[/yellow]")
-            console.print("Run [cyan]knowai workspace scan --persist[/cyan] on a machine with the repos cloned.")
+            console.print("Run [cyan]precept workspace scan --persist[/cyan] on a machine with the repos cloned.")
             return
         t = Table(title=f"Cached scans — {ws_name}", show_header=True)
         t.add_column("Repo", style="bold")
@@ -601,7 +601,7 @@ def workspace(
 
     elif action == "impact":
         if not target:
-            console.print("[red]Specify repo name: knowai workspace impact <repo-name> --change '...'[/red]")
+            console.print("[red]Specify repo name: precept workspace impact <repo-name> --change '...'[/red]")
             raise typer.Exit(1)
         scanner = WorkspaceScanner(config)
         with console.status("[bold cyan]Scanning + analyzing impact…"):
@@ -628,7 +628,7 @@ def workspace(
 
     elif action == "graph":
         fmt = target or "mermaid"
-        from knowai.graph.exporter import GraphExporter
+        from precept.graph.exporter import GraphExporter
         scanner = WorkspaceScanner(config)
         with console.status("[bold cyan]Scanning workspace…"):
             ws = scanner.scan()
@@ -660,12 +660,12 @@ def approval(
     Manage human approval requests.
 
     \b
-    knowai approval list              # list pending approvals
-    knowai approval show <id>         # show details
-    knowai approval approve <id>
-    knowai approval reject <id> --reason "too risky right now"
+    precept approval list              # list pending approvals
+    precept approval show <id>         # show details
+    precept approval approve <id>
+    precept approval reject <id> --reason "too risky right now"
     """
-    from knowai.approval.queue import get_queue
+    from precept.approval.queue import get_queue
 
     queue = get_queue(repo_path)
 
@@ -738,9 +738,9 @@ def graph(
     repo_path: str = typer.Option(".", "--repo", "-r"),
 ):
     """Export the cognitive graph for a single repo."""
-    from knowai.graph.cognitive_graph import CognitiveGraph
-    from knowai.graph.exporter import GraphExporter
-    from knowai.scanner.repo_scanner import RepoScanner
+    from precept.graph.cognitive_graph import CognitiveGraph
+    from precept.graph.exporter import GraphExporter
+    from precept.scanner.repo_scanner import RepoScanner
 
     scanner = RepoScanner(repo_path)
     with console.status("[bold cyan]Scanning…"):
@@ -772,17 +772,17 @@ def link(
     Link this repo to a central workspace so memory + approvals + topology are shared.
 
     \b
-    knowai link my-product --role backend --domains billing,auth --critical \\
+    precept link my-product --role backend --domains billing,auth --critical \\
                             --remote git@github.com:org/my-product-knowledge.git
     """
-    from knowai.link.config import LinkConfig, save_link
-    from knowai.paths import workspace_dir, workspace_toml_path
+    from precept.link.config import LinkConfig, save_link
+    from precept.paths import workspace_dir, workspace_toml_path
 
     ws_exists_locally = workspace_toml_path(workspace_name).exists()
     if not ws_exists_locally and not remote:
         console.print(f"[red]Workspace '{workspace_name}' does not exist locally and no --remote provided.[/red]")
-        console.print(f"Either: [cyan]knowai workspace create {workspace_name}[/cyan]")
-        console.print(f"Or:     [cyan]knowai link {workspace_name} --remote <git-url>[/cyan]  (clone shared knowledge)")
+        console.print(f"Either: [cyan]precept workspace create {workspace_name}[/cyan]")
+        console.print(f"Or:     [cyan]precept link {workspace_name} --remote <git-url>[/cyan]  (clone shared knowledge)")
         raise typer.Exit(1)
 
     cfg = LinkConfig(
@@ -812,12 +812,12 @@ def unlink(
 ):
     """Remove this repo's link to a central workspace.
 
-    If knowai.config also carries a [database] section, only the link fields
+    If precept.config also carries a [database] section, only the link fields
     are stripped; the file (and DB credentials) stay. Otherwise the whole
     file is deleted.
     """
-    from knowai.link.config import _extract_database_section
-    from knowai.paths import repo_link_config_path
+    from precept.link.config import _extract_database_section
+    from precept.paths import repo_link_config_path
 
     path = repo_link_config_path(repo_path)
     if not path.exists():
@@ -839,31 +839,31 @@ def migrate(
     dry_run: bool = typer.Option(False, "--dry-run"),
 ):
     """
-    Migrate legacy per-repo .knowai/{memory,approvals}.json into a central workspace.
+    Migrate legacy per-repo .precept/{memory,approvals}.json into a central workspace.
 
     \b
-    1. knowai workspace create my-product
-    2. knowai link my-product --repo /path/to/api
-    3. knowai migrate --repo /path/to/api
+    1. precept workspace create my-product
+    2. precept link my-product --repo /path/to/api
+    3. precept migrate --repo /path/to/api
     """
     import json as _json
 
-    from knowai.link.config import load_link
-    from knowai.paths import workspace_approvals_path, workspace_memory_path
+    from precept.link.config import load_link
+    from precept.paths import workspace_approvals_path, workspace_memory_path
 
-    legacy_dir = Path(repo_path) / ".knowai"
+    legacy_dir = Path(repo_path) / ".precept"
     legacy_memory = legacy_dir / "memory.json"
     legacy_approvals = legacy_dir / "approvals.json"
 
     if not legacy_memory.exists() and not legacy_approvals.exists():
-        console.print("[yellow]Nothing to migrate.[/yellow] No legacy .knowai/memory.json or approvals.json found.")
+        console.print("[yellow]Nothing to migrate.[/yellow] No legacy .precept/memory.json or approvals.json found.")
         raise typer.Exit(0)
 
     if not workspace_name:
         link = load_link(repo_path)
         if not link:
             console.print("[red]No workspace specified and no link config found.[/red]")
-            console.print("Either pass --workspace <name> or run `knowai link <name>` first.")
+            console.print("Either pass --workspace <name> or run `precept link <name>` first.")
             raise typer.Exit(1)
         workspace_name = link.workspace
 
@@ -906,36 +906,36 @@ def migrate(
 @app.command()
 def init(
     repo_path: str = typer.Option(".", "--repo", "-r"),
-    workspace_mode: bool = typer.Option(False, "--workspace", help="Legacy: create knowai.toml in cwd"),
+    workspace_mode: bool = typer.Option(False, "--workspace", help="Legacy: create precept.toml in cwd"),
     name: str = typer.Option("", "--name", help="Workspace name (overrides auto-detection)"),
     link_to: str = typer.Option("", "--link", help="Force link mode to a specific workspace name"),
     remote: str = typer.Option("", "--remote", help="Git URL of shared knowledge repo (overrides auto-detection)"),
     knowledge: bool = typer.Option(False, "--knowledge", help="Force knowledge-home mode (set up this folder as the workspace home)"),
 ):
     """
-    Set up Knowai in this folder. Auto-detects whether this is a knowledge repo
+    Set up Precept in this folder. Auto-detects whether this is a knowledge repo
     or a working repo, and does the right thing.
 
     \b
     Common usage — just run with no flags:
-      cd tutorial-knowai-knowledge && knowai init   # becomes the workspace home
-      cd tutorial-knowai-service   && knowai init   # auto-links to sibling knowledge repo
-      cd tutorial-knowai-website   && knowai init   # auto-links too
+      cd tutorial-precept-knowledge && precept init   # becomes the workspace home
+      cd tutorial-precept-service   && precept init   # auto-links to sibling knowledge repo
+      cd tutorial-precept-website   && precept init   # auto-links too
 
     \b
     Explicit flags (override auto-detection):
-      knowai init --knowledge --name tutorial        # force knowledge home, custom name
-      knowai init --link tutorial --remote <git-url> # force link mode with explicit name
-      knowai init --workspace                        # legacy: write knowai.toml (single-repo)
+      precept init --knowledge --name tutorial        # force knowledge home, custom name
+      precept init --link tutorial --remote <git-url> # force link mode with explicit name
+      precept init --workspace                        # legacy: write precept.toml (single-repo)
     """
     target = Path(repo_path).resolve()
 
     # Legacy single-file workspace mode
     if workspace_mode:
-        from knowai.workspace.config_loader import init as ws_init
+        from precept.workspace.config_loader import init as ws_init
         cfg = ws_init(target, name=name)
-        console.print(f"[green]Created[/green] knowai.toml for workspace '{cfg.name}'")
-        console.print("Add [[repos]] and [[dependencies]] sections to knowai.toml.")
+        console.print(f"[green]Created[/green] precept.toml for workspace '{cfg.name}'")
+        console.print("Add [[repos]] and [[dependencies]] sections to precept.toml.")
         return
 
     # Detect mode in priority order:
@@ -971,7 +971,7 @@ def _derive_workspace_name(folder_name: str) -> str:
     Strip common project-suffix conventions to derive a clean workspace name.
 
     Examples:
-      tutorial-knowai-knowledge → tutorial
+      tutorial-precept-knowledge → tutorial
       myapp-knowledge            → myapp
       acme_knowledge             → acme
       knowledge                  → knowledge  (no change)
@@ -983,7 +983,7 @@ def _derive_workspace_name(folder_name: str) -> str:
             n = n[: -len(suf)]
             lowered = n.lower()
             break
-    for suf in ("-knowai", "_knowai"):
+    for suf in ("-precept", "_precept"):
         if lowered.endswith(suf) and len(n) > len(suf):
             n = n[: -len(suf)]
             break
@@ -1006,10 +1006,10 @@ def _find_knowledge_sibling(target: Path) -> Path | None:
 
 def _init_knowledge_mode(target: Path, override_name: str = "") -> None:
     """Set up `target` as the workspace home — create workspace files in place and register the path."""
-    from knowai.paths import ensure_workspace_dir
-    from knowai.registry import register
-    from knowai.workspace.config_loader import _serialize, load
-    from knowai.workspace.schema import WorkspaceConfig
+    from precept.paths import ensure_workspace_dir
+    from precept.registry import register
+    from precept.workspace.config_loader import _serialize, load
+    from precept.workspace.schema import WorkspaceConfig
 
     ws_name = override_name or _derive_workspace_name(target.name)
     toml_path = target / "workspace.toml"
@@ -1041,7 +1041,7 @@ def _init_knowledge_mode(target: Path, override_name: str = "") -> None:
         console.print("  [dim](workspace name derived from folder; override with --name)[/dim]")
     # If this knowledge repo already has a git remote, push the freshly
     # initialized workspace files so teammates can clone immediately.
-    _auto_sync_workspace(target, f"chore: init knowai workspace '{ws_name}'")
+    _auto_sync_workspace(target, f"chore: init precept workspace '{ws_name}'")
     _print_knowledge_next_steps(target)
 
 
@@ -1102,17 +1102,17 @@ def _print_knowledge_next_steps(target: Path) -> None:
             "  [bold]2.[/bold] Push this folder to GitHub so teammates can clone it:"
         )
         console.print(
-            "       [dim]git add . && git commit -m \"chore: init knowai workspace\" && git push -u origin main[/dim]"
+            "       [dim]git add . && git commit -m \"chore: init precept workspace\" && git push -u origin main[/dim]"
         )
     else:
         console.print(
             "  [bold]2.[/bold] Commit + push so teammates get it:"
         )
         console.print(
-            "       [dim]git add . && git commit -m \"chore: init knowai workspace\" && git push[/dim]"
+            "       [dim]git add . && git commit -m \"chore: init precept workspace\" && git push[/dim]"
         )
     console.print(
-        "  [bold]3.[/bold] In each working repo (sibling folder), run [cyan]knowai init[/cyan] —"
+        "  [bold]3.[/bold] In each working repo (sibling folder), run [cyan]precept init[/cyan] —"
     )
     console.print(
         "       it auto-detects this knowledge home and links automatically."
@@ -1125,17 +1125,17 @@ def _write_getting_started(target: Path, ws_name: str) -> None:
     if path.exists():
         return
     path.write_text(
-        f"""# Knowai workspace `{ws_name}` — quick start
+        f"""# Precept workspace `{ws_name}` — quick start
 
 This folder is the team's **shared brain**. Anything saved here syncs to git
-automatically. Devs talk to Claude — nobody types git or knowai commands.
+automatically. Devs talk to Claude — nobody types git or precept commands.
 
 ## For each dev (one-time setup per repo)
 
 ```bash
 cd <my-working-repo>          # sibling of this knowledge folder
-knowai init                  # auto-links + bootstraps a starter skill from your code
-claude mcp add knowai -- uvx knowai mcp --repo .
+precept init                  # auto-links + bootstraps a starter skill from your code
+claude mcp add precept -- uvx precept mcp --repo .
 ```
 
 Done. Open Claude Code / Cursor and start coding.
@@ -1166,15 +1166,15 @@ All file-per-entry → concurrent writes from 10+ devs never collide.
 ## If something looks off
 
 ```bash
-knowai doctor                # health check this repo + workspace
-knowai audit                 # what MCP tools did Claude actually call?
-knowai sync                  # force a pull+push right now
+precept doctor                # health check this repo + workspace
+precept audit                 # what MCP tools did Claude actually call?
+precept sync                  # force a pull+push right now
 ```
 
 ## Opting out of auto-sync (rare)
 
-Set `KNOWLYX_AUTO_SYNC=0` in your shell to disable background git. You'll
-have to `knowai sync` manually.
+Set `PRECEPT_AUTO_SYNC=0` in your shell to disable background git. You'll
+have to `precept sync` manually.
 """,
         encoding="utf-8",
     )
@@ -1227,8 +1227,8 @@ def _bootstrap_starter_skill(
     lines.append(f"# `{repo_name}` — auto-detected stack & conventions")
     lines.append("")
     lines.append(
-        "_This skill was generated by `knowai init` from a static scan. "
-        "Curate it as the team learns more — Knowai will not overwrite it._"
+        "_This skill was generated by `precept init` from a static scan. "
+        "Curate it as the team learns more — Precept will not overwrite it._"
     )
     lines.append("")
 
@@ -1299,12 +1299,12 @@ def _init_link_mode(
     sibling: Path | None = None,
 ) -> None:
     """Link `target` (a working repo) to a workspace. Either via explicit name or via a knowledge sibling."""
-    from knowai.link.config import LinkConfig, save_link
-    from knowai.paths import workspace_dir, workspace_toml_path
-    from knowai.registry import register
-    from knowai.scanner.repo_scanner import RepoScanner
-    from knowai.workspace.config_loader import register_repo_in_workspace
-    from knowai.workspace.schema import RepoConfig, RepoRole
+    from precept.link.config import LinkConfig, save_link
+    from precept.paths import workspace_dir, workspace_toml_path
+    from precept.registry import register
+    from precept.scanner.repo_scanner import RepoScanner
+    from precept.workspace.config_loader import register_repo_in_workspace
+    from precept.workspace.schema import RepoConfig, RepoRole
 
     # If a sibling knowledge repo was auto-detected, derive name + remote from it.
     if sibling is not None:
@@ -1323,8 +1323,8 @@ def _init_link_mode(
     ws_exists_locally = workspace_toml_path(workspace_name).exists()
     if not ws_exists_locally and not remote and sibling is None:
         console.print(f"[red]Workspace '{workspace_name}' not found locally and no --remote provided.[/red]")
-        console.print("Either: [cyan]knowai init --knowledge[/cyan] in the knowledge repo first,")
-        console.print(f"Or:     [cyan]knowai init --link {workspace_name} --remote <git-url>[/cyan]")
+        console.print("Either: [cyan]precept init --knowledge[/cyan] in the knowledge repo first,")
+        console.print(f"Or:     [cyan]precept init --link {workspace_name} --remote <git-url>[/cyan]")
         raise typer.Exit(1)
 
     with console.status("[bold cyan]Auto-detecting role + domains…"):
@@ -1339,7 +1339,7 @@ def _init_link_mode(
     ), target)
     console.print(f"[green]Linked[/green] {target.name} → {workspace_name}")
     console.print(f"  Detected role: [cyan]{inferred_role}[/cyan]  Domains: {', '.join(inferred_domains) or '(none)'}")
-    console.print("  Wrote: [cyan]knowai.config[/cyan]")
+    console.print("  Wrote: [cyan]precept.config[/cyan]")
     if repo_git_url:
         console.print(f"  Repo git URL: {repo_git_url}")
     if remote:
@@ -1380,7 +1380,7 @@ def _init_link_mode(
         console.print(
             f"\n[yellow]⚠ Shared knowledge not on this machine yet.[/yellow]\n"
             f"  Run:  [cyan]git clone {remote} {target_path}[/cyan]\n"
-            f"  Then re-run [cyan]knowai init[/cyan] to auto-register."
+            f"  Then re-run [cyan]precept init[/cyan] to auto-register."
         )
 
     _print_link_next_steps(workspace_name)
@@ -1390,10 +1390,10 @@ def _print_link_next_steps(workspace_name: str) -> None:
     """Print concrete commands to run after linking a working repo."""
     console.print("\n[bold]Next steps:[/bold]")
     console.print(
-        "  [bold]1.[/bold] Register Knowai as an MCP server in this repo:"
+        "  [bold]1.[/bold] Register Precept as an MCP server in this repo:"
     )
     console.print(
-        "       [dim]claude mcp add knowai -- uvx knowai mcp --repo .[/dim]"
+        "       [dim]claude mcp add precept -- uvx precept mcp --repo .[/dim]"
     )
     console.print(
         "  [bold]2.[/bold] In Claude Code, prompt as usual. Claude will call [cyan]analyze_intent[/cyan]"
@@ -1402,10 +1402,10 @@ def _print_link_next_steps(workspace_name: str) -> None:
         "       and discover skills/decisions from the workspace automatically."
     )
     console.print(
-        "  [bold]3.[/bold] After Claude runs, verify it actually used Knowai:"
+        "  [bold]3.[/bold] After Claude runs, verify it actually used Precept:"
     )
     console.print(
-        "       [dim]knowai audit[/dim]"
+        "       [dim]precept audit[/dim]"
     )
     console.print(
         f"  [dim]Workspace knowledge: see ../{Path(_workspace_home_path(workspace_name)).name}/GETTING_STARTED.md[/dim]"
@@ -1415,14 +1415,14 @@ def _print_link_next_steps(workspace_name: str) -> None:
 def _workspace_home_path(workspace_name: str) -> str:
     """Return a display-friendly path to the workspace home folder."""
     try:
-        from knowai.paths import workspace_dir
+        from precept.paths import workspace_dir
         return str(workspace_dir(workspace_name))
     except Exception:
         return workspace_name
 
 
 def _init_suggest(target: Path, name: str) -> None:
-    from knowai.scanner.repo_scanner import RepoScanner
+    from precept.scanner.repo_scanner import RepoScanner
 
     with console.status("[bold cyan]Scanning repo…"):
         scan = RepoScanner(target).scan()
@@ -1433,22 +1433,22 @@ def _init_suggest(target: Path, name: str) -> None:
         f"[bold]Architecture:[/bold] {scan.architecture.value}\n"
         f"[bold]Suggested role:[/bold] [cyan]{role}[/cyan]\n"
         f"[bold]Detected domains:[/bold] {', '.join(scan.domains) or '(none)'}",
-        title="[bold green]Knowai Init[/bold green]",
+        title="[bold green]Precept Init[/bold green]",
     ))
     suggested = name or target.name
     console.print("\n[bold]No knowledge repo detected nearby.[/bold] Pick one:\n")
     console.print("  [bold]A.[/bold] This repo IS the knowledge home (tech-lead setup):")
-    console.print(f"     [cyan]knowai init --knowledge --name {suggested}[/cyan]\n")
+    console.print(f"     [cyan]precept init --knowledge --name {suggested}[/cyan]\n")
     console.print("  [bold]B.[/bold] Link to an existing workspace by name:")
-    console.print(f"     [cyan]knowai init --link {suggested} --remote <git-url>[/cyan]\n")
-    console.print("  [bold]C.[/bold] Clone the team's knowledge repo as a sibling first, then re-run [cyan]knowai init[/cyan].\n")
-    console.print("  [bold]MCP:[/bold] add knowai to .claude/settings.json:")
-    console.print('     [dim]{"mcpServers": {"knowai": {"command": "uvx", "args": ["knowai", "mcp", "--repo", "."]}}}[/dim]')
+    console.print(f"     [cyan]precept init --link {suggested} --remote <git-url>[/cyan]\n")
+    console.print("  [bold]C.[/bold] Clone the team's knowledge repo as a sibling first, then re-run [cyan]precept init[/cyan].\n")
+    console.print("  [bold]MCP:[/bold] add precept to .claude/settings.json:")
+    console.print('     [dim]{"mcpServers": {"precept": {"command": "uvx", "args": ["precept", "mcp", "--repo", "."]}}}[/dim]')
 
 
 def _registry_display_path() -> str:
-    from knowai.paths import knowai_home
-    return str(knowai_home() / "registry.toml")
+    from precept.paths import precept_home
+    return str(precept_home() / "registry.toml")
 
 
 def _detect_git_remote(repo_path: Path) -> str:
@@ -1489,12 +1489,12 @@ def doctor(
     json_output: bool = typer.Option(False, "--json"),
 ):
     """
-    Diagnose your Knowai setup — does each piece work end-to-end?
+    Diagnose your Precept setup — does each piece work end-to-end?
 
     Checks (in order):
 
     \b
-    1. Is this folder a Knowai workspace home, a linked working repo, or neither?
+    1. Is this folder a Precept workspace home, a linked working repo, or neither?
     2. Does the registry point at a real workspace path?
     3. Is the MCP server reachable via `claude mcp list`? (skipped if `claude` not installed)
     4. How many skills / memory entries are visible to AI?
@@ -1512,26 +1512,26 @@ def doctor(
 
     # 1. Mode detection
     has_workspace_toml = (target / "workspace.toml").exists()
-    has_link = (target / ".knowai" / "config.toml").exists()
+    has_link = (target / ".precept" / "config.toml").exists()
     sibling = _find_knowledge_sibling(target)
 
     if has_workspace_toml:
         add("mode", "ok", "Knowledge home (workspace.toml present in this folder)")
     elif has_link:
-        from knowai.link.config import load_link
+        from precept.link.config import load_link
         link = load_link(target)
         ws_name = link.workspace if link else "?"
         add("mode", "ok", f"Linked working repo → workspace '{ws_name}'")
     elif sibling is not None:
         add("mode", "warn", f"Unlinked but sibling knowledge repo detected: {sibling.name}",
-            "Run `knowai init` to auto-link.")
+            "Run `precept init` to auto-link.")
     else:
-        add("mode", "fail", "Not a Knowai folder — no workspace.toml here, no link config, no knowledge sibling",
-            "Run `knowai init` in a knowledge repo first, then in each working repo.")
+        add("mode", "fail", "Not a Precept folder — no workspace.toml here, no link config, no knowledge sibling",
+            "Run `precept init` in a knowledge repo first, then in each working repo.")
 
     # 2. Workspace resolution + registry health
-    from knowai.link.resolver import resolve_workspace
-    from knowai.registry import get_path as get_registered_path
+    from precept.link.resolver import resolve_workspace
+    from precept.registry import get_path as get_registered_path
     res = resolve_workspace(target)
     if res is not None:
         ws_name = res.workspace_name
@@ -1540,11 +1540,11 @@ def doctor(
         if not actual_dir.exists() or not (actual_dir / "workspace.toml").exists():
             add("workspace_dir", "fail",
                 f"Workspace '{ws_name}' resolves to {actual_dir} but no workspace.toml there",
-                "Clone the team's knowledge repo, then `knowai init` again.")
+                "Clone the team's knowledge repo, then `precept init` again.")
         elif registered and registered != actual_dir:
             add("workspace_dir", "warn",
                 f"Registry → {registered}\n     Resolved → {actual_dir} (mismatch)",
-                "Re-run `knowai init` in the knowledge repo to refresh the registry.")
+                "Re-run `precept init` in the knowledge repo to refresh the registry.")
         else:
             add("workspace_dir", "ok", f"Workspace '{ws_name}' at {actual_dir}")
     elif has_workspace_toml:
@@ -1557,11 +1557,11 @@ def doctor(
             ["claude", "mcp", "list"],
             capture_output=True, text=True, timeout=5, check=False,
         )
-        if proc.returncode == 0 and "knowai" in proc.stdout.lower():
-            add("mcp", "ok", "knowai registered with Claude Code (`claude mcp list`)")
+        if proc.returncode == 0 and "precept" in proc.stdout.lower():
+            add("mcp", "ok", "precept registered with Claude Code (`claude mcp list`)")
         elif proc.returncode == 0:
-            add("mcp", "warn", "Claude Code MCP list does not include knowai",
-                "Run: claude mcp add knowai -- uvx knowai mcp --repo .")
+            add("mcp", "warn", "Claude Code MCP list does not include precept",
+                "Run: claude mcp add precept -- uvx precept mcp --repo .")
         else:
             add("mcp", "warn", "`claude mcp list` returned non-zero",
                 "Check that Claude Code CLI is installed and authenticated.")
@@ -1570,7 +1570,7 @@ def doctor(
 
     # 4. Content visibility (skills + memory entries)
     if res is not None or has_workspace_toml:
-        from knowai.skills import load_workspace_skills
+        from precept.skills import load_workspace_skills
         ws_name = res.workspace_name if res else _derive_workspace_name(target.name)
         try:
             skills = load_workspace_skills(ws_name)
@@ -1581,7 +1581,7 @@ def doctor(
             add("skills", "warn", f"Could not load skills: {e}")
 
         try:
-            from knowai.memory.store import create_store
+            from precept.memory.store import create_store
             store = create_store(str(target))
             entries = store.all()
             approved = [e for e in entries if e.approved]
@@ -1592,20 +1592,20 @@ def doctor(
 
     # 5. Pending approvals
     try:
-        from knowai.approval.queue import get_queue
+        from precept.approval.queue import get_queue
         queue = get_queue(str(target))
         pend = queue.pending()
         if pend:
             add("approvals", "warn",
                 f"{len(pend)} pending approval(s) — AI may be blocked",
-                "Review: knowai approval list")
+                "Review: precept approval list")
         else:
             add("approvals", "ok", "No pending approvals")
     except Exception:
         pass
 
     # 6. Cognition stamp freshness
-    stamp = target / ".knowai" / "last_cognition.json"
+    stamp = target / ".precept" / "last_cognition.json"
     if stamp.exists():
         try:
             data = json.loads(stamp.read_text(encoding="utf-8"))
@@ -1630,7 +1630,7 @@ def doctor(
 
     icon = {"ok": "[green]+[/green]", "warn": "[yellow]![/yellow]",
             "fail": "[red]x[/red]", "skip": "[dim]-[/dim]"}
-    t = Table(title=f"Knowai doctor — {target.name}", show_header=True)
+    t = Table(title=f"Precept doctor — {target.name}", show_header=True)
     t.add_column("", width=2)
     t.add_column("Check", style="bold")
     t.add_column("Detail")
@@ -1642,7 +1642,7 @@ def doctor(
     fail_count = sum(1 for r in results if r["status"] == "fail")
     warn_count = sum(1 for r in results if r["status"] == "warn")
     if fail_count:
-        console.print(f"\n[red]{fail_count} blocker(s).[/red] Fix these before relying on Knowai.")
+        console.print(f"\n[red]{fail_count} blocker(s).[/red] Fix these before relying on Precept.")
         raise typer.Exit(1)
     if warn_count:
         console.print(f"\n[yellow]{warn_count} warning(s).[/yellow] Setup works but is not optimal.")
@@ -1659,20 +1659,20 @@ def audit(
     json_output: bool = typer.Option(False, "--json", help="Print raw JSONL instead of a table"),
 ):
     """
-    Inspect which Knowai MCP tools the AI has called in this repo.
+    Inspect which Precept MCP tools the AI has called in this repo.
 
-    The audit log is a single capped JSONL file at .knowai/audit.log (last
+    The audit log is a single capped JSONL file at .precept/audit.log (last
     ~500 events, oldest dropped automatically). No log rotation needed.
 
     \b
-    knowai audit                       # last 30 events as a table
-    knowai audit --limit 100           # last 100
-    knowai audit --tool analyze_intent # only this tool
-    knowai audit --json                # raw JSON lines for scripting
-    knowai audit clear                 # delete the log
-    knowai audit path                  # print the log file path
+    precept audit                       # last 30 events as a table
+    precept audit --limit 100           # last 100
+    precept audit --tool analyze_intent # only this tool
+    precept audit --json                # raw JSON lines for scripting
+    precept audit clear                 # delete the log
+    precept audit path                  # print the log file path
     """
-    from knowai import audit as _audit
+    from precept import audit as _audit
 
     if action == "path":
         print(_audit._audit_path(repo_path))
@@ -1699,10 +1699,10 @@ def audit(
         return
 
     if not events:
-        console.print("[yellow]No audit events yet.[/yellow]  [dim](The AI hasn't called any Knowai tools in this repo, or the log was cleared.)[/dim]")
+        console.print("[yellow]No audit events yet.[/yellow]  [dim](The AI hasn't called any Precept tools in this repo, or the log was cleared.)[/dim]")
         return
 
-    t = Table(title=f"Knowai audit — last {len(events)} event(s)", show_header=True)
+    t = Table(title=f"Precept audit — last {len(events)} event(s)", show_header=True)
     t.add_column("When (UTC)", style="dim", width=20)
     t.add_column("Tool", style="cyan")
     t.add_column("Args")
@@ -1729,12 +1729,12 @@ def commit_check(
     Gate commits: ensure AI ran analyze_intent recently and the decision allows proceeding.
 
     \b
-    knowai commit-check              # warns only
-    knowai commit-check --strict     # exits 1 on any issue
+    precept commit-check              # warns only
+    precept commit-check --strict     # exits 1 on any issue
     """
     from datetime import datetime, timedelta, timezone
 
-    stamp_path = Path(repo_path) / ".knowai" / "last_cognition.json"
+    stamp_path = Path(repo_path) / ".precept" / "last_cognition.json"
     if not stamp_path.exists():
         msg = "No cognition stamp found. AI should call `analyze_intent` before coding."
         console.print(f"[yellow]⚠ {msg}[/yellow]")
@@ -1773,7 +1773,7 @@ def commit_check(
 
     if decision == "ask":
         console.print(f"[yellow]⚠ Last cognition requires APPROVAL:[/yellow] {request}")
-        console.print(f"   Risk: {risk}. Run [cyan]knowai approval list[/cyan] and ensure it's approved.")
+        console.print(f"   Risk: {risk}. Run [cyan]precept approval list[/cyan] and ensure it's approved.")
         if strict:
             raise typer.Exit(1)
         return
@@ -1788,7 +1788,7 @@ def sync(
     workspace_name: str = typer.Option("", "--workspace", "-w", help="Workspace name (auto-detect from cwd if linked)"),
     remote: str = typer.Option("", "--remote", help="Remote URL (for init)"),
     branch: str = typer.Option("main", "--branch"),
-    message: str = typer.Option("knowai: update knowledge", "--message", "-m"),
+    message: str = typer.Option("precept: update knowledge", "--message", "-m"),
     interval: int = typer.Option(60, "--interval", help="(watch) seconds between sync cycles"),
     no_auto_resolve: bool = typer.Option(False, "--no-auto-resolve", help="Don't auto-merge JSON conflicts"),
 ):
@@ -1796,26 +1796,26 @@ def sync(
     Sync the central workspace via git.
 
     \b
-    knowai sync                # one-shot: pull → push (default action: now)
-    knowai sync watch          # daemon: pull → push every --interval seconds
-    knowai sync status         # show local vs remote state
-    knowai sync init --remote git@github.com:org/x-knowledge.git
-    knowai sync pull           # pull only
-    knowai sync push -m "..."  # push only
+    precept sync                # one-shot: pull → push (default action: now)
+    precept sync watch          # daemon: pull → push every --interval seconds
+    precept sync status         # show local vs remote state
+    precept sync init --remote git@github.com:org/x-knowledge.git
+    precept sync pull           # pull only
+    precept sync push -m "..."  # push only
 
-    `now` and `watch` are also triggered automatically by `knowai memory decide`,
-    `knowai approval approve|reject`, and `knowai init` — so most users never
-    need to run them by hand. Disable with `KNOWLYX_AUTO_SYNC=0`.
+    `now` and `watch` are also triggered automatically by `precept memory decide`,
+    `precept approval approve|reject`, and `precept init` — so most users never
+    need to run them by hand. Disable with `PRECEPT_AUTO_SYNC=0`.
     """
     if action in ("now", "watch"):
-        from knowai import sync as _sync_mod
+        from precept import sync as _sync_mod
 
         ws_dir = _resolve_workspace_dir(".")
         if ws_dir is None and workspace_name:
-            from knowai.paths import workspace_dir
+            from precept.paths import workspace_dir
             ws_dir = workspace_dir(workspace_name)
         if ws_dir is None or not ws_dir.exists():
-            console.print("[red]No workspace found.[/red] Run `knowai init` in a knowledge or working repo first.")
+            console.print("[red]No workspace found.[/red] Run `precept init` in a knowledge or working repo first.")
             raise typer.Exit(1)
 
         def cycle() -> int:
@@ -1834,7 +1834,7 @@ def sync(
 
         # watch
         import time
-        console.print(f"[bold]knowai sync watch[/bold] — every {interval}s. Ctrl+C to stop.")
+        console.print(f"[bold]precept sync watch[/bold] — every {interval}s. Ctrl+C to stop.")
         try:
             while True:
                 cycle()
@@ -1844,8 +1844,8 @@ def sync(
             return
 
 
-    from knowai.link.resolver import resolve_workspace
-    from knowai.sync.git_sync import GitSync
+    from precept.link.resolver import resolve_workspace
+    from precept.sync.git_sync import GitSync
 
     if not workspace_name:
         res = resolve_workspace(".")
@@ -1853,7 +1853,7 @@ def sync(
             workspace_name = res.workspace_name
         else:
             console.print("[red]No workspace specified and current dir is not linked.[/red]")
-            console.print("Pass [cyan]--workspace <name>[/cyan] or run [cyan]knowai link <name>[/cyan].")
+            console.print("Pass [cyan]--workspace <name>[/cyan] or run [cyan]precept link <name>[/cyan].")
             raise typer.Exit(1)
 
     sync_obj = GitSync(workspace_name)
@@ -1865,7 +1865,7 @@ def sync(
         console.print(f"  Path: {st.path}")
         if st.has_remote:
             console.print(f"  Remote: {st.remote_url}")
-            console.print("\nNext: [cyan]knowai sync push[/cyan]")
+            console.print("\nNext: [cyan]precept sync push[/cyan]")
         else:
             console.print("  Remote: [yellow](none — pass --remote to set one)[/yellow]")
         return
@@ -1874,7 +1874,7 @@ def sync(
         st = sync_obj.status()
         if not sync_obj.is_git_repo():
             console.print(f"[yellow]Workspace '{workspace_name}' is not git-initialized.[/yellow]")
-            console.print("Run: [cyan]knowai sync init --remote <url>[/cyan]")
+            console.print("Run: [cyan]precept sync init --remote <url>[/cyan]")
             return
         console.print(Panel(
             f"[bold]Workspace:[/bold] {st.workspace}\n"
@@ -1910,15 +1910,129 @@ def sync(
     raise typer.Exit(1)
 
 
+_QUICKSTART_ENV = """\
+POSTGRES_USER=precept
+POSTGRES_PASSWORD=precept
+POSTGRES_DB=precept
+POSTGRES_PORT=5432
+WEB_PORT=8080
+"""
+
+_QUICKSTART_COMPOSE = """\
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: precept-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports: ["${POSTGRES_PORT}:5432"]
+    volumes: [precept_pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+
+  web:
+    image: ghcr.io/qorstack/precept:latest
+    container_name: precept-web
+    depends_on: { postgres: { condition: service_healthy } }
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    ports: ["${WEB_PORT}:8080"]
+
+volumes:
+  precept_pgdata:
+"""
+
+
+@app.command()
+def quickstart(
+    repo_path: str = typer.Option(".", "--repo", "-r", help="Where to scaffold .env + docker-compose.yml"),
+    no_docker: bool = typer.Option(False, "--no-docker", help="Skip starting Postgres + dashboard"),
+    no_mcp: bool = typer.Option(False, "--no-mcp", help="Skip registering the MCP server with Claude Code"),
+):
+    """
+    Zero to a working Precept setup in one command.
+
+    Scaffolds .env + docker-compose.yml, starts Postgres + the dashboard,
+    registers the MCP server with Claude Code, and installs the /precept slash
+    commands. Safe to re-run — existing files are left untouched.
+    """
+    import shutil
+    import subprocess
+
+    target = Path(repo_path).resolve()
+
+    # 1. Scaffold config files (never overwrite — quickstart is re-runnable).
+    for name, content in ((".env", _QUICKSTART_ENV), ("docker-compose.yml", _QUICKSTART_COMPOSE)):
+        path = target / name
+        if path.exists():
+            console.print(f"  [dim]skip[/dim]  {name} (exists)")
+        else:
+            path.write_text(content, encoding="utf-8")
+            console.print(f"  [green]wrote[/green] {name}")
+
+    # 2. Bring up Postgres + dashboard.
+    if no_docker:
+        console.print("[dim]Skipping container startup (--no-docker).[/dim]")
+    elif shutil.which("docker") is None:
+        console.print("[yellow]docker not found — skipping container startup.[/yellow] Install Docker, then re-run.")
+    else:
+        with console.status("[cyan]Starting Postgres + dashboard…"):
+            rc = subprocess.run(["docker", "compose", "up", "-d"], cwd=str(target)).returncode
+        if rc == 0:
+            console.print("  [green]up[/green]    Postgres + dashboard")
+        else:
+            console.print("  [yellow]docker compose exited non-zero — check the output above.[/yellow]")
+
+    # 3. Register the MCP server with Claude Code.
+    if no_mcp:
+        console.print("[dim]Skipping MCP registration (--no-mcp).[/dim]")
+    elif shutil.which("claude") is None:
+        console.print("[yellow]Claude Code CLI not found — skipping MCP registration.[/yellow]")
+        console.print("  Install it, then run: [cyan]claude mcp add precept -- precept mcp[/cyan]")
+    else:
+        rc = subprocess.run(
+            ["claude", "mcp", "add", "precept", "--", "precept", "mcp"],
+            cwd=str(target),
+        ).returncode
+        if rc == 0:
+            console.print("  [green]ok[/green]    registered MCP server 'precept'")
+
+    # 4. Install the /precept slash commands.
+    try:
+        install_claude_commands(user=True, force=False)
+    except SystemExit:
+        pass
+
+    # 5. Next steps.
+    console.print(Panel(
+        "Open Claude Code in any repo and try:\n"
+        "  [cyan]/precept add a refund endpoint to /payments[/cyan]\n\n"
+        "Dashboard: [cyan]http://localhost:8080[/cyan]  "
+        "[dim](needs the ghcr.io/qorstack/precept image published)[/dim]",
+        title="[bold green]Precept is ready[/bold green]",
+    ))
+
+
+# alias: `precept up`
+app.command(name="up")(quickstart)
+
+
 @app.command()
 def mcp_server(
     repo_path: str = typer.Option(".", "--repo", "-r", help="Default repo path for MCP tools"),
     sse: bool = typer.Option(False, "--sse", help="Run as SSE server instead of stdio"),
     port: int = typer.Option(8765, "--port", "-p"),
 ):
-    """Start the Knowai MCP server (stdio by default, --sse for HTTP)."""
-    from knowai.mcp.server import mcp
-    console.print(f"[bold green]Starting Knowai MCP server[/bold green] ({'SSE' if sse else 'stdio'})")
+    """Start the Precept MCP server (stdio by default, --sse for HTTP)."""
+    from precept.mcp.server import mcp
+    console.print(f"[bold green]Starting Precept MCP server[/bold green] ({'SSE' if sse else 'stdio'})")
     if sse:
         mcp.run(transport="sse", host="127.0.0.1", port=port)
     else:
