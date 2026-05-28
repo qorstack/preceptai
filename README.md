@@ -1,10 +1,10 @@
-# Precept
+# Precept AI
 
 ![Precept](assets/logo-full.png)
 
 **The guardrail that stops your AI agent from breaking your codebase.**
 
-AI agents write code faster than ever — and break prod faster than ever. Precept is the checkpoint they hit *before* writing a line: it tells them what your team already decided, what they're about to break, and when to stop.
+AI agents write code faster than ever — and break prod faster than ever. Precept is the checkpoint they hit _before_ writing a line: it tells them what your team already decided, what they're about to break, and when to stop.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -15,7 +15,7 @@ AI agents write code faster than ever — and break prod faster than ever. Prece
 
 Coding agents (Claude Code, Cursor, Copilot, Hermes…) are getting more autonomous every month. That's great — until one confidently invents a third payment client, ignores the idempotency rule your team agreed on six months ago, and ships it.
 
-More autonomy means more speed *and* more blast radius. Precept is the seatbelt.
+More autonomy means more speed _and_ more blast radius. Precept is the seatbelt.
 
 ## What it does
 
@@ -38,7 +38,7 @@ Risk:      refund → webhook → ledger
 
 ## How Precept differs from generic knowledge tools
 
-| Dimension       | RAG / Vector KB          | Generic Knowledge Graph | **precept**                                                          |
+| Dimension       | RAG / Vector KB          | Generic Knowledge Graph | **precept**                                                         |
 | --------------- | ------------------------ | ----------------------- | ------------------------------------------------------------------- |
 | Knowledge shape | text chunks + embeddings | static nodes/edges      | **Cognitive Graph** — domain × asset × convention × impact edge     |
 | When AI uses it | pulled at prompt time    | queried only when asked | **Mandatory call before any code change** (`analyze_intent`)        |
@@ -219,8 +219,8 @@ precept install-claude-commands     # copies /precept and /precept-generate to ~
 
 Two commands ship:
 
-| Command             | Use it when                                                                                                                                                                                                                   |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command              | Use it when                                                                                                                                                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/precept <request>` | **Every feature / refactor / fix.** Forces Claude to run the full pipeline (analyze_intent → recall_context → get_reusable_assets → assess_risk_in_context) and open with a `Risk:` / `Decision:` header before writing code. |
 | `/precept-generate`  | **Once, then occasionally.** Have Claude read this repo and seed meaningful memory entries. Safe to re-run after refactors.                                                                                                   |
 
