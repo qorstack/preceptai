@@ -1,6 +1,6 @@
 # 05 — Cognitive Graph Layer
 
-📂 [src/knowai/graph/](../src/knowai/graph/)
+📂 [src/precept/graph/](../src/precept/graph/)
 
 NetworkX DiGraph ที่เก็บ relationships ของทุกอย่างใน system
 
@@ -66,13 +66,13 @@ Node styling อัตโนมัติตาม kind:
 
 ```bash
 # Mermaid (paste ใน Notion / GitHub README)
-uv run knowai graph mermaid --repo /path/to/repo > arch.mmd
+uv run precept graph mermaid --repo /path/to/repo > arch.mmd
 
 # DOT → PNG
-uv run knowai graph dot --repo /path/to/repo | dot -Tpng > arch.png
+uv run precept graph dot --repo /path/to/repo | dot -Tpng > arch.png
 
 # React Flow JSON (ส่งเข้า frontend)
-uv run knowai graph react_flow --repo /path/to/repo --json > graph.json
+uv run precept graph react_flow --repo /path/to/repo --json > graph.json
 ```
 
 **ตัวอย่าง output (Mermaid):**

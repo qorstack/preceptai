@@ -35,19 +35,19 @@
 
 | # | Layer | Package | Responsibility | Status |
 | --- | --- | --- | --- | --- |
-| 1 | **Scanner** | [scanner/](../src/knowai/scanner/) | อ่าน repo, infer language/framework/architecture/conventions/assets | ✅ |
-| 2 | **Cognitive Graph** | [graph/](../src/knowai/graph/) | NetworkX DiGraph + cascade rules + exporter | ✅ |
-| 3 | **Memory** | [memory/](../src/knowai/memory/) | FileStore + Qdrant fallback + human approval | ✅ |
-| 4 | **Cognition Packs** | [packs/](../src/knowai/packs/) | Built-in domain knowledge | ✅ |
-| 5 | **Reasoning** | [reasoning/](../src/knowai/reasoning/) | Intent/Impact/Risk analyzers + engine | ✅ |
-| 6 | **Enforcement** | [mcp/](../src/knowai/mcp/) | FastMCP server, 20 tools | ✅ |
+| 1 | **Scanner** | [scanner/](../src/precept/scanner/) | อ่าน repo, infer language/framework/architecture/conventions/assets | ✅ |
+| 2 | **Cognitive Graph** | [graph/](../src/precept/graph/) | NetworkX DiGraph + cascade rules + exporter | ✅ |
+| 3 | **Memory** | [memory/](../src/precept/memory/) | FileStore + Qdrant fallback + human approval | ✅ |
+| 4 | **Cognition Packs** | [packs/](../src/precept/packs/) | Built-in domain knowledge | ✅ |
+| 5 | **Reasoning** | [reasoning/](../src/precept/reasoning/) | Intent/Impact/Risk analyzers + engine | ✅ |
+| 6 | **Enforcement** | [mcp/](../src/precept/mcp/) | FastMCP server, 20 tools | ✅ |
 
 Surfaces ที่ exposing layer เหล่านี้:
 
-- [cli/](../src/knowai/cli/) — Typer CLI (ทุก command)
-- [api/](../src/knowai/api/) — FastAPI REST (Phase 1 routes only — Phase 2-3 ยังขาด)
-- [workspace/](../src/knowai/workspace/) — Multi-repo orchestrator
-- [approval/](../src/knowai/approval/) — Human approval queue
+- [cli/](../src/precept/cli/) — Typer CLI (ทุก command)
+- [api/](../src/precept/api/) — FastAPI REST (Phase 1 routes only — Phase 2-3 ยังขาด)
+- [workspace/](../src/precept/workspace/) — Multi-repo orchestrator
+- [approval/](../src/precept/approval/) — Human approval queue
 
 ## Core data flow
 
@@ -87,12 +87,12 @@ AI Agent             → reads report → writes code that respects constraints
 // .claude/settings.json ของ project ที่ต้องการ enforce
 {
   "mcpServers": {
-    "knowai": {
+    "precept": {
       "command": "uvx",
-      "args": ["knowai", "mcp", "--repo", "."]
+      "args": ["precept", "mcp", "--repo", "."]
     }
   }
 }
 ```
 
-Claude Code launch → MCP handshake → Claude เห็น 20 tools ของ Knowai → ทุก request ของ user, Claude ต้อง call `analyze_intent` ก่อน
+Claude Code launch → MCP handshake → Claude เห็น 20 tools ของ Precept → ทุก request ของ user, Claude ต้อง call `analyze_intent` ก่อน

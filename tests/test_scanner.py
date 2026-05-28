@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from knowai.scanner.repo_scanner import RepoScanner
+from precept.scanner.repo_scanner import RepoScanner
 
 
-def test_scan_knowai_itself(tmp_path):
-    """Scanning the Knowai repo itself should return a valid ScanResult."""
+def test_scan_precept_itself(tmp_path):
+    """Scanning the Precept repo itself should return a valid ScanResult."""
     root = Path(__file__).parent.parent
     scanner = RepoScanner(root)
     result = scanner.scan()

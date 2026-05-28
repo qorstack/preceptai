@@ -7,23 +7,23 @@ from pathlib import Path
 
 import pytest
 
-from knowai import paths
+from precept import paths
 
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    """Point KNOWLYX_HOME at a temp dir so tests don't touch the real ~/.knowai."""
-    monkeypatch.setenv("KNOWLYX_HOME", str(tmp_path / "knowai_home"))
-    return tmp_path / "knowai_home"
+    """Point PRECEPT_HOME at a temp dir so tests don't touch the real ~/.precept."""
+    monkeypatch.setenv("PRECEPT_HOME", str(tmp_path / "precept_home"))
+    return tmp_path / "precept_home"
 
 
-def test_knowai_home_honors_env(isolated_home):
-    assert paths.knowai_home() == isolated_home.resolve()
+def test_precept_home_honors_env(isolated_home):
+    assert paths.precept_home() == isolated_home.resolve()
 
 
-def test_knowai_home_default_is_user_home(monkeypatch):
-    monkeypatch.delenv("KNOWLYX_HOME", raising=False)
-    assert paths.knowai_home() == Path.home() / ".knowai"
+def test_precept_home_default_is_user_home(monkeypatch):
+    monkeypatch.delenv("PRECEPT_HOME", raising=False)
+    assert paths.precept_home() == Path.home() / ".precept"
 
 
 def test_workspace_dir_path(isolated_home):
@@ -58,4 +58,4 @@ def test_list_workspaces_empty_when_no_home(isolated_home):
 
 
 def test_repo_link_config_path(tmp_path):
-    assert paths.repo_link_config_path(tmp_path) == tmp_path / "knowai.config"
+    assert paths.repo_link_config_path(tmp_path) == tmp_path / "precept.config"

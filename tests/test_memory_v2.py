@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from knowai.memory.schema import MemoryEntry, MemoryKind
-from knowai.memory.store import FileMemoryStore
+from precept.memory.schema import MemoryEntry, MemoryKind
+from precept.memory.store import FileMemoryStore
 
 
 def _entry(domain="billing", title="t", body="b", approved=True) -> MemoryEntry:

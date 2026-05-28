@@ -1,4 +1,4 @@
-# 02 — Problems Knowai Solves
+# 02 — Problems Precept Solves
 
 7 ปัญหา core ที่ AI coding tools ปัจจุบันแก้ไม่ได้ — เจอกันทุกทีมทั่วโลก
 
@@ -6,7 +6,7 @@
 
 **ปัญหา:** AI ไม่รู้ว่า "password reset" ในทีมนี้ต้องมีอะไรบ้าง — token expiry, rate limit, audit log, email provider
 
-**Knowai แก้:** Cognition Packs (built-in 7 domains) + Memory (team-specific)
+**Precept แก้:** Cognition Packs (built-in 7 domains) + Memory (team-specific)
 
 **ตัวอย่าง:**
 
@@ -20,7 +20,7 @@ Request: "add password reset"
 
 **ปัญหา:** AI เขียน `fetch('/api/...')` ทั้งที่ codebase ใช้ TanStack Query + generated TypeScript client
 
-**Knowai แก้:** `ConventionDetector` ตรวจ stack + forbidden patterns
+**Precept แก้:** `ConventionDetector` ตรวจ stack + forbidden patterns
 
 **ตัวอย่าง:**
 
@@ -36,7 +36,7 @@ Detected (from package.json + usage):
 
 **ปัญหา:** AI gen modal ที่ spacing, color, dark mode ไม่ตรงกับ design system ที่ใช้อยู่
 
-**Knowai แก้:** Design cognition (Phase 4) — ตรวจ Tailwind config, shared/ui components, spacing scale
+**Precept แก้:** Design cognition (Phase 4) — ตรวจ Tailwind config, shared/ui components, spacing scale
 
 **ตัวอย่าง:**
 
@@ -52,7 +52,7 @@ Detected:
 
 **ปัญหา:** AI สร้าง `formatCurrency()` ใหม่ทั้งที่มี `utils/money.ts` อยู่แล้ว — comment ที่เจอบ่อยที่สุดใน PR review
 
-**Knowai แก้:** `AssetDetector` + `get_reusable_assets(domain)`
+**Precept แก้:** `AssetDetector` + `get_reusable_assets(domain)`
 
 **ตัวอย่าง:**
 
@@ -69,7 +69,7 @@ Request: "display product price"
 
 **ปัญหา:** AI rename `users.email` → `users.email_address` โดยไม่รู้ว่า worker + analytics + admin dashboard อ่าน column เดิม
 
-**Knowai แก้:** `ImpactAnalyzer` + cross-repo graph + cascade rules
+**Precept แก้:** `ImpactAnalyzer` + cross-repo graph + cascade rules
 
 **ตัวอย่าง:**
 
@@ -87,7 +87,7 @@ Change: "rename users.email → email_address"
 
 **ปัญหา:** AI run destructive migration หรือ rewrite auth middleware โดยไม่ pause ให้ human ดูก่อน
 
-**Knowai แก้:** `RiskScorer` + `ApprovalQueue` — decision: `proceed/warn/ask/reject`
+**Precept แก้:** `RiskScorer` + `ApprovalQueue` — decision: `proceed/warn/ask/reject`
 
 **ตัวอย่าง:**
 
@@ -95,7 +95,7 @@ Change: "rename users.email → email_address"
 Request: "rewrite auth middleware to use JWT"
 → Risk: HIGH (touches auth + sessions + 12 dependent endpoints)
 → Decision: ASK
-→ Knowai submit approval gate
+→ Precept submit approval gate
 → AI poll until human approves
 → proceed only after approval
 ```
@@ -104,12 +104,12 @@ Request: "rewrite auth middleware to use JWT"
 
 **ปัญหา:** Real product = api + web + mobile + worker + admin — AI เห็นแค่ repo เดียว
 
-**Knowai แก้:** Workspace (`knowai.toml`) + cross-repo graph + inferred dependencies
+**Precept แก้:** Workspace (`precept.toml`) + cross-repo graph + inferred dependencies
 
 **ตัวอย่าง:**
 
 ```text
-Workspace: knowai.toml
+Workspace: precept.toml
 → scan: api, web, mobile, worker, admin (parallel)
 → inferred edges:
   - web → api (generated client detected)
@@ -119,7 +119,7 @@ Workspace: knowai.toml
 → AI ถาม "change /users response shape" → ได้คำตอบครบทุก consumer
 ```
 
-## ปัญหาที่ Knowai ยังไม่แก้ (Phase 4+)
+## ปัญหาที่ Precept ยังไม่แก้ (Phase 4+)
 
 | Problem | Status |
 | --- | --- |
@@ -128,4 +128,4 @@ Workspace: knowai.toml
 | AI self-review ก่อน submit code | 🟡 บางตัวเริ่ม |
 | Design system enforcement | ❌ |
 
-→ นี่คือช่องว่างที่ Knowai ควรเป็น winner
+→ นี่คือช่องว่างที่ Precept ควรเป็น winner

@@ -2,8 +2,8 @@
 
 import pytest
 
-from knowai.memory.schema import MemoryEntry, MemoryKind
-from knowai.memory.store import FileMemoryStore
+from precept.memory.schema import MemoryEntry, MemoryKind
+from precept.memory.store import FileMemoryStore
 
 
 def test_save_and_retrieve(tmp_path):

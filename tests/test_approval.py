@@ -1,6 +1,6 @@
 """Tests for the approval queue."""
 
-from knowai.approval.queue import ApprovalQueue, ApprovalRequest, ApprovalStatus
+from precept.approval.queue import ApprovalQueue, ApprovalRequest, ApprovalStatus
 
 
 def _queue(tmp_path):

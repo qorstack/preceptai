@@ -1,18 +1,18 @@
-# Pre-commit hook for Knowlyx — enforces cognition gate before commit.
+# Pre-commit hook for Precept — enforces cognition gate before commit.
 #
 # In a project that wants enforcement, add to .pre-commit-config.yaml:
 #
 #   repos:
-#     - repo: https://github.com/qorstack/knowai
+#     - repo: https://github.com/qorstack/precept
 #       rev: v0.5.0
 #       hooks:
-#         - id: knowlyx-commit-check
+#         - id: precept-commit-check
 #           args: [--strict]
 
-- id: knowlyx-commit-check
-  name: Knowlyx Cognition Check
+- id: precept-commit-check
+  name: Precept Cognition Check
   description: Ensure AI ran analyze_intent and the decision allows the commit.
-  entry: knowlyx commit-check
+  entry: precept commit-check
   language: python
   pass_filenames: false
   stages: [pre-commit]

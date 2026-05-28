@@ -1,33 +1,33 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: knowai-postgres
+    container_name: precept-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-knowai}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowai}
-      POSTGRES_DB: ${POSTGRES_DB:-knowai}
+      POSTGRES_USER: ${POSTGRES_USER:-precept}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-precept}
+      POSTGRES_DB: ${POSTGRES_DB:-precept}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - knowai_pgdata:/var/lib/postgresql/data
+      - precept_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-knowai} -d ${POSTGRES_DB:-knowai}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-precept} -d ${POSTGRES_DB:-precept}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   web:
     build: .
-    container_name: knowai-web
+    container_name: precept-web
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-knowai}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowai}
-      POSTGRES_DB: ${POSTGRES_DB:-knowai}
+      POSTGRES_USER: ${POSTGRES_USER:-precept}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-precept}
+      POSTGRES_DB: ${POSTGRES_DB:-precept}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-public}
@@ -35,4 +35,4 @@ services:
       - "${WEB_PORT:-8080}:8080"
 
 volumes:
-  knowai_pgdata:
+  precept_pgdata:

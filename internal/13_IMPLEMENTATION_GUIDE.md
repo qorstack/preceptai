@@ -9,7 +9,7 @@ Step-by-step ต่อจากนี้ — ทำตามลำดับ
 ### Step 1: Sync deps
 
 ```bash
-cd /path/to/knowai
+cd /path/to/precept
 uv sync
 uv sync --extra vector   # ทดสอบ optional ด้วย
 ```
@@ -35,18 +35,18 @@ uv run ruff format src/
 ### Step 4: Smoke test CLI
 
 ```bash
-uv run knowai scan .                              # scan self
-uv run knowai analyze "add OTP" --repo .
-uv run knowai impact "fix payment 501" --repo .
-uv run knowai pack payment
-uv run knowai memory list --repo .
+uv run precept scan .                              # scan self
+uv run precept analyze "add OTP" --repo .
+uv run precept impact "fix payment 501" --repo .
+uv run precept pack payment
+uv run precept memory list --repo .
 ```
 
 ### Step 5: Smoke test MCP
 
 ```bash
 # Terminal 1
-uv run knowai mcp --repo .
+uv run precept mcp --repo .
 
 # Terminal 2 (mock client)
 # ใช้ fastmcp tester หรือ Claude Code จริง
@@ -67,7 +67,7 @@ uv run knowai mcp --repo .
 
 ### Step 7: เพิ่ม REST routes Phase 2-3
 
-ไฟล์: [src/knowai/api/main.py](../src/knowai/api/main.py)
+ไฟล์: [src/precept/api/main.py](../src/precept/api/main.py)
 
 ปัจจุบันมีแค่ Phase 1 routes — เพิ่ม:
 
@@ -94,14 +94,14 @@ GET  /approval/list
 
 Mirror โครงสร้างจาก MCP tools — ใช้ Pydantic models เดียวกัน
 
-### Step 8: `knowai init` command
+### Step 8: `precept init` command
 
 ```bash
-knowai init                    # ใน single repo → สร้าง .knowai/ + auto-detect
-knowai init --workspace        # ใน workspace root → สร้าง knowai.toml + auto-discover repos
+precept init                    # ใน single repo → สร้าง .precept/ + auto-detect
+precept init --workspace        # ใน workspace root → สร้าง precept.toml + auto-discover repos
 ```
 
-ไฟล์: [src/knowai/cli/](../src/knowai/cli/) — เพิ่ม `init_cmd.py`
+ไฟล์: [src/precept/cli/](../src/precept/cli/) — เพิ่ม `init_cmd.py`
 
 Auto-discovery logic สำหรับ workspace:
 - scan subdirectories ที่มี `.git/`
@@ -141,7 +141,7 @@ uv publish --dry-run   # ตรวจ metadata
 
 ### Step 11: `validate_generated_code` MCP tool
 
-ไฟล์ใหม่: `src/knowai/validation/code_validator.py`
+ไฟล์ใหม่: `src/precept/validation/code_validator.py`
 
 ```python
 class CodeValidator:
@@ -170,14 +170,14 @@ def validate_generated_code(code: str, repo_path: str, language: str = "python")
 
 ## Sprint 3 — Phase 4.3: Architectural Enforcement Hooks (1 สัปดาห์)
 
-### Step 13: `knowai commit-check` command
+### Step 13: `precept commit-check` command
 
 ```bash
-knowai commit-check    # อ่าน staged files + check ว่า AI ได้ผ่าน cognition pipeline
+precept commit-check    # อ่าน staged files + check ว่า AI ได้ผ่าน cognition pipeline
 ```
 
 Logic:
-- อ่าน `.knowai/last_cognition.json` (engine บันทึกทุกครั้งที่ call analyze_intent)
+- อ่าน `.precept/last_cognition.json` (engine บันทึกทุกครั้งที่ call analyze_intent)
 - เทียบ timestamp กับ staged files mtime
 - ถ้า staged files แก้หลัง cognition report → require new analyze_intent
 - ถ้า decision == "reject" หรือ "ask" และไม่มี approval → block commit
@@ -186,9 +186,9 @@ Logic:
 
 ```yaml
 # .pre-commit-hooks.yaml
-- id: knowai-cognition-check
-  name: Knowai Cognition Check
-  entry: knowai commit-check
+- id: precept-cognition-check
+  name: Precept Cognition Check
+  entry: precept commit-check
   language: system
   stages: [commit]
 ```
@@ -196,8 +196,8 @@ Logic:
 ### Step 15: GitHub Action enforcement
 
 ```yaml
-- name: Knowai Cognition Gate
-  run: knowai commit-check --strict
+- name: Precept Cognition Gate
+  run: precept commit-check --strict
 ```
 
 ---
@@ -208,8 +208,8 @@ Logic:
 
 ```bash
 cd packages/
-npx create-next-app@latest knowai-ui --typescript --tailwind --app
-cd knowai-ui
+npx create-next-app@latest precept-ui --typescript --tailwind --app
+cd precept-ui
 npx shadcn@latest init
 npm install reactflow zustand recharts
 ```
@@ -235,7 +235,7 @@ npm install reactflow zustand recharts
 ✅ `uv run pytest` ผ่านครบ
 ✅ Claude Code integration test ผ่าน (manual)
 ✅ Published to PyPI
-✅ `uvx knowai mcp --repo .` ใช้ได้จากเครื่องไหนก็ได้
+✅ `uvx precept mcp --repo .` ใช้ได้จากเครื่องไหนก็ได้
 ✅ AI self-review block bad code ก่อน write
 ✅ pre-commit hook enforce cognition
 ✅ UI visualize graph + manage approvals

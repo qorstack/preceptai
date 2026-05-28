@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from knowai.models.schema import (
+from precept.models.schema import (
     ArchitecturePattern,
     Convention,
     ReusableAsset,
     ScanResult,
 )
-from knowai.validation.code_validator import CodeValidator, Severity
+from precept.validation.code_validator import CodeValidator, Severity
 
 
 @pytest.fixture

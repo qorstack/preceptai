@@ -1,4 +1,4 @@
-# knowai dashboard image — FastAPI + Jinja templates + Postgres client.
+# precept dashboard image — FastAPI + Jinja templates + Postgres client.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -23,4 +23,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --retries=5 \
   CMD curl -fs http://localhost:8080/healthz || exit 1
 
-CMD ["uvicorn", "knowai.web.app:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "precept.web.app:app", "--host", "0.0.0.0", "--port", "8080"]

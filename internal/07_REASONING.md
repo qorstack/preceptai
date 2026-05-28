@@ -1,6 +1,6 @@
 # 07 — Reasoning Layer
 
-📂 [src/knowai/reasoning/](../src/knowai/reasoning/)
+📂 [src/precept/reasoning/](../src/precept/reasoning/)
 
 **Rule-based pipeline ไม่ใช้ LLM** — deterministic, fast (<100ms), free
 
@@ -61,7 +61,7 @@
 | `ask` | ต้องถาม human ก่อน | submit approval queue, รอ approve |
 | `reject` | ห้ามทำ | หยุด, อธิบายเหตุผล, propose alternative |
 
-**Binding:** AI ห้ามข้าม `ask`/`reject` — Knowai ไม่มี LLM override กลไกนี้
+**Binding:** AI ห้ามข้าม `ask`/`reject` — Precept ไม่มี LLM override กลไกนี้
 
 ## Risk scoring rules (current)
 
@@ -86,7 +86,7 @@
 
 ```bash
 # CLI
-uv run knowai analyze "add password reset" --repo /path/to/repo
+uv run precept analyze "add password reset" --repo /path/to/repo
 
 # Output:
 # Intent:

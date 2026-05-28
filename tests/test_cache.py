@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from knowai.cache.scan_cache import ScanCache
-from knowai.models.schema import ArchitecturePattern, ScanResult
+from precept.cache.scan_cache import ScanCache
+from precept.models.schema import ArchitecturePattern, ScanResult
 
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("KNOWLYX_HOME", str(tmp_path / "knowai_home"))
-    return tmp_path / "knowai_home"
+    monkeypatch.setenv("PRECEPT_HOME", str(tmp_path / "precept_home"))
+    return tmp_path / "precept_home"
 
 
 def _make_scan(repo_path="/fake/repo", domains=None) -> ScanResult:

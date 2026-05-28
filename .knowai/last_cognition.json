@@ -1,0 +1,7 @@
+{
+  "request": "Update UX/UI of knowai web dashboard: SVG icon system replacing emoji, fix logo treatment, fix tag colors to use design tokens, fix markdown toolbar, fix Activity details column, fix Add form scope toggle",
+  "decision": "ask",
+  "risk_level": "high",
+  "domain": "auth",
+  "timestamp": "2026-05-26T18:04:41.623009"
+}

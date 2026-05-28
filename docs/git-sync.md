@@ -1,6 +1,6 @@
 # 16 — Git Sync Setup (Step-by-step)
 
-> เป้าหมาย: เปลี่ยน `~/.knowai/workspaces/x-product/` (local) ให้กลายเป็น **central knowledge ที่ทีมทุกคนใช้ร่วมกัน** ผ่าน git (GitHub / GitLab / self-host)
+> เป้าหมาย: เปลี่ยน `~/.precept/workspaces/x-product/` (local) ให้กลายเป็น **central knowledge ที่ทีมทุกคนใช้ร่วมกัน** ผ่าน git (GitHub / GitLab / self-host)
 >
 > ไม่ต้อง host server, ใช้ git auth ที่มีอยู่แล้ว
 
@@ -22,7 +22,7 @@
        ┌───────────┼───────────┐
        ▼           ▼           ▼
    [Lead PC]   [Dev A PC]  [Dev B PC]
-   ~/.knowai/workspaces/x-product/  (clone)
+   ~/.precept/workspaces/x-product/  (clone)
 ```
 
 ทุกคนมี local clone ของ workspace, sync ผ่าน git
@@ -54,19 +54,19 @@
 ### Step 2 — สร้าง workspace local
 
 ```bash
-knowai workspace create x-product
+precept workspace create x-product
 ```
 
-ผลลัพธ์: สร้าง `~/.knowai/workspaces/x-product/` พร้อม `workspace.toml`
+ผลลัพธ์: สร้าง `~/.precept/workspaces/x-product/` พร้อม `workspace.toml`
 
 ### Step 3 — แก้ `workspace.toml` ใส่ repos + dependencies
 
 ```bash
 # Mac/Linux
-$EDITOR ~/.knowai/workspaces/x-product/workspace.toml
+$EDITOR ~/.precept/workspaces/x-product/workspace.toml
 
 # Windows PowerShell
-notepad $env:USERPROFILE\.knowai\workspaces\x-product\workspace.toml
+notepad $env:USERPROFILE\.precept\workspaces\x-product\workspace.toml
 ```
 
 ตัวอย่าง:
@@ -98,7 +98,7 @@ type = "api"
 ### Step 4 — Init git + push
 
 ```bash
-cd ~/.knowai/workspaces/x-product
+cd ~/.precept/workspaces/x-product
 
 git init
 git branch -M main
@@ -124,11 +124,11 @@ git push -u origin main
 
 ```bash
 cd ~/code/x-website
-knowai link x-product --role frontend --domains user,checkout
-# → สร้าง .knowai/config.toml — commit ลง git ของ x-website
+precept link x-product --role frontend --domains user,checkout
+# → สร้าง .precept/config.toml — commit ลง git ของ x-website
 
-git add .knowai/config.toml
-git commit -m "link to x-product knowai workspace"
+git add .precept/config.toml
+git commit -m "link to x-product precept workspace"
 git push
 ```
 
@@ -142,30 +142,30 @@ git push
 
 ```bash
 # Mac/Linux
-mkdir -p ~/.knowai/workspaces
-git clone git@github.com:company/x-product-knowledge.git ~/.knowai/workspaces/x-product
+mkdir -p ~/.precept/workspaces
+git clone git@github.com:company/x-product-knowledge.git ~/.precept/workspaces/x-product
 
 # Windows PowerShell
-New-Item -ItemType Directory -Force "$env:USERPROFILE\.knowai\workspaces"
-git clone git@github.com:company/x-product-knowledge.git "$env:USERPROFILE\.knowai\workspaces\x-product"
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.precept\workspaces"
+git clone git@github.com:company/x-product-knowledge.git "$env:USERPROFILE\.precept\workspaces\x-product"
 ```
 
-**สำคัญ:** path ต้องตรงเป๊ะ `~/.knowai/workspaces/<workspace-name>` — ไม่งั้น `knowai link` หาไม่เจอ
+**สำคัญ:** path ต้องตรงเป๊ะ `~/.precept/workspaces/<workspace-name>` — ไม่งั้น `precept link` หาไม่เจอ
 
 ### Step B — Clone project repo ปกติ
 
 ```bash
 git clone git@github.com:company/x-website.git
 cd x-website
-# .knowai/config.toml ติดมาจาก git แล้ว (Lead commit ไว้แล้ว)
+# .precept/config.toml ติดมาจาก git แล้ว (Lead commit ไว้แล้ว)
 ```
 
 ### Step C — ใช้งานปกติ
 
 ```bash
-knowai analyze "add checkout summary endpoint"
+precept analyze "add checkout summary endpoint"
 # → resolve workspace x-product อัตโนมัติ
-# → อ่าน memory จาก ~/.knowai/workspaces/x-product/memory.json
+# → อ่าน memory จาก ~/.precept/workspaces/x-product/memory.json
 # → AI เห็น decision ทุกอย่างที่ทีมเคยบันทึก
 ```
 
@@ -176,7 +176,7 @@ knowai analyze "add checkout summary endpoint"
 ### ก่อนเริ่มงาน (pull latest)
 
 ```bash
-cd ~/.knowai/workspaces/x-product
+cd ~/.precept/workspaces/x-product
 git pull
 ```
 
@@ -184,16 +184,16 @@ git pull
 
 ```bash
 # .bashrc / .zshrc
-alias kw-pull='cd ~/.knowai/workspaces/x-product && git pull && cd -'
+alias kw-pull='cd ~/.precept/workspaces/x-product && git pull && cd -'
 
 # PowerShell profile
-function kw-pull { Push-Location "$env:USERPROFILE\.knowai\workspaces\x-product"; git pull; Pop-Location }
+function kw-pull { Push-Location "$env:USERPROFILE\.precept\workspaces\x-product"; git pull; Pop-Location }
 ```
 
 ### หลัง AI save memory / approval สำคัญ (push)
 
 ```bash
-cd ~/.knowai/workspaces/x-product
+cd ~/.precept/workspaces/x-product
 git add memory.json approvals.json
 git commit -m "decision: use react-query for all data fetching"
 git push
@@ -202,7 +202,7 @@ git push
 แนะนำตั้ง alias:
 
 ```bash
-alias kw-push='cd ~/.knowai/workspaces/x-product && git add -A && git commit -m "knowledge update" && git push && cd -'
+alias kw-push='cd ~/.precept/workspaces/x-product && git add -A && git commit -m "knowledge update" && git push && cd -'
 ```
 
 ---
@@ -244,7 +244,7 @@ Host git.company.internal
 
 ## Part 5 — Auth
 
-### ใช้ git auth ที่มีอยู่เลย — ไม่ต้อง Knowai token
+### ใช้ git auth ที่มีอยู่เลย — ไม่ต้อง Precept token
 
 | Method | Setup |
 |---|---|
@@ -305,7 +305,7 @@ git commit
 git push
 ```
 
-> Phase 4.C (planned) จะมี `knowai sync pull --resolve auto` ที่ merge ให้อัตโนมัติ (timestamp-based, newer wins)
+> Phase 4.C (planned) จะมี `precept sync pull --resolve auto` ที่ merge ให้อัตโนมัติ (timestamp-based, newer wins)
 
 ---
 
@@ -331,20 +331,20 @@ git push
 
 ```bash
 # 1. ตรวจ workspace exist
-knowai workspace list
+precept workspace list
 # → x-product
 
 # 2. ตรวจ link OK
 cd ~/code/x-website
-cat .knowai/config.toml
+cat .precept/config.toml
 # workspace = "x-product"
 
 # 3. Save memory test
-knowai memory decide checkout \
+precept memory decide checkout \
   "Test sync" --body "ทดสอบว่า sync ใช้งานได้"
 
 # 4. ดู git status ของ workspace
-cd ~/.knowai/workspaces/x-product
+cd ~/.precept/workspaces/x-product
 git status
 # → memory.json modified
 
@@ -356,10 +356,10 @@ git commit -m "test: sync"
 git push
 
 # 5. ลองที่อีกเครื่อง (หรือลบ + clone ใหม่)
-rm -rf ~/.knowai/workspaces/x-product
-git clone git@github.com:company/x-product-knowledge.git ~/.knowai/workspaces/x-product
+rm -rf ~/.precept/workspaces/x-product
+git clone git@github.com:company/x-product-knowledge.git ~/.precept/workspaces/x-product
 
-knowai memory list
+precept memory list
 # → เห็น "Test sync" ที่ save จากเครื่องแรก ✅
 ```
 
@@ -369,11 +369,11 @@ knowai memory list
 
 | ปัญหา | สาเหตุ | แก้ |
 |---|---|---|
-| `knowai analyze` ไม่เจอ memory | `~/.knowai/workspaces/<name>/` ไม่มี | Clone จาก git ก่อน (Step A) |
+| `precept analyze` ไม่เจอ memory | `~/.precept/workspaces/<name>/` ไม่มี | Clone จาก git ก่อน (Step A) |
 | `Permission denied (publickey)` | SSH key ไม่ได้เพิ่มใน GitHub | `cat ~/.ssh/id_ed25519.pub` → paste ใน GitHub SSH keys |
 | `fatal: remote origin already exists` | เคย add แล้ว | `git remote set-url origin <new-url>` |
 | `memory.json conflict` ทุก pull | 2 คนแก้พร้อมกัน | ใช้ Part 6 resolve, ใช้ branch protection |
-| Workspace path ผิด | clone ผิด folder | ต้องเป็น `~/.knowai/workspaces/<exact-workspace-name>` |
+| Workspace path ผิด | clone ผิด folder | ต้องเป็น `~/.precept/workspaces/<exact-workspace-name>` |
 | Windows path เพี้ยน | ใช้ `~` ใน PowerShell ไม่ได้ | ใช้ `$env:USERPROFILE` แทน |
 
 ---
@@ -381,7 +381,7 @@ knowai memory list
 ## Part 10 — Security checklist
 
 - [ ] Repo เป็น **Private** (ไม่ใช่ Public)
-- [ ] `memory.json` ไม่มี secrets / API keys / passwords (Knowai ไม่ควรเก็บอยู่แล้ว แต่ตรวจซ้ำ)
+- [ ] `memory.json` ไม่มี secrets / API keys / passwords (Precept ไม่ควรเก็บอยู่แล้ว แต่ตรวจซ้ำ)
 - [ ] `.gitignore` มี `scans/` (scan cache อาจมี path ที่เปิดเผยโครงสร้าง internal)
 - [ ] Team access ใช้ least privilege (Developer พอ, ไม่ต้อง Admin)
 - [ ] Branch protection บน `main` ถ้าทีมใหญ่
@@ -393,21 +393,21 @@ knowai memory list
 
 ```bash
 # Tech lead (ครั้งเดียว)
-knowai workspace create x-product
-cd ~/.knowai/workspaces/x-product
+precept workspace create x-product
+cd ~/.precept/workspaces/x-product
 git init && git add . && git commit -m "init"
 git remote add origin git@github.com:company/x-product-knowledge.git
 git push -u origin main
 
 # Dev คนอื่น (ครั้งเดียว)
-git clone git@github.com:company/x-product-knowledge.git ~/.knowai/workspaces/x-product
+git clone git@github.com:company/x-product-knowledge.git ~/.precept/workspaces/x-product
 
 # ทุกคน: ในแต่ละ project repo
 cd ~/code/x-website
-knowai link x-product --role frontend
+precept link x-product --role frontend
 
 # Daily
-cd ~/.knowai/workspaces/x-product && git pull   # before
+cd ~/.precept/workspaces/x-product && git pull   # before
 # ... AI works, save memory ...
 git add . && git commit -m "..." && git push     # after
 ```

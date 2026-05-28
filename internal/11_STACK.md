@@ -88,15 +88,15 @@ api = [
 
 ```bash
 # Solo dev → local file memory, no infra
-uv add knowai
-knowai mcp --repo .
+uv add precept
+precept mcp --repo .
 
 # Small team → file memory + shared via git
-# .knowai/memory.json checked into git
-uv add knowai
+# .precept/memory.json checked into git
+uv add precept
 
 # Larger team → Qdrant + Postgres + shared API
-uv add "knowai[vector,api]"
+uv add "precept[vector,api]"
 docker compose up -d qdrant postgres
-uvicorn knowai.api.main:app --host 0.0.0.0
+uvicorn precept.api.main:app --host 0.0.0.0
 ```

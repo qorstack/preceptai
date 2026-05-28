@@ -1,12 +1,12 @@
-# Contributing to Knowai
+# Contributing to Precept
 
-Thank you for considering contributing! Knowai is open source under MIT.
+Thank you for considering contributing! Precept is open source under MIT.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/qorstack/knowai
-cd knowai
+git clone https://github.com/qorstack/precept
+cd precept
 uv sync                  # install deps
 uv run pytest            # run tests
 uv run ruff check src/   # lint
@@ -16,17 +16,17 @@ uv run ruff check src/   # lint
 
 ### Reporting bugs
 
-Open a [GitHub issue](https://github.com/qorstack/knowai/issues) with:
+Open a [GitHub issue](https://github.com/qorstack/precept/issues) with:
 
 - What you ran (CLI command, MCP tool call, etc.)
 - What you expected
 - What happened
 - Python version + OS
-- Output of `knowai scan .` if relevant
+- Output of `precept scan .` if relevant
 
 ### Proposing features
 
-Open a [GitHub Discussion](https://github.com/qorstack/knowai/discussions) first to align on direction. Knowai has a clear thesis (cognitive enforcement before code generation) — features that don't fit will be politely declined.
+Open a [GitHub Discussion](https://github.com/qorstack/precept/discussions) first to align on direction. Precept has a clear thesis (cognitive enforcement before code generation) — features that don't fit will be politely declined.
 
 ### Submitting PRs
 
@@ -38,7 +38,7 @@ Open a [GitHub Discussion](https://github.com/qorstack/knowai/discussions) first
 
 ## Architecture
 
-Knowai has 6 layers under `src/knowai/`:
+Precept has 6 layers under `src/precept/`:
 
 | Layer | Package |
 |---|---|
@@ -63,7 +63,7 @@ See [docs/architecture.md](docs/architecture.md) for details.
 
 ## Adding a Cognition Pack
 
-Built-in packs live in [src/knowai/packs/builtin.py](src/knowai/packs/builtin.py). Each pack has:
+Built-in packs live in [src/precept/packs/builtin.py](src/precept/packs/builtin.py). Each pack has:
 
 ```python
 CognitionPack(
@@ -85,7 +85,7 @@ Open a PR with the pack + a test in [tests/test_packs.py](tests/test_packs.py).
 Maintainers only:
 
 ```bash
-# Bump version in pyproject.toml + src/knowai/__init__.py
+# Bump version in pyproject.toml + src/precept/__init__.py
 git tag v0.X.0
 git push --tags
 # GitHub Actions publishes to PyPI

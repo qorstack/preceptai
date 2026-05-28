@@ -1,5 +1,5 @@
 __pycache__/
 .env
 .env.local
-knowai.config
-.knowai/
+precept.config
+.precept/

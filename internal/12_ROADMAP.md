@@ -30,7 +30,7 @@
 
 ## ✅ Phase 3 — Workspace + Graph + Approval (code complete)
 
-- [x] `knowai.toml` config
+- [x] `precept.toml` config
 - [x] WorkspaceScanner (parallel scan)
 - [x] Inferred dependencies (frontend/worker → backend)
 - [x] CrossRepoImpactAnalyzer
@@ -52,7 +52,7 @@
 
 | Task | Why |
 |---|---|
-| `knowai init` command | auto-gen `knowai.toml` |
+| `precept init` command | auto-gen `precept.toml` |
 | GitHub Actions CI | test + publish PyPI |
 | Example workspace template | dev copy ใช้ได้ทันที |
 | Error handling edge cases | permission denied, binary files, symlinks |
@@ -60,8 +60,8 @@
 
 ## ✅ Phase 4.A — Distributed Knowledge (code complete)
 
-- [x] `src/knowai/paths.py` — central path resolver + KNOWLYX_HOME env
-- [x] `src/knowai/link/` — per-repo `.knowai/config.toml` + auto-resolver
+- [x] `src/precept/paths.py` — central path resolver + PRECEPT_HOME env
+- [x] `src/precept/link/` — per-repo `.precept/config.toml` + auto-resolver
 - [x] Memory store auto-resolves central workspace (backward compatible)
 - [x] Approval queue auto-resolves central workspace (backward compatible)
 - [x] Workspace config_loader falls back to central path
@@ -73,15 +73,15 @@
 
 ## 🔵 Phase 4.B — Workspace-aware analysis (not started)
 
-- [ ] Persistent scan cache at `~/.knowai/workspaces/<name>/scans/<repo>.json`
+- [ ] Persistent scan cache at `~/.precept/workspaces/<name>/scans/<repo>.json`
 - [ ] `WorkspaceScanner` reads cached scan when repo not on disk
 - [ ] `ImpactAnalyzer` cross-repo answers work even with single clone
-- [ ] CLI: `knowai workspace scan --all --persist` (for CI/tech lead)
+- [ ] CLI: `precept workspace scan --all --persist` (for CI/tech lead)
 
 ## 🔵 Phase 4.C — Git sync (not started)
 
-- [ ] `src/knowai/sync/git_sync.py` — pull/push central store to git remote
-- [ ] CLI: `knowai sync init/pull/push/status`
+- [ ] `src/precept/sync/git_sync.py` — pull/push central store to git remote
+- [ ] CLI: `precept sync init/pull/push/status`
 - [ ] Conflict resolution: timestamp-based merge for memory.json
 
 ## 🔵 Phase 4 — Original (still planned)
@@ -132,5 +132,5 @@ AI ตรวจ code ของตัวเองก่อน submit
 | Sprint | Goal |
 |---|---|
 | Sprint 1 | Run tests, fix deps, integration test กับ Claude Code real |
-| Sprint 2 | `knowai init`, complete REST API, CI/CD, publish PyPI |
+| Sprint 2 | `precept init`, complete REST API, CI/CD, publish PyPI |
 | Sprint 3 | Phase 4.1 (AI self-review) + 4.3 (commit hooks) — สอง feature ที่ user เห็นค่าทันที |

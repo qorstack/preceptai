@@ -1,6 +1,6 @@
 # CLI reference
 
-Every Knowai command. Run `knowai --help` for live help.
+Every Precept command. Run `precept --help` for live help.
 
 ## Project commands
 
@@ -9,8 +9,8 @@ Every Knowai command. Run `knowai --help` for live help.
 Scan a repo and show its cognitive profile.
 
 ```bash
-knowai scan [path]
-knowai scan . --json
+precept scan [path]
+precept scan . --json
 ```
 
 ### `analyze`
@@ -18,8 +18,8 @@ knowai scan . --json
 Run the full Intent → Impact → Risk pipeline on a request.
 
 ```bash
-knowai analyze "add rate limiting to /login" --repo .
-knowai analyze "..." --repo . --json
+precept analyze "add rate limiting to /login" --repo .
+precept analyze "..." --repo . --json
 ```
 
 ### `impact`
@@ -27,7 +27,7 @@ knowai analyze "..." --repo . --json
 Show the blast radius of a planned change (single repo).
 
 ```bash
-knowai impact "rename users.email column" --repo .
+precept impact "rename users.email column" --repo .
 ```
 
 ### `conventions`
@@ -35,7 +35,7 @@ knowai impact "rename users.email column" --repo .
 List all detected conventions + forbidden patterns.
 
 ```bash
-knowai conventions .
+precept conventions .
 ```
 
 ### `assets`
@@ -43,8 +43,8 @@ knowai conventions .
 List reusable assets (components, hooks, utils, services), optionally filtered by domain.
 
 ```bash
-knowai assets             # all assets
-knowai assets billing     # filter by domain
+precept assets             # all assets
+precept assets billing     # filter by domain
 ```
 
 ### `pack`
@@ -52,8 +52,8 @@ knowai assets billing     # filter by domain
 Show the built-in cognition pack for a domain.
 
 ```bash
-knowai pack auth
-knowai pack payment
+precept pack auth
+precept pack payment
 ```
 
 Available domains: `auth`, `otp`, `payment`, `webhook`, `order`, `notification`, `worker`.
@@ -63,9 +63,9 @@ Available domains: `auth`, `otp`, `payment`, `webhook`, `order`, `notification`,
 Export the cognitive graph for a single repo.
 
 ```bash
-knowai graph mermaid --repo .
-knowai graph dot --repo . | dot -Tpng > graph.png
-knowai graph react_flow --repo .
+precept graph mermaid --repo .
+precept graph dot --repo . | dot -Tpng > graph.png
+precept graph react_flow --repo .
 ```
 
 ## Memory commands
@@ -75,8 +75,8 @@ knowai graph react_flow --repo .
 List all memory entries (approved + pending), optionally filtered.
 
 ```bash
-knowai memory list --repo .
-knowai memory list --domain billing --repo .
+precept memory list --repo .
+precept memory list --domain billing --repo .
 ```
 
 ### `memory recall`
@@ -84,7 +84,7 @@ knowai memory list --domain billing --repo .
 Fuzzy search approved memory.
 
 ```bash
-knowai memory recall "rate limit" --repo .
+precept memory recall "rate limit" --repo .
 ```
 
 ### `memory decide`
@@ -92,7 +92,7 @@ knowai memory recall "rate limit" --repo .
 Record an auto-approved team decision.
 
 ```bash
-knowai memory decide billing \
+precept memory decide billing \
   "Use Stripe for subscriptions" \
   --body "Stripe Billing for B2C, manual invoice for B2B over $10k"
 ```
@@ -102,17 +102,17 @@ knowai memory decide billing \
 Delete a memory entry.
 
 ```bash
-knowai memory forget <entry-id>
+precept memory forget <entry-id>
 ```
 
 ## Workspace (multi-repo)
 
 ### `workspace create`
 
-Create a central workspace at `~/.knowai/workspaces/<name>/`.
+Create a central workspace at `~/.precept/workspaces/<name>/`.
 
 ```bash
-knowai workspace create my-product
+precept workspace create my-product
 ```
 
 ### `workspace list`
@@ -120,15 +120,15 @@ knowai workspace create my-product
 List all central workspaces.
 
 ```bash
-knowai workspace list
+precept workspace list
 ```
 
 ### `workspace init`
 
-Create a `knowai.toml` in the current folder (legacy sibling-layout mode).
+Create a `precept.toml` in the current folder (legacy sibling-layout mode).
 
 ```bash
-knowai workspace init
+precept workspace init
 ```
 
 ### `workspace scan`
@@ -136,7 +136,7 @@ knowai workspace init
 Scan all repos in the current workspace and show summary.
 
 ```bash
-knowai workspace scan
+precept workspace scan
 ```
 
 ### `workspace impact`
@@ -144,7 +144,7 @@ knowai workspace scan
 Cross-repo blast radius for a change in one repo.
 
 ```bash
-knowai workspace impact api --change "rename users.email"
+precept workspace impact api --change "rename users.email"
 ```
 
 ### `workspace graph`
@@ -152,8 +152,8 @@ knowai workspace impact api --change "rename users.email"
 Export the cross-repo graph.
 
 ```bash
-knowai workspace graph mermaid
-knowai workspace graph react_flow --json
+precept workspace graph mermaid
+precept workspace graph react_flow --json
 ```
 
 ## Link (per-repo)
@@ -163,29 +163,29 @@ knowai workspace graph react_flow --json
 Connect this repo to a central workspace.
 
 ```bash
-knowai link my-product \
+precept link my-product \
   --role backend \
   --domains billing,auth \
   --critical
 ```
 
-This writes `.knowai/config.toml` — commit it to git so every clone connects automatically.
+This writes `.precept/config.toml` — commit it to git so every clone connects automatically.
 
 ### `unlink`
 
 Remove the link.
 
 ```bash
-knowai unlink
+precept unlink
 ```
 
 ### `migrate`
 
-Move legacy `<repo>/.knowai/{memory,approvals}.json` into the central workspace.
+Move legacy `<repo>/.precept/{memory,approvals}.json` into the central workspace.
 
 ```bash
-knowai migrate
-knowai migrate --workspace my-product --dry-run
+precept migrate
+precept migrate --workspace my-product --dry-run
 ```
 
 ## Approval queue
@@ -195,7 +195,7 @@ knowai migrate --workspace my-product --dry-run
 List pending approval requests.
 
 ```bash
-knowai approval list
+precept approval list
 ```
 
 ### `approval show`
@@ -203,14 +203,14 @@ knowai approval list
 Show details of one request.
 
 ```bash
-knowai approval show <id>
+precept approval show <id>
 ```
 
 ### `approval approve` / `reject`
 
 ```bash
-knowai approval approve <id>
-knowai approval reject <id> --reason "too risky before release"
+precept approval approve <id>
+precept approval reject <id> --reason "too risky before release"
 ```
 
 ## MCP server
@@ -220,8 +220,8 @@ knowai approval reject <id> --reason "too risky before release"
 Start the MCP server (stdio by default — for Claude Code, Cursor, Cline).
 
 ```bash
-knowai mcp --repo .
-knowai mcp --sse --port 8765 --repo .
+precept mcp --repo .
+precept mcp --sse --port 8765 --repo .
 ```
 
 ## Global flags
@@ -237,6 +237,6 @@ knowai mcp --sse --port 8765 --repo .
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `KNOWLYX_HOME` | `~/.knowai` | Central knowledge home |
+| `PRECEPT_HOME` | `~/.precept` | Central knowledge home |
 | `QDRANT_URL` | (none) | Enable semantic search via Qdrant |
 | `QDRANT_API_KEY` | (none) | Qdrant cloud auth |
