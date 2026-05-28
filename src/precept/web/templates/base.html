@@ -42,10 +42,11 @@
       <img src="/static/logo-full.png" alt="precept" style="height:32px;display:block">
     </a>
     <nav>
-      <a href="/"           class="{{ 'on' if active == 'dashboard' else '' }}">Home</a>
-      <a href="/entries"    class="{{ 'on' if active == 'entries'   else '' }}">Knowledge</a>
-      <a href="/syntheses"  class="{{ 'on' if active == 'syntheses' else '' }}">Summaries</a>
-      <a href="/audit"      class="{{ 'on' if active == 'audit'     else '' }}">Activity</a>
+      <a href="/"           class="{{ 'on' if active == 'dashboard'  else '' }}">Home</a>
+      <a href="/playground" class="{{ 'on' if active == 'playground' else '' }}">Try it</a>
+      <a href="/entries"    class="{{ 'on' if active == 'entries'    else '' }}">Knowledge</a>
+      <a href="/syntheses"  class="{{ 'on' if active == 'syntheses'  else '' }}">Summaries</a>
+      <a href="/audit"      class="{{ 'on' if active == 'audit'      else '' }}">Activity</a>
     </nav>
     <div class="spacer"></div>
     {% if active != 'entries' %}

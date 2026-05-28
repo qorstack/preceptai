@@ -63,6 +63,30 @@ def _fetch_one(sql: str, params: tuple = ()) -> dict | None:
 # ---------------------------------------------------------------------------
 
 
+@app.get("/playground", response_class=HTMLResponse)
+def playground(request: Request, q: str = Query("")):
+    """Public 'try it live' page — runs the real rule-based engine with no
+    repo, no DB, and no LLM. Great for demos and the landing experience."""
+    report = None
+    pack = None
+    if q.strip():
+        from precept.graph.cognitive_graph import CognitiveGraph
+        from precept.models.schema import ScanResult
+        from precept.packs.builtin import get_pack
+        from precept.reasoning.engine import ReasoningEngine
+
+        scan = ScanResult(repo_path=".")
+        graph = CognitiveGraph()
+        graph.build(scan)
+        report = ReasoningEngine(scan, graph).analyze(q)
+        pack = get_pack(report.intent.detected_domain)
+    return TEMPLATES.TemplateResponse(
+        request,
+        "playground.html",
+        {"q": q, "report": report, "pack": pack, "active": "playground"},
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
     stats = _fetch_one(
