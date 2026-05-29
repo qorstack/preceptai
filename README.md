@@ -107,6 +107,32 @@ Prefer to wire it up yourself? The manual steps are below.
 
 ---
 
+## Enforce it (block risky changes)
+
+Verdicts are advisory until you wire them into your pipeline. Two ways:
+
+**Local — pre-commit hook**
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/qorstack/precept
+    rev: v0.2.0
+    hooks:
+      - id: precept-commit-check
+        args: [--strict]
+```
+
+**CI — gate every PR** (can't be skipped with `--no-verify`):
+
+```bash
+printf '%s' "$PR_TITLE" | precept check --strict   # exit 2 = reject · 1 = needs approval · 0 = ok
+```
+
+A ready-made GitHub Action ships in [`.github/workflows/cognition-gate.yml`](.github/workflows/cognition-gate.yml) — it evaluates every PR's intent and fails the check when Precept would reject it.
+
+---
+
 ## Manual setup
 
 ### Part 1 — Dashboard

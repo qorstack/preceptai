@@ -1783,6 +1783,51 @@ def commit_check(
 
 
 @app.command()
+def check(
+    request: str = typer.Argument("", help="Change request to evaluate. If omitted, read from stdin."),
+    repo_path: str = typer.Option(".", "--repo", "-r"),
+    strict: bool = typer.Option(False, "--strict", help="Also fail on an 'ask' decision, not just 'reject'."),
+):
+    """
+    Evaluate a change request and fail (non-zero exit) if Precept would block it.
+
+    Exit codes: proceed/warn → 0, ask → 1 (only with --strict), reject → 2.
+    Designed for CI: pipe a PR title/body in and gate the merge.
+
+    \b
+    precept check "add a refund endpoint to /payments"
+    printf '%s' "$PR_TITLE" | precept check --strict
+    """
+    if not request.strip():
+        request = sys.stdin.read().strip() if not sys.stdin.isatty() else ""
+    if not request:
+        console.print("[red]No request provided.[/red] Pass it as an argument or via stdin.")
+        raise typer.Exit(2)
+
+    engine, _, _ = _load_engine(repo_path)
+    with console.status("[bold cyan]Reasoning…"):
+        report = engine.analyze(request)
+
+    decision = report.risk.decision.value
+    level = report.risk.level.value
+    color = {"proceed": "green", "warn": "yellow", "ask": "blue", "reject": "red"}[decision]
+    console.print(Panel(
+        f"[bold {color}]{decision.upper()}[/bold {color}] — Risk: [bold]{level.upper()}[/bold]\n{request}",
+        title="[bold]Precept check[/bold]",
+    ))
+    for w in report.risk.warnings:
+        console.print(f"  [yellow]![/yellow] {w}")
+
+    if decision == "reject":
+        console.print("[red]✗ Blocked — this change needs explicit human sign-off.[/red]")
+        raise typer.Exit(2)
+    if decision == "ask" and strict:
+        console.print("[yellow]⚠ Needs human approval before it can proceed (strict mode).[/yellow]")
+        raise typer.Exit(1)
+    console.print("[green]✓ Allowed[/green]")
+
+
+@app.command()
 def sync(
     action: str = typer.Argument("now", help="now | watch | init | pull | push | status"),
     workspace_name: str = typer.Option("", "--workspace", "-w", help="Workspace name (auto-detect from cwd if linked)"),

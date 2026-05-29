@@ -17,10 +17,11 @@ Status legend: ✅ done · 🔜 next · ⬜ later · 🌐 external (needs your a
 The README says "AI cannot skip it." Today that's still soft (prompt-level).
 Close that gap.
 
-1. ⬜ **Hard enforcement hook** — `precept check` exit-code command + a
-   `pre-commit` hook and a GitHub Action that run the engine on the diff and
-   **fail the commit/PR** when the decision is `reject` (and warn on `ask`).
-   This is the single biggest differentiator vs Hermes.
+1. ✅ **Hard enforcement** — `precept check` (exit 2 = reject · 1 = ask/strict),
+   the existing `precept commit-check` pre-commit hook, and a GitHub Action
+   (`cognition-gate.yml`) that fails any PR the engine would reject. Can't be
+   skipped with `--no-verify`. _Next: analyze the actual diff, not just the PR
+   intent text._
 2. ⬜ **Decision logging** — persist every `analyze_intent` verdict (decision,
    risk, domain) so the dashboard can show real "blocked / paused" history,
    not just memory edits.
