@@ -36,6 +36,11 @@ class LinkConfig(BaseModel):
     error messages when the local workspace folder is missing, so
     no one has to hunt for "where is the shared knowledge?".
     """
+    auto_approve_ai_memory: bool = False
+    """If true, AI-written business_context memory is approved at save time
+    instead of landing as Pending. Humans curate by editing/forgetting on the
+    dashboard rather than approving each new entry. Per-repo override of the
+    same key in ~/.precept.config."""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def resolved_repo_name(self, repo_path: str | Path) -> str:
@@ -65,6 +70,7 @@ def load_global_link() -> dict | None:
         "role":      str(data.get("role", "unknown")),
         "domains":   list(data.get("domains", [])),
         "tags":      list(data.get("tags", [])),
+        "auto_approve_ai_memory": bool(data.get("auto_approve_ai_memory", False)),
     }
 
 
@@ -92,6 +98,7 @@ def load_link(repo_path: str | Path = ".") -> LinkConfig | None:
         tags=list(data.get("tags", [])),
         critical=bool(data.get("critical", False)),
         knowledge_remote=str(data.get("knowledge_remote", "")),
+        auto_approve_ai_memory=bool(data.get("auto_approve_ai_memory", False)),
         metadata=dict(data.get("metadata", {})),
     )
 
@@ -145,6 +152,8 @@ def _serialize(config: LinkConfig) -> str:
         lines.append(f"tags = {_toml_list(config.tags)}")
     if config.critical:
         lines.append("critical = true")
+    if config.auto_approve_ai_memory:
+        lines.append("auto_approve_ai_memory = true")
     lines.append("")
     return "\n".join(lines)
 

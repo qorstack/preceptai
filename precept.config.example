@@ -6,6 +6,11 @@ repo_name = "aaa-api"         # required — explicit name (not auto-detected fr
 role      = "backend"         # optional — backend / frontend / worker / shared / infra
 domains   = ["payment", "auth"]   # optional
 
+# Optional — when true, AI-written business_context memory is approved at save
+# time (tagged approved_by="ai-auto") instead of landing as Pending. Humans
+# curate by editing/deleting on the dashboard. Default: false (human approves).
+# auto_approve_ai_memory = true
+
 [database]                    # optional — overrides ~/.precept.config
 host     = "localhost"
 port     = 5432

@@ -46,6 +46,38 @@ def test_save_and_load_link(repo):
     assert loaded.role == "backend"
     assert loaded.domains == ["billing", "auth"]
     assert loaded.critical is True
+    # Default — opt-in flag, off unless explicitly set.
+    assert loaded.auto_approve_ai_memory is False
+
+
+def test_auto_approve_ai_memory_round_trips(repo):
+    save_link(LinkConfig(workspace="ws", auto_approve_ai_memory=True), repo)
+    loaded = load_link(repo)
+    assert loaded is not None
+    assert loaded.auto_approve_ai_memory is True
+    # And the serialized file actually contains the key (so a human can grep it).
+    text = (repo / "precept.config").read_text(encoding="utf-8")
+    assert "auto_approve_ai_memory = true" in text
+
+
+def test_ai_auto_approve_helper_reads_per_repo_and_global(repo, isolated_home, monkeypatch):
+    from precept.mcp.server import _ai_auto_approve
+
+    # No config anywhere → off.
+    monkeypatch.setattr(Path, "home", lambda: isolated_home)
+    isolated_home.mkdir(parents=True, exist_ok=True)
+    assert _ai_auto_approve(str(repo)) is False
+
+    # Per-repo on → on.
+    save_link(LinkConfig(workspace="ws", auto_approve_ai_memory=True), repo)
+    assert _ai_auto_approve(str(repo)) is True
+
+    # Per-repo off explicitly → off, even if global is on.
+    save_link(LinkConfig(workspace="ws", auto_approve_ai_memory=False), repo)
+    (isolated_home / ".precept.config").write_text(
+        'workspace = "ws"\nauto_approve_ai_memory = true\n', encoding="utf-8"
+    )
+    assert _ai_auto_approve(str(repo)) is False
 
 
 def test_load_link_returns_none_when_missing(repo):

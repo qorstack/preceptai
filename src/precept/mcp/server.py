@@ -157,6 +157,22 @@ def _workspace_name_for(repo_path: str) -> str | None:
         return None
 
 
+def _ai_auto_approve(repo_path: str) -> bool:
+    """
+    Check whether AI-written memory should auto-approve at save time.
+    Per-repo precept.config wins over ~/.precept.config (global fallback).
+    """
+    try:
+        from precept.link.config import load_global_link, load_link
+        link = load_link(repo_path)
+        if link is not None:
+            return bool(link.auto_approve_ai_memory)
+        glob = load_global_link()
+        return bool(glob and glob.get("auto_approve_ai_memory"))
+    except Exception:
+        return False
+
+
 def _ai_scope_tag(repo_path: str) -> tuple[MemoryScope, str, str]:
     """
     For AI-written memory: derive (scope, workspace, repo_name) from the repo's
@@ -624,6 +640,7 @@ def remember_business_context(
     tags = _sanitize_memory_text(tags)
     store = _get_store(repo_path)
     scope, workspace, repo_name = _ai_scope_tag(repo_path)
+    auto_approve = _ai_auto_approve(repo_path)
     entry = MemoryEntry(
         id="",
         kind=MemoryKind.BUSINESS_CONTEXT,
@@ -631,7 +648,8 @@ def remember_business_context(
         title=title,
         body=body,
         tags=[t.strip() for t in tags.split(",") if t.strip()],
-        approved=False,
+        approved=auto_approve,
+        approved_by="ai-auto" if auto_approve else "",
         repo_path=repo_path,
         scope=scope,
         source=MemorySource.AI,
@@ -640,14 +658,20 @@ def remember_business_context(
     )
     saved = store.save(entry)
     superseded = _apply_supersedes(store, supersedes_id, saved.id)
-    _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]} (pending approval)")
+    sync_tag = "auto-approved" if auto_approve else "pending approval"
+    _auto_sync_after_write(repo_path, f"memory({domain}): {saved.title[:60]} ({sync_tag})")
+    next_step = (
+        "Auto-approved (auto_approve_ai_memory=true). Humans can review/edit/delete on the dashboard."
+        if auto_approve
+        else f"Call approve_memory('{saved.id}') to mark this as human-approved and trusted."
+    )
     return json.dumps(
         {
             "status": "saved",
             "id": saved.id,
-            "approved": False,
+            "approved": auto_approve,
             "superseded": superseded,
-            "next_step": f"Call approve_memory('{saved.id}') to mark this as human-approved and trusted.",
+            "next_step": next_step,
         },
         indent=2,
         ensure_ascii=False,

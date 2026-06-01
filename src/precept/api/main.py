@@ -21,6 +21,19 @@ app = FastAPI(
 _state: dict[str, Any] = {}
 
 
+def _link_auto_approve(repo_path: str) -> bool:
+    """Mirror of MCP's _ai_auto_approve — per-repo precept.config wins over global."""
+    try:
+        from precept.link.config import load_global_link, load_link
+        link = load_link(repo_path)
+        if link is not None:
+            return bool(link.auto_approve_ai_memory)
+        glob = load_global_link()
+        return bool(glob and glob.get("auto_approve_ai_memory"))
+    except Exception:
+        return False
+
+
 def _get_engine(repo_path: str):
     key = str(Path(repo_path).resolve())
     if key not in _state:
@@ -175,6 +188,20 @@ def memory_save(body: MemorySaveRequest):
             kind = MemoryKind(body.kind)
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Unknown kind '{body.kind}'")
+        auto_approve = (
+            kind == MemoryKind.BUSINESS_CONTEXT
+            and not body.approved_by
+            and _link_auto_approve(body.repo_path)
+        )
+        approved = bool(body.approved_by) or kind == MemoryKind.TEAM_DECISION or auto_approve
+        if body.approved_by:
+            approved_by = body.approved_by
+        elif kind == MemoryKind.TEAM_DECISION:
+            approved_by = "team"
+        elif auto_approve:
+            approved_by = "ai-auto"
+        else:
+            approved_by = ""
         entry = MemoryEntry(
             id="",
             kind=kind,
@@ -182,8 +209,8 @@ def memory_save(body: MemorySaveRequest):
             title=body.title,
             body=body.body,
             tags=body.tags,
-            approved=bool(body.approved_by) or kind == MemoryKind.TEAM_DECISION,
-            approved_by=body.approved_by or ("team" if kind == MemoryKind.TEAM_DECISION else ""),
+            approved=approved,
+            approved_by=approved_by,
             repo_path=body.repo_path,
         )
         saved = store.save(entry)
