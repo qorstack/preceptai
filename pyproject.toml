@@ -51,9 +51,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/qorstack/precept"
-Repository = "https://github.com/qorstack/precept"
-Issues = "https://github.com/qorstack/precept/issues"
+Homepage = "https://github.com/qorstack/preceptai"
+Repository = "https://github.com/qorstack/preceptai"
+Issues = "https://github.com/qorstack/preceptai/issues"
 
 [project.scripts]
 precept = "precept.cli.main:run"

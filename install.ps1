@@ -1,9 +1,9 @@
 # Precept one-line installer (Windows PowerShell)
-#   irm https://raw.githubusercontent.com/qorstack/precept/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/qorstack/preceptai/main/install.ps1 | iex
 #
 # Or with workspace + Claude Code:
 #   $env:PRECEPT_WORKSPACE = "my-product"; $env:PRECEPT_CLAUDE = "1"
-#   irm https://raw.githubusercontent.com/qorstack/precept/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/qorstack/preceptai/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
@@ -22,7 +22,7 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 
 # 2. Install precept
 Write-Host "-> Installing precept" -ForegroundColor Yellow
-uv tool install git+https://github.com/qorstack/precept.git --upgrade
+uv tool install git+https://github.com/qorstack/preceptai.git --upgrade
 
 # 3. Smoke test
 precept --version

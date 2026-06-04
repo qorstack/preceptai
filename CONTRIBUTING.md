@@ -5,7 +5,7 @@ Thank you for considering contributing! Precept is open source under MIT.
 ## Quick start
 
 ```bash
-git clone https://github.com/qorstack/precept
+git clone https://github.com/qorstack/preceptai
 cd precept
 uv sync                  # install deps
 uv run pytest            # run tests
@@ -16,7 +16,7 @@ uv run ruff check src/   # lint
 
 ### Reporting bugs
 
-Open a [GitHub issue](https://github.com/qorstack/precept/issues) with:
+Open a [GitHub issue](https://github.com/qorstack/preceptai/issues) with:
 
 - What you ran (CLI command, MCP tool call, etc.)
 - What you expected
@@ -26,7 +26,7 @@ Open a [GitHub issue](https://github.com/qorstack/precept/issues) with:
 
 ### Proposing features
 
-Open a [GitHub Discussion](https://github.com/qorstack/precept/discussions) first to align on direction. Precept has a clear thesis (cognitive enforcement before code generation) — features that don't fit will be politely declined.
+Open a [GitHub Discussion](https://github.com/qorstack/preceptai/discussions) first to align on direction. Precept has a clear thesis (cognitive enforcement before code generation) — features that don't fit will be politely declined.
 
 ### Submitting PRs
 

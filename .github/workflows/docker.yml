@@ -34,7 +34,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/qorstack/precept
+          images: ghcr.io/qorstack/preceptai
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}

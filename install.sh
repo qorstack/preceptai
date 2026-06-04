@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Precept one-line installer (macOS / Linux)
-#   curl -fsSL https://raw.githubusercontent.com/qorstack/precept/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/qorstack/preceptai/main/install.sh | bash
 #
 # Or with workspace name + Claude Code registration:
-#   curl -fsSL https://raw.githubusercontent.com/qorstack/precept/main/install.sh | bash -s -- --workspace my-product --claude
+#   curl -fsSL https://raw.githubusercontent.com/qorstack/preceptai/main/install.sh | bash -s -- --workspace my-product --claude
 
 set -euo pipefail
 
@@ -34,7 +34,7 @@ fi
 
 # 2. Install precept as a tool
 echo "→ Installing precept"
-uv tool install git+https://github.com/qorstack/precept.git --upgrade
+uv tool install git+https://github.com/qorstack/preceptai.git --upgrade
 
 # 3. Smoke test
 precept --version

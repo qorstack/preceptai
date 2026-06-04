@@ -54,7 +54,7 @@ The agent reuses `AuthService`, follows the team rule, and pauses on the HIGH-ri
 Two commands. The first installs the CLI; the second wires up everything else.
 
 ```bash
-uv tool install precept-ai          # or: git+https://github.com/qorstack/precept.git
+uv tool install precept-ai          # or: git+https://github.com/qorstack/preceptai.git
 precept quickstart
 ```
 
@@ -120,7 +120,7 @@ Verdicts are advisory until you wire them into your pipeline. Two ways:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/qorstack/precept
+  - repo: https://github.com/qorstack/preceptai
     rev: v0.2.0
     hooks:
       - id: precept-commit-check
@@ -196,7 +196,7 @@ services:
       interval: 5s
 
   web:
-    image: ghcr.io/qorstack/precept:latest
+    image: ghcr.io/qorstack/preceptai:latest
     container_name: precept-web
     depends_on: { postgres: { condition: service_healthy } }
     environment:
@@ -234,7 +234,7 @@ On macOS / Linux:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env
-uv tool install git+https://github.com/qorstack/precept.git
+uv tool install git+https://github.com/qorstack/preceptai.git
 precept --version
 ```
 
@@ -243,7 +243,7 @@ On Windows (PowerShell):
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 # close & reopen PowerShell so PATH refreshes, then:
-uv tool install git+https://github.com/qorstack/precept.git
+uv tool install git+https://github.com/qorstack/preceptai.git
 precept --version
 ```
 
