@@ -2020,18 +2020,50 @@ def quickstart(
             path.write_text(content, encoding="utf-8")
             console.print(f"  [green]wrote[/green] {name}")
 
-    # 2. Bring up Postgres + dashboard.
+    # 2. Bring up Postgres (the dashboard runs locally — see step 2b).
     if no_docker:
-        console.print("[dim]Skipping container startup (--no-docker).[/dim]")
+        console.print("[dim]Skipping Postgres startup (--no-docker).[/dim]")
     elif shutil.which("docker") is None:
-        console.print("[yellow]docker not found — skipping container startup.[/yellow] Install Docker, then re-run.")
+        console.print("[yellow]docker not found — skipping Postgres startup.[/yellow] Install Docker, then re-run.")
     else:
-        with console.status("[cyan]Starting Postgres + dashboard…"):
+        with console.status("[cyan]Starting Postgres…"):
             rc = subprocess.run(["docker", "compose", "up", "-d"], cwd=str(target)).returncode
         if rc == 0:
-            console.print("  [green]up[/green]    Postgres + dashboard")
+            console.print("  [green]up[/green]    Postgres")
         else:
             console.print("  [yellow]docker compose exited non-zero — check the output above.[/yellow]")
+
+    # 2b. Start the dashboard locally. It's NOT in the compose file (a target
+    # repo can't build the precept image), so launch `precept web` as a
+    # detached background process on the host. Inherits cwd=target so it loads
+    # the scaffolded .env (POSTGRES_PORT / WEB_PORT).
+    web_port = os.getenv("WEB_PORT", "9080")
+    if no_docker:
+        console.print("[dim]Skipping dashboard startup (--no-docker).[/dim]")
+    else:
+        log_dir = target / ".precept"
+        log_dir.mkdir(exist_ok=True)
+        web_log = log_dir / "web.log"
+        popen_kwargs = {}
+        if sys.platform == "win32":
+            popen_kwargs["creationflags"] = (
+                subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+            )
+        else:
+            popen_kwargs["start_new_session"] = True
+        with open(web_log, "ab") as logf:
+            subprocess.Popen(
+                [sys.executable, "-m", "precept", "web", "--port", web_port],
+                cwd=str(target),
+                stdout=logf,
+                stderr=logf,
+                stdin=subprocess.DEVNULL,
+                **popen_kwargs,
+            )
+        console.print(
+            f"  [green]up[/green]    dashboard → http://localhost:{web_port}  "
+            "[dim](background; log: .precept/web.log)[/dim]"
+        )
 
     # 3. Register the MCP server with Claude Code.
     if no_mcp:
@@ -2062,8 +2094,8 @@ def quickstart(
     console.print(Panel(
         "Open Claude Code in any repo and try:\n"
         "  [cyan]/precept add Google SSO to /login[/cyan]\n\n"
-        "Open the dashboard:\n"
-        "  [cyan]precept web[/cyan]  →  http://localhost:9080",
+        f"Dashboard is running →  http://localhost:{web_port}\n"
+        "  [dim](restart anytime with [cyan]precept web[/cyan])[/dim]",
         title="[bold green]Precept is ready[/bold green]",
     ))
 
