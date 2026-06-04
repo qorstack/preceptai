@@ -1,3 +1,8 @@
+# Lock the compose project name to the repo's canonical name so the
+# network / default volume prefix stay `preceptai_*` regardless of which
+# folder this is checked out into (would otherwise inherit the folder name).
+name: preceptai
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -8,7 +13,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-precept}
       POSTGRES_DB: ${POSTGRES_DB:-precept}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-55432}:5432"
     volumes:
       - precept_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +37,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-public}
     ports:
-      - "${WEB_PORT:-8080}:8080"
+      - "${WEB_PORT:-9080}:8080"
 
 volumes:
   precept_pgdata:
