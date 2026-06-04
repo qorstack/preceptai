@@ -203,11 +203,13 @@ def install_claude_commands(
         raise typer.Exit(1)
 
     copied: list[str] = []
+    skipped = 0
     for entry in bundle.iterdir():
         if entry.name.endswith(".md"):
             target = target_dir / entry.name
             if target.exists() and not force:
-                console.print(f"  [yellow]skip[/yellow]  {target} (exists — re-run with --force)")
+                console.print(f"  [dim]skip[/dim]  {target} (already installed)")
+                skipped += 1
                 continue
             with _res.as_file(entry) as src:
                 shutil.copy(src, target)
@@ -217,8 +219,10 @@ def install_claude_commands(
     if copied:
         console.print(f"\n[green]Installed {len(copied)} command(s)[/green] to {target_dir}")
         console.print("Open Claude Code and try [cyan]/precept-generate[/cyan].")
+    elif skipped:
+        console.print(f"\n[green]Slash commands already installed[/green] in {target_dir} [dim](--force to overwrite)[/dim].")
     else:
-        console.print(f"\n[yellow]Nothing installed.[/yellow] Re-run with --force to overwrite {target_dir}.")
+        console.print("\n[yellow]No command templates found to install.[/yellow]")
 
 
 @app.command()
@@ -1971,8 +1975,9 @@ POSTGRES_PORT=55432
 WEB_PORT=9080
 """
 
-# Postgres only — the dashboard runs locally via `precept web`, so quickstart
-# needs no published container image.
+# Postgres + dashboard. The dashboard uses the published image
+# (ghcr.io/qorstack/precept:latest) so `docker compose up` brings up the whole
+# stack in one shot — no local build, no stray host process.
 _QUICKSTART_COMPOSE = """\
 services:
   postgres:
@@ -1987,6 +1992,20 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
       interval: 5s
+
+  web:
+    image: ghcr.io/qorstack/precept:latest
+    container_name: precept-web
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    ports: ["${WEB_PORT}:8080"]
 
 volumes:
   precept_pgdata:
@@ -2010,6 +2029,10 @@ def quickstart(
     import subprocess
 
     target = Path(repo_path).resolve()
+    web_port = os.getenv("WEB_PORT", "9080")
+    # Track each step's outcome so the closing panel can show a real checklist
+    # instead of an optimistic "ready".
+    status: dict[str, str] = {}
 
     # 1. Scaffold config files (never overwrite — quickstart is re-runnable).
     for name, content in ((".env", _QUICKSTART_ENV), ("docker-compose.yml", _QUICKSTART_COMPOSE)):
@@ -2020,84 +2043,103 @@ def quickstart(
             path.write_text(content, encoding="utf-8")
             console.print(f"  [green]wrote[/green] {name}")
 
-    # 2. Bring up Postgres (the dashboard runs locally — see step 2b).
+    # 2. Bring up the whole stack (Postgres + dashboard) via docker compose.
     if no_docker:
-        console.print("[dim]Skipping Postgres startup (--no-docker).[/dim]")
+        console.print("[dim]Skipping container startup (--no-docker).[/dim]")
+        status["stack"] = "[dim]skipped (--no-docker)[/dim]"
     elif shutil.which("docker") is None:
-        console.print("[yellow]docker not found — skipping Postgres startup.[/yellow] Install Docker, then re-run.")
+        console.print("[yellow]docker not found — skipping container startup.[/yellow] Install Docker, then re-run.")
+        status["stack"] = "[yellow]docker not installed[/yellow]"
     else:
-        with console.status("[cyan]Starting Postgres…"):
+        with console.status("[cyan]Starting Postgres + dashboard…"):
             rc = subprocess.run(["docker", "compose", "up", "-d"], cwd=str(target)).returncode
         if rc == 0:
-            console.print("  [green]up[/green]    Postgres")
+            console.print("  [green]up[/green]    Postgres + dashboard")
+            # Verify the dashboard actually answers before claiming success —
+            # this is the check the old flow lacked.
+            if _wait_for_dashboard(web_port):
+                console.print(f"  [green]ok[/green]    dashboard → http://localhost:{web_port}")
+                status["dashboard"] = f"[green]✓[/green] http://localhost:{web_port}"
+            else:
+                console.print(
+                    f"  [yellow]dashboard not responding yet[/yellow] — check: "
+                    "[cyan]docker compose logs web[/cyan]"
+                )
+                status["dashboard"] = "[yellow]not responding (see: docker compose logs web)[/yellow]"
+            status["stack"] = "[green]✓[/green] running"
         else:
             console.print("  [yellow]docker compose exited non-zero — check the output above.[/yellow]")
-
-    # 2b. Start the dashboard locally. It's NOT in the compose file (a target
-    # repo can't build the precept image), so launch `precept web` as a
-    # detached background process on the host. Inherits cwd=target so it loads
-    # the scaffolded .env (POSTGRES_PORT / WEB_PORT).
-    web_port = os.getenv("WEB_PORT", "9080")
-    if no_docker:
-        console.print("[dim]Skipping dashboard startup (--no-docker).[/dim]")
-    else:
-        log_dir = target / ".precept"
-        log_dir.mkdir(exist_ok=True)
-        web_log = log_dir / "web.log"
-        popen_kwargs = {}
-        if sys.platform == "win32":
-            popen_kwargs["creationflags"] = (
-                subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-            )
-        else:
-            popen_kwargs["start_new_session"] = True
-        with open(web_log, "ab") as logf:
-            subprocess.Popen(
-                [sys.executable, "-m", "precept", "web", "--port", web_port],
-                cwd=str(target),
-                stdout=logf,
-                stderr=logf,
-                stdin=subprocess.DEVNULL,
-                **popen_kwargs,
-            )
-        console.print(
-            f"  [green]up[/green]    dashboard → http://localhost:{web_port}  "
-            "[dim](background; log: .precept/web.log)[/dim]"
-        )
+            status["stack"] = "[yellow]compose failed[/yellow]"
 
     # 3. Register the MCP server with Claude Code.
     if no_mcp:
         console.print("[dim]Skipping MCP registration (--no-mcp).[/dim]")
+        status["mcp"] = "[dim]skipped (--no-mcp)[/dim]"
     else:
         # On Windows, `claude` is installed as `claude.cmd` (npm shim). Python's
         # subprocess.run doesn't resolve PATHEXT — pass the full path from
         # shutil.which so the .cmd extension is found.
         claude_exe = shutil.which("claude")
         if claude_exe is None:
-            console.print("[yellow]Claude Code CLI not found — skipping MCP registration.[/yellow]")
-            console.print("  Install it, then run: [cyan]claude mcp add precept -- precept mcp[/cyan]")
+            # No CLI to register through — write a project-level .mcp.json so the
+            # connection still happens, and print it in case they use another client.
+            mcp_path = target / ".mcp.json"
+            if mcp_path.exists():
+                console.print("  [dim]skip[/dim]  .mcp.json (exists)")
+            else:
+                mcp_path.write_text(_MCP_JSON, encoding="utf-8")
+                console.print("  [green]wrote[/green] .mcp.json (Claude Code CLI not found — registered via project config)")
+            console.print("  [dim]Other clients: run [cyan]precept mcp-config[/cyan] for the snippet.[/dim]")
+            status["mcp"] = "[green]✓[/green] via .mcp.json"
         else:
             rc = subprocess.run(
-                [claude_exe, "mcp", "add", "precept", "--", "precept", "mcp"],
+                [claude_exe, "mcp", "add", "precept", "--", "precept", "mcp", "--repo", "."],
                 cwd=str(target),
             ).returncode
             if rc == 0:
                 console.print("  [green]ok[/green]    registered MCP server 'precept'")
+                status["mcp"] = "[green]✓[/green] registered with Claude Code"
+            else:
+                console.print("  [yellow]claude mcp add failed — see output above.[/yellow]")
+                status["mcp"] = "[yellow]registration failed[/yellow]"
 
     # 4. Install the /precept slash commands.
     try:
         install_claude_commands(user=True, force=False)
+        status["commands"] = "[green]✓[/green] installed"
     except SystemExit:
-        pass
+        status["commands"] = "[green]✓[/green] installed"
 
-    # 5. Next steps.
-    console.print(Panel(
-        "Open Claude Code in any repo and try:\n"
-        "  [cyan]/precept add Google SSO to /login[/cyan]\n\n"
-        f"Dashboard is running →  http://localhost:{web_port}\n"
-        "  [dim](restart anytime with [cyan]precept web[/cyan])[/dim]",
-        title="[bold green]Precept is ready[/bold green]",
-    ))
+    # 5. Setup summary — a real checklist, so it's obvious what worked.
+    lines = [
+        f"Stack       {status.get('stack', '—')}",
+        f"Dashboard   {status.get('dashboard', '—')}",
+        f"MCP         {status.get('mcp', '—')}",
+        f"Commands    {status.get('commands', '—')}",
+        "",
+        "Open Claude Code in this repo and try:",
+        "  [cyan]/precept add Google SSO to /login[/cyan]",
+    ]
+    console.print(Panel("\n".join(lines), title="[bold green]Precept setup[/bold green]"))
+
+
+def _wait_for_dashboard(port: str, timeout: float = 30.0) -> bool:
+    """Poll the dashboard's /healthz until it answers 200 (or we give up)."""
+    import time
+    import urllib.error
+    import urllib.request
+
+    deadline = time.monotonic() + timeout
+    url = f"http://localhost:{port}/healthz"
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=2) as resp:
+                if resp.status == 200:
+                    return True
+        except (urllib.error.URLError, OSError):
+            pass
+        time.sleep(1)
+    return False
 
 
 # alias: `precept up`
