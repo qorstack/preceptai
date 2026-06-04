@@ -1551,10 +1551,14 @@ def doctor(
         # Knowledge mode but no link — check own workspace
         add("workspace_dir", "ok", f"Workspace home at {target}")
 
-    # 3. MCP integration (best-effort, skipped if `claude` not on PATH)
+    # 3. MCP integration (best-effort, skipped if `claude` not on PATH).
+    # shutil.which resolves PATHEXT so Windows finds claude.cmd from npm.
     try:
+        claude_exe = shutil.which("claude")
+        if claude_exe is None:
+            raise FileNotFoundError("claude")
         proc = subprocess.run(
-            ["claude", "mcp", "list"],
+            [claude_exe, "mcp", "list"],
             capture_output=True, text=True, timeout=5, check=False,
         )
         if proc.returncode == 0 and "precept" in proc.stdout.lower():
@@ -2028,16 +2032,21 @@ def quickstart(
     # 3. Register the MCP server with Claude Code.
     if no_mcp:
         console.print("[dim]Skipping MCP registration (--no-mcp).[/dim]")
-    elif shutil.which("claude") is None:
-        console.print("[yellow]Claude Code CLI not found — skipping MCP registration.[/yellow]")
-        console.print("  Install it, then run: [cyan]claude mcp add precept -- precept mcp[/cyan]")
     else:
-        rc = subprocess.run(
-            ["claude", "mcp", "add", "precept", "--", "precept", "mcp"],
-            cwd=str(target),
-        ).returncode
-        if rc == 0:
-            console.print("  [green]ok[/green]    registered MCP server 'precept'")
+        # On Windows, `claude` is installed as `claude.cmd` (npm shim). Python's
+        # subprocess.run doesn't resolve PATHEXT — pass the full path from
+        # shutil.which so the .cmd extension is found.
+        claude_exe = shutil.which("claude")
+        if claude_exe is None:
+            console.print("[yellow]Claude Code CLI not found — skipping MCP registration.[/yellow]")
+            console.print("  Install it, then run: [cyan]claude mcp add precept -- precept mcp[/cyan]")
+        else:
+            rc = subprocess.run(
+                [claude_exe, "mcp", "add", "precept", "--", "precept", "mcp"],
+                cwd=str(target),
+            ).returncode
+            if rc == 0:
+                console.print("  [green]ok[/green]    registered MCP server 'precept'")
 
     # 4. Install the /precept slash commands.
     try:
