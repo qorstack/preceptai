@@ -54,7 +54,7 @@ The agent reuses `AuthService`, follows the team rule, and pauses on the HIGH-ri
 Two commands. The first installs the CLI; the second wires up everything else.
 
 ```bash
-uv tool install precept-ai          # or: git+https://github.com/qorstack/preceptai.git
+uv tool install precept-ai       # or: git+https://github.com/qorstack/preceptai.git
 precept quickstart
 ```
 
@@ -145,13 +145,13 @@ Precept is a standard stdio MCP server — the command is always `precept mcp`. 
 precept mcp-config cursor      # or: claude · vscode · windsurf · cline · all
 ```
 
-| Agent                   | Setup                                                              |
-| ----------------------- | ----------------------------------------------------------------- |
+| Agent                   | Setup                                                                       |
+| ----------------------- | --------------------------------------------------------------------------- |
 | Claude Code             | `claude mcp add precept -- precept mcp` (plus the `/precept` slash command) |
-| Cursor                  | add to `~/.cursor/mcp.json`                                        |
-| VS Code / Copilot agent | add to `.vscode/mcp.json` (uses a `servers` key)                  |
-| Windsurf                | add to `~/.codeium/windsurf/mcp_config.json`                      |
-| Cline                   | add to `cline_mcp_settings.json`                                   |
+| Cursor                  | add to `~/.cursor/mcp.json`                                                 |
+| VS Code / Copilot agent | add to `.vscode/mcp.json` (uses a `servers` key)                            |
+| Windsurf                | add to `~/.codeium/windsurf/mcp_config.json`                                |
+| Cline                   | add to `cline_mcp_settings.json`                                            |
 
 Generic config most clients accept:
 
@@ -347,7 +347,7 @@ If not: `claude mcp list` shows `✗` → run `precept mcp` in a terminal to see
 
 ```bash
 # Upgrade the CLI + MCP server
-uv tool upgrade precept
+uv tool upgrade precept-ai
 
 # Then restart Claude Code so it reloads the MCP subprocess
 # (the old version is cached until restart)

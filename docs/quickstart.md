@@ -8,13 +8,13 @@ Pick one:
 
 ```bash
 # Via uv (recommended)
-uv tool install precept
+uv tool install precept-ai
 
 # Via pipx
-pipx install precept
+pipx install precept-ai
 
-# Or run without installing (one-shot)
-uvx precept scan .
+# Or run without installing (one-shot) — package is precept-ai, CLI is precept
+uvx --from precept-ai precept scan .
 ```
 
 Requires Python 3.11+.
