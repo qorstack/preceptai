@@ -7,14 +7,14 @@ Get Precept running with Claude Code in 5 minutes.
 Pick one:
 
 ```bash
-# Via uv (recommended)
-uv tool install precept-ai
+# Via uv (recommended) — installs from GitHub until PyPI publish
+uv tool install git+https://github.com/qorstack/preceptai.git
 
 # Via pipx
-pipx install precept-ai
+pipx install git+https://github.com/qorstack/preceptai.git
 
-# Or run without installing (one-shot) — package is precept-ai, CLI is precept
-uvx --from precept-ai precept scan .
+# Or run without installing (one-shot)
+uvx --from git+https://github.com/qorstack/preceptai.git precept scan .
 ```
 
 Requires Python 3.11+.

@@ -54,7 +54,7 @@ The agent reuses `AuthService`, follows the team rule, and pauses on the HIGH-ri
 Two commands. The first installs the CLI; the second wires up everything else.
 
 ```bash
-uv tool install precept-ai       # or: git+https://github.com/qorstack/preceptai.git
+uv tool install git+https://github.com/qorstack/preceptai.git
 precept quickstart
 ```
 
@@ -346,8 +346,8 @@ If not: `claude mcp list` shows `✗` → run `precept mcp` in a terminal to see
 <summary><b>Updating</b></summary>
 
 ```bash
-# Upgrade the CLI + MCP server
-uv tool upgrade precept-ai
+# Upgrade the CLI + MCP server (re-pulls latest main)
+uv tool install --force git+https://github.com/qorstack/preceptai.git
 
 # Then restart Claude Code so it reloads the MCP subprocess
 # (the old version is cached until restart)
