@@ -8,7 +8,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
 
 <style>
   :root {
@@ -45,15 +45,15 @@
     margin: 0;
     background: var(--bg);
     color: var(--body);
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 15px;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
   a { color: var(--primary-bright); text-decoration: none; }
   a:hover { color: #87a9ff; }
-  h1, h2, h3 { font-family: "Space Grotesk", sans-serif; color: var(--ink); line-height: 1.15; letter-spacing: -0.02em; margin: 0; }
+  h1, h2, h3 { font-family: "Space Mono", "JetBrains Mono", monospace; color: var(--ink); line-height: 1.2; letter-spacing: -0.01em; margin: 0; }
   code, pre, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
   .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
   .eyebrow {
@@ -69,6 +69,15 @@
       radial-gradient(620px 420px at 50% -8%, rgba(29,78,216,0.22), transparent 70%),
       radial-gradient(900px 600px at 88% 8%, rgba(29,78,216,0.08), transparent 60%);
   }
+
+  /* ─── Hacker / terminal accents ─── */
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.6;
+    background-image: repeating-linear-gradient(0deg, rgba(120,150,255,0.018) 0, rgba(120,150,255,0.018) 1px, transparent 1px, transparent 3px);
+  }
+  .eyebrow::before { content: "> "; opacity: 0.7; }
+  .cursor { color: var(--primary-bright); font-weight: 700; animation: blink 1.05s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
 
   /* ─── Nav ─── */
   nav {
@@ -99,7 +108,7 @@
 
   /* ─── Hero ─── */
   header.hero { padding: 96px 0 72px; }
-  .hero h1 { font-size: clamp(38px, 6vw, 68px); font-weight: 700; max-width: 16ch; }
+  .hero h1 { font-size: clamp(29px, 4.6vw, 52px); font-weight: 700; max-width: 16ch; letter-spacing: -0.02em; }
   .hero h1 .grad {
     background: linear-gradient(100deg, #5b8cff, #9db9ff);
     -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
@@ -263,7 +272,7 @@
   <div class="wrap hero-inner">
     <img class="hero-logo" src="logo.png" alt="Precept logo">
     <div class="pill"><span class="dot"></span> Open Source · MIT License</div>
-    <h1>Knowledge is passive.<br><span class="grad">Cognition must be enforced.</span></h1>
+    <h1>Knowledge is passive.<br><span class="grad">Cognition must be enforced.</span><span class="cursor">█</span></h1>
     <p class="lead">
       Not another coding copilot. Precept is the cognition layer that forces the agents you
       already use to <b style="color:var(--ink)">understand</b> your system — business logic,
