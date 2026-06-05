@@ -1512,6 +1512,7 @@ def doctor(
     5. Are there pending approvals waiting on a human?
     6. Is the last cognition stamp recent enough for commit-check?
     """
+    import shutil
     import subprocess
     from datetime import datetime, timezone
 
@@ -2095,7 +2096,7 @@ def quickstart(
                 status["dashboard"] = f"[green]✓[/green] http://localhost:{web_port}"
             else:
                 console.print(
-                    f"  [yellow]dashboard not responding yet[/yellow] — check: "
+                    "  [yellow]dashboard not responding yet[/yellow] — check: "
                     "[cyan]docker compose logs web[/cyan]"
                 )
                 status["dashboard"] = "[yellow]not responding (see: docker compose logs web)[/yellow]"
