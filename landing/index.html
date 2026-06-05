@@ -148,6 +148,8 @@
   .os-tabs { display: inline-flex; gap: 24px; }
   .os-tab { font-size: 11px; color: var(--muted); background: none; border: 0; padding: 4px 0; cursor: pointer; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
   .os-tab.on { color: var(--on-dark); border-bottom-color: var(--on-dark); }
+  .mode-tab { font-family: var(--f-mono); text-transform: uppercase; letter-spacing: 2px; font-size: 11px; color: var(--muted); background: none; border: 0; padding: 4px 0; cursor: pointer; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
+  .mode-tab.on { color: var(--on-dark); border-bottom-color: var(--on-dark); }
   .install-body { padding: 8px 22px 22px; }
   .step { padding: 24px 0; border-bottom: 1px solid var(--hairline); }
   .step:last-child { border-bottom: 0; }
@@ -230,17 +232,37 @@
     </p>
 
     <!-- Install -->
-    <div class="install" style="margin-top:64px; text-align:left;">
+    <div class="install" id="install" style="margin-top:64px; text-align:left;">
       <div class="install-bar">
         <span class="install-title">Get started</span>
         <div class="os-tabs">
-          <button class="os-tab on" data-os="unix">macOS / Linux</button>
-          <button class="os-tab" data-os="win">Windows</button>
+          <button class="mode-tab on" data-mode="agent">Let your AI do it</button>
+          <button class="mode-tab" data-mode="manual">Run it yourself</button>
         </div>
       </div>
-      <div class="install-body">
+
+      <!-- Agent mode: paste the prompt -->
+      <div class="install-body mode-panel" data-mode-panel="agent">
+        <div class="step" style="border-bottom:0;">
+          <div class="step-h">Paste this to your agent <button class="copy" data-copy="Set up Precept on this machine so my coding agent consults it before writing code. 1) Install the CLI: uv tool install --force git+https://github.com/qorstack/preceptai.git  2) Make a dedicated folder (e.g. ~/precept), cd into it, and run: precept quickstart — it scaffolds the stack into that folder, starts Postgres and the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.  3) Verify the dashboard answers at http://localhost:9080 and `claude mcp list` shows precept. If any step fails, read the error, fix the root cause, retry, and report what you changed.">Copy prompt</button></div>
+          <pre class="step-cmd" style="white-space:pre-wrap;">Set up Precept on this machine so my coding agent consults it before writing code.
+
+<span class="m">1.</span> Install the CLI: uv tool install --force git+https://github.com/qorstack/preceptai.git
+<span class="m">2.</span> Make a dedicated folder (e.g. ~/precept), cd into it, and run precept quickstart — it scaffolds the stack there, starts Postgres + the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.
+<span class="m">3.</span> Verify the dashboard answers at http://localhost:9080 and claude mcp list shows precept.
+
+If any step fails, read the error, fix the root cause, retry, and report what you changed.</pre>
+        </div>
+      </div>
+
+      <!-- Manual mode: OS-tabbed steps -->
+      <div class="install-body mode-panel" data-mode-panel="manual" style="display:none;">
         <div class="step">
           <div class="step-h"><span class="n">01</span> Install <button class="copy copy-os">Copy</button></div>
+          <div class="os-tabs" style="margin-bottom:12px;">
+            <button class="os-tab on" data-os="unix">macOS / Linux</button>
+            <button class="os-tab" data-os="win">Windows</button>
+          </div>
           <pre class="step-cmd" data-os-panel="unix">curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install --force git+https://github.com/qorstack/preceptai.git</pre>
           <pre class="step-cmd" data-os-panel="win" style="display:none">irm https://astral.sh/uv/install.ps1 | iex
@@ -253,7 +275,8 @@ mkdir -p ~/precept && cd ~/precept
 precept quickstart</pre>
         </div>
       </div>
-      <div class="install-foot">Dashboard → localhost:9080 · prefer your agent does it? <a href="#install">Paste the setup prompt ↓</a></div>
+
+      <div class="install-foot">Dashboard → localhost:9080 · .env + docker-compose.yml land in that folder; the MCP server &amp; slash commands install globally (every repo).</div>
     </div>
 
     <div class="cta-row">
@@ -321,47 +344,6 @@ precept quickstart</pre>
   </div>
 </section>
 
-<!-- ─── Install (detail + AI prompt) ─── -->
-<section id="install">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="eyebrow">Install</div>
-      <h2 class="display-lg">Let your agent do it, or run it yourself.</h2>
-      <p>Requires Python 3.11+ and Docker. Either path lands in the same place: Postgres + the dashboard up, MCP server registered, slash commands installed.</p>
-    </div>
-
-    <div class="codeblock" style="max-width:820px; margin:0 auto 18px;">
-      <div class="head"><span>★ Let your AI set it up — paste this to your agent</span><button class="copy" data-copy="Set up Precept on this machine so my coding agent consults it before writing code. 1) Install the CLI: uv tool install --force git+https://github.com/qorstack/preceptai.git  2) Make a dedicated folder (e.g. ~/precept), cd into it, and run: precept quickstart — it scaffolds the stack into that folder, starts Postgres and the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.  3) Verify the dashboard answers at http://localhost:9080 and `claude mcp list` shows precept. If any step fails, read the error, fix the root cause, retry, and report what you changed.">Copy prompt</button></div>
-      <pre style="white-space:pre-wrap; line-height:1.8;">Set up Precept on this machine so my coding agent consults it before writing code.
-
-<span class="m">1.</span> Install the CLI: uv tool install --force git+https://github.com/qorstack/preceptai.git
-<span class="m">2.</span> Make a dedicated folder (e.g. ~/precept), cd into it, and run precept quickstart — it scaffolds the stack into that folder, starts Postgres + the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.
-<span class="m">3.</span> Verify the dashboard answers at http://localhost:9080 and claude mcp list shows precept.
-
-If any step fails, read the error, fix the root cause, retry, and report what you changed.</pre>
-    </div>
-
-    <div class="caption" style="text-align:center; color:var(--muted-soft); margin:40px 0;">— or run it yourself —</div>
-
-    <div class="grid grid-2" style="max-width:900px; margin:0 auto;">
-      <div class="codeblock">
-        <div class="head"><span>01 · Install the CLI</span><button class="copy" data-copy="uv tool install --force git+https://github.com/qorstack/preceptai.git">Copy</button></div>
-        <pre><span class="m"># via uv (recommended)</span>
-uv tool install --force git+https://github.com/qorstack/preceptai.git</pre>
-      </div>
-      <div class="codeblock">
-        <div class="head"><span>02 · Set up the stack</span><button class="copy" data-copy="mkdir -p ~/precept && cd ~/precept && precept quickstart">Copy</button></div>
-        <pre><span class="m"># a permanent home for the stack files</span>
-mkdir -p ~/precept && cd ~/precept
-precept quickstart</pre>
-      </div>
-    </div>
-
-    <p style="color:var(--muted); margin:40px auto 0; max-width:820px; text-align:center; font-size:16px;">
-      Cross-platform — Windows, macOS, Linux. <code>.env</code> + <code>docker-compose.yml</code> land in that folder; the MCP server and slash commands register globally, so they work in every repo.
-    </p>
-  </div>
-</section>
 
 <!-- ─── Usage ─── -->
 <section id="usage">
@@ -470,6 +452,17 @@ precept quickstart</pre>
   }
   document.querySelectorAll('.copy[data-copy]').forEach(function (b) {
     b.addEventListener('click', function () { doCopy(b, b.getAttribute('data-copy')); });
+  });
+
+  // install mode toggle (let your AI do it / run it yourself)
+  document.querySelectorAll('.mode-tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      var mode = t.getAttribute('data-mode');
+      document.querySelectorAll('.mode-tab').forEach(function (x) { x.classList.toggle('on', x === t); });
+      document.querySelectorAll('[data-mode-panel]').forEach(function (p) {
+        p.style.display = p.getAttribute('data-mode-panel') === mode ? '' : 'none';
+      });
+    });
   });
 
   // OS tabs (auto-detect Windows)
