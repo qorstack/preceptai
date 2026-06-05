@@ -2055,6 +2055,7 @@ def quickstart(
 
     # 1. Scaffold config files. .env holds secrets/ports — never clobber it, even
     #    on --force. docker-compose.yml is refreshed on --force to pick up changes.
+    console.print(f"[bold]Stack files[/bold] → [cyan]{target}[/cyan]  [dim](cd here to manage with docker compose)[/dim]")
     for name, content in ((".env", _QUICKSTART_ENV), ("docker-compose.yml", _QUICKSTART_COMPOSE)):
         path = target / name
         refresh = force and name == "docker-compose.yml"
@@ -2147,7 +2148,10 @@ def quickstart(
         f"MCP         {status.get('mcp', '—')}",
         f"Commands    {status.get('commands', '—')}",
         "",
-        "Open Claude Code in this repo and try:",
+        f"Stack files live in [cyan]{target}[/cyan] — cd here for [cyan]docker compose[/cyan].",
+        "MCP + slash commands are global (every repo).",
+        "",
+        "Open Claude Code in any repo and try:",
         "  [cyan]/precept add Google SSO to /login[/cyan]",
     ]
     console.print(Panel("\n".join(lines), title="[bold green]Precept setup[/bold green]"))
