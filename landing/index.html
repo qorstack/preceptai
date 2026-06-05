@@ -327,27 +327,43 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">Install</div>
-      <h2>Zero to enforced in two commands</h2>
-      <p>Requires Python 3.11+ and Docker. One command scaffolds config, brings up Postgres + the dashboard, registers the MCP server, and installs the slash commands.</p>
+      <h2>Two ways in — let your agent do it, or run it yourself</h2>
+      <p>Requires Python 3.11+ and Docker. Either path lands in the same place: Postgres + the dashboard up, MCP server registered, slash commands installed.</p>
     </div>
+
+    <!-- Let your AI set it up -->
+    <div class="codeblock" style="border-color:#2c3a52; box-shadow:0 24px 64px -34px var(--primary-glow); margin-bottom:14px;">
+      <div class="head" style="background:linear-gradient(90deg, rgba(29,78,216,0.14), transparent);">
+        <span style="color:var(--primary-bright); letter-spacing:0.06em;">★ LET YOUR AI SET IT UP — PASTE THIS TO YOUR AGENT</span>
+        <button class="copy" data-copy="Set up Precept on this machine so my coding agent consults it before writing code. 1) Install the CLI: uv tool install --force git+https://github.com/qorstack/preceptai.git  2) Make a dedicated folder (e.g. ~/precept), cd into it, and run: precept quickstart — it scaffolds the stack into that folder, starts Postgres and the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.  3) Verify the dashboard answers at http://localhost:9080 and `claude mcp list` shows precept. If any step fails, read the error, fix the root cause, retry, and report what you changed.">Copy prompt</button>
+      </div>
+      <pre style="white-space:pre-wrap; line-height:1.7;">Set up <b style="color:var(--ink)">Precept</b> on this machine so my coding agent consults it before writing code.
+
+<span class="m">1.</span> Install the CLI: <span class="c">uv tool install --force git+https://github.com/qorstack/preceptai.git</span>
+<span class="m">2.</span> Make a dedicated folder (e.g. <span class="c">~/precept</span>), cd into it, and run <span class="c">precept quickstart</span> — it scaffolds the stack into that folder, starts Postgres + the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.
+<span class="m">3.</span> Verify the dashboard answers at <span class="c">http://localhost:9080</span> and <span class="c">claude mcp list</span> shows precept.
+
+If any step fails, read the error, fix the root cause, retry, and report what you changed.</pre>
+    </div>
+
+    <div style="text-align:center; color:var(--faint); font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.16em; margin:18px 0;">— OR RUN IT YOURSELF —</div>
 
     <div class="grid grid-2">
       <div class="codeblock">
-        <div class="head"><span>1 · INSTALL THE CLI</span><button class="copy" data-copy="uv tool install git+https://github.com/qorstack/preceptai.git">Copy</button></div>
+        <div class="head"><span>1 · INSTALL THE CLI</span><button class="copy" data-copy="uv tool install --force git+https://github.com/qorstack/preceptai.git">Copy</button></div>
         <pre><span class="m"># via uv (recommended)</span>
-uv tool install git+https://github.com/qorstack/preceptai.git</pre>
+uv tool install --force git+https://github.com/qorstack/preceptai.git</pre>
       </div>
       <div class="codeblock">
-        <div class="head"><span>2 · SET UP A REPO</span><button class="copy" data-copy="precept quickstart">Copy</button></div>
-        <pre><span class="m"># scaffold + stack + MCP + commands</span>
-precept quickstart
-<span class="m"># later, to update everything:</span>
-precept quickstart <span class="c">--force</span></pre>
+        <div class="head"><span>2 · SET UP THE STACK</span><button class="copy" data-copy="mkdir -p ~/precept && cd ~/precept && precept quickstart">Copy</button></div>
+        <pre><span class="m"># a permanent home for the stack files</span>
+mkdir -p ~/precept && cd ~/precept
+precept quickstart        <span class="m"># --force to update</span></pre>
       </div>
     </div>
 
     <p style="color:var(--muted); margin-top:22px; font-size:15px;">
-      Cross-platform — Windows, macOS, Linux. A preflight finds Docker and Claude Code even when they're installed but missing from <code style="color:var(--primary-bright)">PATH</code>, so a half-configured machine still works instead of failing silently.
+      Cross-platform — Windows, macOS, Linux. <code style="color:var(--primary-bright)">.env</code> + <code style="color:var(--primary-bright)">docker-compose.yml</code> land in that folder; the MCP server and slash commands register <b style="color:var(--ink)">globally</b>, so they work in every repo. A preflight even finds Docker and Claude Code when they're installed but missing from <code style="color:var(--primary-bright)">PATH</code>.
     </p>
   </div>
 </section>
