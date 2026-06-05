@@ -12,10 +12,10 @@
 
 <style>
   :root {
-    --bg:          #0a0d14;
-    --bg-soft:     #0e121b;
-    --surface:     #11151f;
-    --surface-2:   #161b27;
+    --bg:          #06070d;
+    --bg-soft:     #0a0c14;
+    --surface:     #0e121c;
+    --surface-2:   #121826;
     --line:        #1d2533;
     --line-soft:   #161c27;
 
@@ -200,6 +200,44 @@
   .foot-inner .muted { color: var(--faint); font-size: 13.5px; }
   .foot-inner .links { margin-left: auto; display: flex; gap: 22px; }
   .foot-inner .links a { color: var(--muted); font-size: 13.5px; }
+
+  /* ─── Brand logo ─── */
+  .brand-logo { width: 30px; height: 30px; border-radius: 8px; display: block; }
+  .logo-row { display: inline-flex; align-items: center; gap: 11px; }
+
+  /* ─── Hero (install-first, centered) ─── */
+  .hero-inner { text-align: center; max-width: 880px; margin: 0 auto; }
+  .hero-logo {
+    width: 76px; height: 76px; border-radius: 19px; display: block; margin: 0 auto 28px;
+    box-shadow: 0 24px 70px -22px var(--primary-glow); border: 1px solid var(--line);
+  }
+  .hero-inner .pill, .hero-inner h1, .hero-inner .lead { margin-left: auto; margin-right: auto; }
+  .hero-inner h1 { max-width: none; }
+
+  /* install card */
+  .install {
+    max-width: 680px; margin: 46px auto 0; text-align: left;
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    box-shadow: 0 44px 96px -42px rgba(0,0,0,0.9); overflow: hidden;
+  }
+  .install-bar { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--line); background: var(--bg-soft); }
+  .install-title { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .os-tabs { display: inline-flex; gap: 3px; background: var(--bg); border: 1px solid var(--line); border-radius: 9999px; padding: 3px; }
+  .os-tab { font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600; color: var(--muted); background: transparent; border: 0; padding: 6px 14px; border-radius: 9999px; cursor: pointer; transition: all .14s ease; }
+  .os-tab.on { background: var(--primary); color: #fff; }
+  .os-tab:not(.on):hover { color: var(--ink); }
+  .install-body { padding: 6px 18px 16px; }
+  .step { padding: 16px 0; border-bottom: 1px solid var(--line-soft); }
+  .step:last-child { border-bottom: 0; }
+  .step-h { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-weight: 600; color: var(--ink); font-size: 15px; }
+  .step-h .n { width: 22px; height: 22px; border-radius: 50%; background: var(--primary-soft); border: 1px solid #24345a; color: var(--primary-bright); font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; display: grid; place-items: center; flex: none; }
+  .step-h .copy { margin-left: auto; }
+  .step-cmd { margin: 0; font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 1.8; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+  .step-cmd .m { color: var(--faint); }
+  .install-foot { padding: 13px 18px; border-top: 1px solid var(--line); background: var(--bg-soft); font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); }
+  .install-foot .c { color: var(--primary-bright); }
+  @media (max-width: 560px) { .install-bar { flex-direction: column; gap: 10px; align-items: flex-start; } }
 </style>
 </head>
 <body>
@@ -207,7 +245,7 @@
 <!-- ─── Nav ─── -->
 <nav>
   <div class="wrap nav-inner">
-    <div class="logo">pre<b>cept</b></div>
+    <div class="logo logo-row"><img class="brand-logo" src="logo.png" alt="Precept"><span>pre<b>cept</b></span></div>
     <div class="nav-links">
       <a href="#why" class="hide-sm">Why</a>
       <a href="#different" class="hide-sm">Where it fits</a>
@@ -222,40 +260,47 @@
 
 <!-- ─── Hero ─── -->
 <header class="hero">
-  <div class="wrap">
-    <div class="pill"><span class="dot"></span> Cognitive enforcement layer · MCP-native</div>
-    <h1>Knowledge is passive. <span class="grad">Cognition must be enforced.</span></h1>
+  <div class="wrap hero-inner">
+    <img class="hero-logo" src="logo.png" alt="Precept logo">
+    <div class="pill"><span class="dot"></span> Open Source · MIT License</div>
+    <h1>Knowledge is passive.<br><span class="grad">Cognition must be enforced.</span></h1>
     <p class="lead">
-      Precept forces AI agents to <b style="color:var(--ink)">understand</b> your system —
-      business logic, architecture, blast radius, reusable assets, team decisions —
-      <b style="color:var(--ink)">before</b> they write a single line. Not another AI coding assistant.
-      The layer that makes the ones you have think first.
+      Not another coding copilot. Precept is the cognition layer that forces the agents you
+      already use to <b style="color:var(--ink)">understand</b> your system — business logic,
+      blast radius, reusable assets, team decisions — <b style="color:var(--ink)">before</b>
+      they write a single line.
     </p>
-    <div class="cta-row">
-      <a href="#install" class="btn btn-primary">Install in one command</a>
-      <a href="https://github.com/qorstack/preceptai" target="_blank" rel="noopener" class="btn btn-ghost">View on GitHub</a>
+
+    <!-- Install-first card -->
+    <div class="install">
+      <div class="install-bar">
+        <span class="install-title">Get started</span>
+        <div class="os-tabs">
+          <button class="os-tab on" data-os="unix">macOS / Linux</button>
+          <button class="os-tab" data-os="win">Windows</button>
+        </div>
+      </div>
+      <div class="install-body">
+        <div class="step">
+          <div class="step-h"><span class="n">1</span> Install <button class="copy copy-os">Copy</button></div>
+          <pre class="step-cmd" data-os-panel="unix">curl -LsSf https://astral.sh/uv/install.sh | sh
+uv tool install --force git+https://github.com/qorstack/preceptai.git</pre>
+          <pre class="step-cmd" data-os-panel="win" style="display:none">irm https://astral.sh/uv/install.ps1 | iex
+uv tool install --force git+https://github.com/qorstack/preceptai.git</pre>
+        </div>
+        <div class="step">
+          <div class="step-h"><span class="n">2</span> Set up <button class="copy" data-copy="mkdir -p ~/precept && cd ~/precept && precept quickstart">Copy</button></div>
+          <pre class="step-cmd"><span class="m"># a permanent home for the stack</span>
+mkdir -p ~/precept && cd ~/precept
+precept quickstart</pre>
+        </div>
+      </div>
+      <div class="install-foot">Dashboard → <span class="c">localhost:9080</span> · prefer your agent does it? <a href="#install">Paste the setup prompt ↓</a></div>
     </div>
 
-    <!-- Terminal mock -->
-    <div class="terminal">
-      <div class="term-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="t">~/your-repo — precept quickstart</span></div>
-      <div class="term-body">
-<span class="p">$</span> <span class="c">precept quickstart</span>
-<b>Prerequisites</b>
-  <span class="g">✓</span> Docker
-  <span class="g">✓</span> Claude Code
-  <span class="g">wrote</span> .env
-  <span class="g">wrote</span> docker-compose.yml
-  <span class="g">up</span>    Postgres + dashboard
-  <span class="g">ok</span>    dashboard → <span class="c">http://localhost:9080</span>
-  <span class="g">ok</span>    registered MCP server 'precept'
-<span class="m">╭───────────────── Precept setup ─────────────────╮</span>
-<span class="m">│</span> Stack       <span class="g">✓ running</span>                          <span class="m">│</span>
-<span class="m">│</span> Dashboard   <span class="g">✓ http://localhost:9080</span>           <span class="m">│</span>
-<span class="m">│</span> MCP         <span class="g">✓ registered with Claude Code</span>     <span class="m">│</span>
-<span class="m">│</span> Commands    <span class="g">✓ installed</span>                        <span class="m">│</span>
-<span class="m">╰─────────────────────────────────────────────────╯</span>
-      </div>
+    <div class="cta-row" style="justify-content:center; margin-top:30px;">
+      <a href="https://github.com/qorstack/preceptai" target="_blank" rel="noopener" class="btn btn-ghost">★ Star on GitHub</a>
+      <a href="#usage" class="btn btn-ghost">See how it works</a>
     </div>
   </div>
 </header>
@@ -454,7 +499,7 @@ precept quickstart        <span class="m"># --force to update</span></pre>
 
 <footer>
   <div class="wrap foot-inner">
-    <div class="logo" style="font-size:16px;">pre<b>cept</b></div>
+    <div class="logo logo-row" style="font-size:16px;"><img class="brand-logo" src="logo.png" alt="Precept" style="width:24px;height:24px;border-radius:6px;"><span>pre<b>cept</b></span></div>
     <span class="muted">Cognitive enforcement for AI software development.</span>
     <div class="links">
       <a href="https://github.com/qorstack/preceptai" target="_blank" rel="noopener">GitHub</a>
@@ -465,14 +510,38 @@ precept quickstart        <span class="m"># --force to update</span></pre>
 </footer>
 
 <script>
-  // copy-to-clipboard for install / command blocks
-  document.querySelectorAll('.copy').forEach(function (b) {
-    b.addEventListener('click', function () {
-      navigator.clipboard.writeText(b.getAttribute('data-copy')).then(function () {
-        var t = b.textContent; b.textContent = 'Copied'; b.style.color = '#3fd07e';
-        setTimeout(function () { b.textContent = t; b.style.color = ''; }, 1400);
-      });
+  function doCopy(btn, text) {
+    navigator.clipboard.writeText(text).then(function () {
+      var t = btn.textContent; btn.textContent = 'Copied'; btn.style.color = '#3fd07e';
+      setTimeout(function () { btn.textContent = t; btn.style.color = ''; }, 1400);
     });
+  }
+
+  // copy-to-clipboard for static command blocks
+  document.querySelectorAll('.copy[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { doCopy(b, b.getAttribute('data-copy')); });
+  });
+
+  // OS tabs in the hero install card (auto-detect Windows)
+  var currentOS = /Win/i.test(navigator.userAgent) ? 'win' : 'unix';
+  function applyOS() {
+    document.querySelectorAll('.os-tab').forEach(function (t) {
+      t.classList.toggle('on', t.getAttribute('data-os') === currentOS);
+    });
+    document.querySelectorAll('[data-os-panel]').forEach(function (p) {
+      p.style.display = p.getAttribute('data-os-panel') === currentOS ? '' : 'none';
+    });
+  }
+  document.querySelectorAll('.os-tab').forEach(function (t) {
+    t.addEventListener('click', function () { currentOS = t.getAttribute('data-os'); applyOS(); });
+  });
+  applyOS();
+
+  // step-1 copy follows the active OS
+  var copyOs = document.querySelector('.copy-os');
+  if (copyOs) copyOs.addEventListener('click', function () {
+    var panel = document.querySelector('[data-os-panel="' + currentOS + '"]');
+    doCopy(copyOs, panel ? panel.textContent.trim() : '');
   });
 </script>
 </body>
