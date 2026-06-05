@@ -4,7 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>PRECEPT — Cognitive enforcement for AI software development</title>
-<meta name="description" content="Precept forces AI agents to understand a system — business logic, impact, risk, reusable assets — before they generate or modify code. Knowledge is passive. Cognition must be enforced." />
+<meta name="description" content="Precept forces AI agents to understand a system — business logic, impact, risk, reusable assets — before they generate or modify code. The cognition layer that grows with your team." />
+
+<link rel="icon" type="image/png" href="logo.png" />
+<link rel="apple-touch-icon" href="logo.png" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -57,6 +60,7 @@
   h1, h2, h3 {
     font-family: var(--f-display); font-weight: 400; color: var(--on-dark);
     text-transform: uppercase; margin: 0; line-height: 1.15;
+    text-wrap: balance;
   }
   .display-xl { font-size: clamp(40px, 7vw, 64px); letter-spacing: 4px; line-height: 1.08; }
   .display-lg { font-size: clamp(32px, 5vw, 48px); letter-spacing: 3px; }
@@ -106,7 +110,7 @@
   /* ─── Hero ─── */
   header.hero { padding: 120px 0 var(--section); text-align: center; }
   .hero-inner { max-width: 960px; margin: 0 auto; }
-  .hero h1 { margin: 0 auto; max-width: 18ch; }
+  .hero h1 { margin: 0 auto; max-width: 24ch; }
   .hero .lead {
     font-family: var(--f-text); font-size: clamp(18px, 2.2vw, 22px); color: var(--body-strong);
     max-width: 60ch; margin: 32px auto 0; line-height: 1.55;
@@ -218,7 +222,7 @@
 <header class="hero">
   <div class="wrap hero-inner">
     <div class="eyebrow">Open Source · MIT License</div>
-    <h1 class="display-xl">The cognition layer<br>that grows with your team.</h1>
+    <h1 class="display-xl">The cognition layer that grows with your team.</h1>
     <p class="lead">
       Your AI understands before it codes — and your team's knowledge compounds every commit.
       Precept makes the agents you already use grasp what your team has decided, what a change
@@ -264,7 +268,7 @@ precept quickstart</pre>
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">The problem</div>
-      <h2 class="display-lg">AI agents generate confidently.<br>They rarely understand.</h2>
+      <h2 class="display-lg">AI agents generate confidently. They rarely understand.</h2>
       <p>They reinvent helpers that already exist, miss the payment flow three files over, and ship changes your team explicitly decided against last quarter. Markdown docs don't fix this — agents skip them. Precept makes understanding a required tool call, not a suggestion.</p>
     </div>
     <div class="grid grid-3">
@@ -292,7 +296,7 @@ precept quickstart</pre>
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">Where it fits</div>
-      <h2 class="display-lg">Not another agent.<br>The layer your agents are missing.</h2>
+      <h2 class="display-lg">Not another agent. The layer your agents are missing.</h2>
       <p>Coding agents are great at producing code. None of them make sure it's the right code for your system, or that it respects what your team already decided. Precept sits in front of them over MCP and makes understanding mandatory.</p>
     </div>
     <div class="grid grid-2">
@@ -322,7 +326,7 @@ precept quickstart</pre>
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">Install</div>
-      <h2 class="display-lg">Let your agent do it,<br>or run it yourself.</h2>
+      <h2 class="display-lg">Let your agent do it, or run it yourself.</h2>
       <p>Requires Python 3.11+ and Docker. Either path lands in the same place: Postgres + the dashboard up, MCP server registered, slash commands installed.</p>
     </div>
 
@@ -364,7 +368,7 @@ precept quickstart</pre>
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">How it works</div>
-      <h2 class="display-lg">Your agent asks.<br>Precept answers with cognition.</h2>
+      <h2 class="display-lg">Your agent asks. Precept answers with cognition.</h2>
       <p>Before touching code, the agent calls analyze_intent over MCP and gets a structured report it must respect. Here's what it sees for a real request.</p>
     </div>
 
@@ -395,7 +399,7 @@ precept quickstart</pre>
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">Team knowledge</div>
-      <h2 class="display-lg">One brain your whole team —<br>and every agent — shares.</h2>
+      <h2 class="display-lg">One brain your whole team — and every agent — shares.</h2>
       <p>When someone states a team decision, Precept captures it, a human approves it, and it git-syncs to everyone. The next time any agent in any repo touches that domain, the decision is right there in the report. Personal agent memory can't do this — it isn't governed, approved, or shared.</p>
     </div>
 
@@ -434,7 +438,7 @@ precept quickstart</pre>
 <section class="final">
   <div class="wrap">
     <div class="eyebrow">Ship code your team actually agreed on</div>
-    <h2 class="display-lg">Make your agents understand<br>before they act.</h2>
+    <h2 class="display-lg">Make your agents understand before they act.</h2>
     <p>Open source. MCP-native. Two commands to a governed, shared cognition layer.</p>
     <div class="cta-row" style="justify-content:center; display:flex; gap:18px; flex-wrap:wrap;">
       <a href="#install" class="btn">Install Precept</a>
