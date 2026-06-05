@@ -437,6 +437,9 @@ def memory(
         if not query or not body:
             console.print("[red]Usage:[/red] precept memory decide <domain> \"<title>\" --body \"<decision>\"")
             raise typer.Exit(1)
+        from precept.link.resolver import scope_tag
+        from precept.memory.schema import MemoryScope
+        _scope, _ws, _repo = scope_tag(repo_path)
         entry = MemoryEntry(
             id="",
             kind=MemoryKind.TEAM_DECISION,
@@ -446,6 +449,9 @@ def memory(
             approved=True,
             approved_by="team",
             repo_path=repo_path,
+            scope=MemoryScope(_scope),
+            workspace=_ws,
+            repo_name=_repo,
         )
         saved = store.save(entry)
         console.print(f"[green]Decision saved and approved[/green] — ID: {saved.id}")
@@ -2050,6 +2056,14 @@ def quickstart(
     elif shutil.which("docker") is None:
         console.print("[yellow]docker not found — skipping container startup.[/yellow] Install Docker, then re-run.")
         status["stack"] = "[yellow]docker not installed[/yellow]"
+    elif subprocess.run(["docker", "info"], capture_output=True).returncode != 0:
+        # docker binary exists but the daemon is down (Docker Desktop not started).
+        # Without this check `compose up` fails with a cryptic daemon-socket error.
+        console.print(
+            "[yellow]Docker is installed but not running.[/yellow] "
+            "Start Docker Desktop, then re-run [cyan]precept quickstart[/cyan]."
+        )
+        status["stack"] = "[yellow]Docker not running — start Docker Desktop[/yellow]"
     else:
         with console.status("[cyan]Starting Postgres + dashboard…"):
             rc = subprocess.run(["docker", "compose", "up", "-d"], cwd=str(target)).returncode
