@@ -478,6 +478,14 @@ def create_store(repo_path: str = ".", qdrant_url: str = "", qdrant_api_key: str
         except ImportError:
             # psycopg not installed — fall through to file store
             pass
+        except Exception as exc:  # Postgres configured but unreachable (Docker down, etc.)
+            import sys
+            print(
+                f"[precept] Postgres unavailable ({type(exc).__name__}) - "
+                "using local file-based memory (offline mode).",
+                file=sys.stderr,
+            )
+            # fall through to the file store instead of hanging/erroring
 
     memory_path, _, _mode = resolve_workspace_or_legacy(repo_path)
     if qdrant_url:

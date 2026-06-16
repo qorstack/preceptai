@@ -56,7 +56,10 @@ def _build_dsn_from_env() -> str:
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
     db = os.environ["POSTGRES_DB"]
-    return f"postgresql://{user}:{pw}@{host}:{port}/{db}"
+    # connect_timeout keeps a down Postgres from hanging the agent — it fails
+    # fast so create_store() can fall back to file-based memory (offline mode).
+    timeout = os.getenv("POSTGRES_CONNECT_TIMEOUT", "5")
+    return f"postgresql://{user}:{pw}@{host}:{port}/{db}?connect_timeout={timeout}"
 
 
 def _load_schema_sql() -> str:
@@ -84,6 +87,7 @@ class PostgresMemoryStore(MemoryStore):
             self._dsn,
             min_size=1,
             max_size=4,
+            timeout=6,  # cap the wait for a connection (default 30s) so a down DB fails fast
             kwargs={"autocommit": True},
             configure=_configure,
         )

@@ -2066,6 +2066,10 @@ def quickstart(
             path.write_text(content, encoding="utf-8")
             console.print(f"  [green]{'updated' if path.exists() and refresh else 'wrote'}[/green] {name}")
 
+    # 1b. Keep secrets + local state out of git. Append-only so we never clobber
+    #     an existing .gitignore.
+    _ensure_gitignore(target, [".env", ".precept/"])
+
     # 2. Bring up the whole stack (Postgres + dashboard) via docker compose.
     if no_docker:
         console.print("[dim]Skipping container startup (--no-docker).[/dim]")
@@ -2181,6 +2185,20 @@ _OFF_PATH_LOCATIONS: dict[str, dict[str, list[str]]] = {
         "linux": ["~/.npm-global/bin/claude", "/usr/local/bin/claude", "~/.claude/local/claude"],
     },
 }
+
+
+def _ensure_gitignore(target: Path, patterns: list[str]) -> None:
+    """Append any missing patterns to <target>/.gitignore (create it if absent)."""
+    path = target / ".gitignore"
+    existing = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    have = {line.strip().rstrip("/") for line in existing}
+    missing = [p for p in patterns if p.strip().rstrip("/") not in have]
+    if not missing:
+        return
+    block = ([] if not existing or existing[-1].strip() == "" else [""]) + ["# Precept", *missing, ""]
+    with path.open("a", encoding="utf-8") as f:
+        f.write("\n".join(block))
+    console.print(f"  [green]{'updated' if existing else 'wrote'}[/green] .gitignore  [dim]({', '.join(missing)})[/dim]")
 
 
 def _find_program(name: str) -> tuple[str | None, bool]:

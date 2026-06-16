@@ -51,14 +51,26 @@ The agent reuses `AuthService`, follows the team rule, and pauses on the HIGH-ri
 
 ## Quickstart
 
-Two commands. The first installs the CLI; the second wires up everything else.
-**Run `quickstart` from a dedicated folder you'll remember** — it drops the
-stack's files into the current directory.
+Two parts: **(1)** stand up the Docker stack (Postgres + dashboard), **(2)**
+connect Precept to your coding agent (MCP + `/precept` commands). `precept
+quickstart` does both — run it from a dedicated folder you'll remember (it drops
+the stack files into the current directory).
 
 ```bash
+# 1 — install the CLI
 uv tool install --force git+https://github.com/qorstack/preceptai.git
+
+# 2 — stand up the stack AND connect your agent
 mkdir -p ~/precept && cd ~/precept   # a permanent home for the stack
 precept quickstart                    # safe to re-run; --force to update
+```
+
+**No Docker? Run offline.** Skip the stack — Precept automatically falls back to
+local file-based memory (no Postgres, no internet, no embeddings). If Postgres is
+configured but unreachable it also degrades to file-based instead of hanging.
+
+```bash
+precept quickstart --no-docker        # connects your agent; memory lives in .precept/
 ```
 
 ### What it creates, and where
