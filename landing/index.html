@@ -235,49 +235,20 @@
     <!-- Install -->
     <div class="install" id="install" style="margin-top:64px; text-align:left;">
       <div class="install-bar">
-        <span class="install-title">Get started</span>
-        <div class="os-tabs">
-          <button class="mode-tab on" data-mode="agent">Let your AI do it</button>
-          <button class="mode-tab" data-mode="manual">Run it yourself</button>
-        </div>
+        <span class="install-title">Get started — one file, no install</span>
       </div>
-
-      <!-- Agent mode: paste the prompt -->
-      <div class="install-body mode-panel" data-mode-panel="agent">
-        <div class="step" style="border-bottom:0;">
-          <div class="step-h">Paste this to your agent <button class="copy" data-copy="Set up Precept on this machine so my coding agent consults it before writing code. 1) Install the CLI: uv tool install --force git+https://github.com/qorstack/preceptai.git  2) Make a dedicated folder (e.g. ~/precept), cd into it, and run: precept quickstart — it scaffolds the stack into that folder, starts Postgres and the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.  3) Verify the dashboard answers at http://localhost:9080 and `claude mcp list` shows precept. If any step fails, read the error, fix the root cause, retry, and report what you changed.">Copy prompt</button></div>
-          <pre class="step-cmd" style="white-space:pre-wrap;">Set up Precept on this machine so my coding agent consults it before writing code.
-
-<span class="m">1.</span> Install the CLI: uv tool install --force git+https://github.com/qorstack/preceptai.git
-<span class="m">2.</span> Make a dedicated folder (e.g. ~/precept), cd into it, and run precept quickstart — it scaffolds the stack there, starts Postgres + the dashboard, registers the MCP server globally with Claude Code, and installs the /precept slash commands.
-<span class="m">3.</span> Verify the dashboard answers at http://localhost:9080 and claude mcp list shows precept.
-
-If any step fails, read the error, fix the root cause, retry, and report what you changed.</pre>
-        </div>
-      </div>
-
-      <!-- Manual mode: OS-tabbed steps -->
-      <div class="install-body mode-panel" data-mode-panel="manual" style="display:none;">
+      <div class="install-body">
         <div class="step">
-          <div class="step-h"><span class="n">01</span> Install <button class="copy copy-os">Copy</button></div>
-          <div class="os-tabs" style="margin-bottom:12px;">
-            <button class="os-tab on" data-os="unix">macOS / Linux</button>
-            <button class="os-tab" data-os="win">Windows</button>
-          </div>
-          <pre class="step-cmd" data-os-panel="unix">curl -LsSf https://astral.sh/uv/install.sh | sh
-uv tool install --force git+https://github.com/qorstack/preceptai.git</pre>
-          <pre class="step-cmd" data-os-panel="win" style="display:none">irm https://astral.sh/uv/install.ps1 | iex
-uv tool install --force git+https://github.com/qorstack/preceptai.git</pre>
+          <div class="step-h"><span class="n">01</span> Drop the protocol in your repo <button class="copy" data-copy="curl -fsSL https://raw.githubusercontent.com/qorstack/preceptai/main/AGENTS.md -o AGENTS.md">Copy</button></div>
+          <pre class="step-cmd">curl -fsSL https://raw.githubusercontent.com/qorstack/preceptai/main/AGENTS.md -o AGENTS.md</pre>
         </div>
         <div class="step">
-          <div class="step-h"><span class="n">02</span> Set up <button class="copy" data-copy="mkdir -p ~/precept && cd ~/precept && precept quickstart">Copy</button></div>
-          <pre class="step-cmd"><span class="m"># a permanent home for the stack</span>
-mkdir -p ~/precept && cd ~/precept
-precept quickstart</pre>
+          <div class="step-h"><span class="n">02</span> (optional) Seed starter knowledge <button class="copy" data-copy="git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . && rm -rf t">Copy</button></div>
+          <pre class="step-cmd"><span class="m"># or just let it fill in as the agent captures rules</span>
+git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . && rm -rf t</pre>
         </div>
       </div>
-
-      <div class="install-foot">Dashboard → localhost:9080 · .env + docker-compose.yml land in that folder; the MCP server &amp; slash commands install globally (every repo).</div>
+      <div class="install-foot">Commit both. Any agent that reads <span class="c">AGENTS.md</span> — Claude Code, Cursor, Codex, Copilot — now follows the protocol. No server, no Python.</div>
     </div>
 
     <div class="cta-row">

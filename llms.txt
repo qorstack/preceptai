@@ -1,31 +1,23 @@
 # Precept
 
-> A cognitive enforcement layer for AI software development. Sits between your AI agent and your repo over MCP, and forces the agent to understand a change — business logic, blast radius, reusable assets, team decisions — BEFORE it writes code. Returns a binding verdict (proceed/warn/ask/reject), computed rule-based with no LLM. Not another coding agent; it works alongside the one you use (Claude Code, Cursor, Cline).
+> A cognition protocol for AI coding agents: a single AGENTS.md plus a folder of Markdown knowledge (agents/preceptai/). No install, no server, no Python, no MCP. Any agent that reads AGENTS.md (Claude Code, Cursor, Codex, Copilot) is forced to understand the system — team rules, blast radius, what to reuse — BEFORE writing code, and to return a proceed/warn/ask/reject verdict.
 
-Knowledge is passive; cognition must be enforced. Markdown docs are optional — agents skip them. Precept makes understanding a required MCP tool call. Team memory is human-approved and git-synced, so every agent in every repo shares one governed brain.
+Knowledge is passive; cognition must be enforced. Instead of a service to deploy, Precept is one declarative file you copy into your repo and edit as Markdown. Share it with `git push`.
 
-## Quickstart
+## Install
 
-- Install: `uv tool install --force git+https://github.com/qorstack/preceptai.git`
-- Set up: make a dedicated folder (e.g. `~/precept`), `cd` into it, run `precept quickstart`. It writes `.env` + `docker-compose.yml` INTO THAT FOLDER (the Postgres + dashboard stack lives there), registers the MCP server globally with Claude Code, and installs the `/precept` slash commands. Dashboard at http://localhost:9080.
-- Update: `precept quickstart --force` (pulls latest image, re-registers MCP, .env preserved).
-- Use: in any repo, `/precept add Google SSO to /login` (Claude Code) or `precept "add Google SSO to /login"` (terminal).
+- Copy the protocol to your repo root: `curl -fsSL https://raw.githubusercontent.com/qorstack/preceptai/main/AGENTS.md -o AGENTS.md`
+- Optional starter knowledge: copy the `agents/` folder from the repo (or let it fill in as the agent captures rules).
+- Commit both. Every agent that reads AGENTS.md now follows the protocol.
 
-## Where things land
+## How it works
 
-- `.env` + `docker-compose.yml` → the folder you ran quickstart in (CWD).
-- MCP server + slash commands → global (Claude Code user config + ~/.claude/commands/), so they work in every repo.
-- Per-repo: add `precept.config` (workspace + repo_name) at each repo root for workspace-scoped memory.
+- Pipeline before any code change: name the intent, read `agents/preceptai/<domain>/`, reuse before creating, assess impact/risk, emit a `Risk:` / `Decision:` header, stop on `ask`/`reject`.
+- Knowledge = Markdown with YAML frontmatter under `agents/preceptai/<domain>/` (`rules.md`, `decisions/<slug>.md`): id, type, title, domain, tags, status, enforcement, applies_to, source.
+- Learns from conversation: the agent captures rules/corrections you state as `status: proposed`; you approve by editing to `status: approved`.
+- Enforcement: `block` (refuse violations) | `warn` (flag) | `advise` (strong default).
 
 ## Docs
 
-- AGENTS.md — full agent integration guide (setup prompt, mandatory MCP workflow, where files go, team knowledge).
-- README.md — human guide: quickstart, manual setup, CI/pre-commit enforcement, dashboard tour.
-- `precept mcp-config <client>` — MCP config for Cursor / VS Code / Windsurf / Cline.
-- Dashboard (http://localhost:9080) — approve AI memory, browse team knowledge, audit log.
-
-## Notes
-
-- The per-repo config file is named `precept.config` exactly (not `precept-ai.config`); the wrong name makes memory fall back to global scope.
-- Ports are non-standard on purpose: dashboard 9080, Postgres 55432.
-- Verdicts are advisory until wired into CI/pre-commit: `precept check --strict` (exit 0/1/2).
+- AGENTS.md — the full protocol; this file IS the product.
+- agents/preceptai/ — starter cognition rules by domain (auth, payment, webhook, order, otp, notification, worker).
