@@ -51,17 +51,17 @@ The agent reuses `AuthService`, follows the team rule, and pauses on the HIGH-ri
 
 ## Quickstart
 
-Two parts: **(1)** stand up the Docker stack (Postgres + dashboard), **(2)**
-connect Precept to your coding agent (MCP + `/precept` commands). `precept
-quickstart` does both — run it from a dedicated folder you'll remember (it drops
-the stack files into the current directory).
+Everything lands **inside your repo** so the whole team gets it just by cloning.
+Two parts: **(1)** connect your agent (project-local `.mcp.json` + `/precept`
+commands + editable rules), **(2)** optionally stand up the Docker stack
+(Postgres + dashboard). `precept quickstart` does both.
 
 ```bash
 # 1 — install the CLI
 uv tool install --force git+https://github.com/qorstack/preceptai.git
 
-# 2 — stand up the stack AND connect your agent
-mkdir -p ~/precept && cd ~/precept   # a permanent home for the stack
+# 2 — run it INSIDE your project repo
+cd /path/to/your-repo
 precept quickstart                    # safe to re-run; --force to update
 ```
 
@@ -80,20 +80,26 @@ precept quickstart --no-docker        # connects your agent; memory lives in .pr
 > **Postgres is only for central, real-time team sharing at scale.** For solo and
 > small/mid teams, the local SQLite store + git-sync is enough — no pgvector deploy.
 
-### What it creates, and where
+### What it creates in your repo
 
-Three different locations — this is the part that trips people up:
+Everything is project-local — commit it and your team shares it:
 
-| Thing                                                      | Where it lands                                                                           |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `.env` + `docker-compose.yml` (Postgres + dashboard stack) | **the folder you ran `quickstart` in** — `cd` back here to run `docker compose …`        |
-| `precept-postgres` + `precept-web` containers              | Docker — dashboard at `http://localhost:9080`, Postgres host port `55432`                |
-| MCP server registration + `/precept` slash commands        | **global** (Claude Code user config + `~/.claude/commands/`) — available in _every_ repo |
+| In your repo | What it is | Git |
+| --- | --- | --- |
+| `.mcp.json` | connects the agent to Precept (Claude Code reads it per-project) | **commit** |
+| `.claude/commands/` | `/precept`, `/precept-generate` slash commands | **commit** |
+| `.precept/rules/<domain>.md` | **editable** cognition rules (seeded from built-ins) | **commit** |
+| `.precept/` memory | team decisions / skills / syntheses | **commit** |
+| `.precept/vectors.db` | local SQLite vector index (rebuilt per machine) | ignored |
+| `.env` | Postgres creds + ports (only if you use `--with` Docker) | ignored |
+| `docker-compose.yml` | optional Postgres + dashboard stack | commit (optional) |
 
-So the stack files are tied to that one folder; the MCP server and slash
-commands are global. It's safe to re-run — existing files are left untouched
-(use `precept quickstart --force` to refresh the compose file and pull the
-latest dashboard image).
+`quickstart` writes a `.gitignore` for the two ignored entries automatically.
+Safe to re-run — existing files are left untouched (`--force` refreshes them).
+
+**Rules are yours to edit.** Open `.precept/rules/payment.md` (or any domain),
+change the rules, commit — the AI follows your team's version over the built-in
+defaults on the next `analyze_intent` / `get_cognition_pack`.
 
 Then open Claude Code in any repo and try:
 

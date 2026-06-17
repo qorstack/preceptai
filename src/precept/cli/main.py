@@ -190,12 +190,24 @@ def install_claude_commands(
     directory. After install, type `/precept-generate` in Claude Code to have
     Claude scan the repo and write semantically meaningful memory entries.
     """
+    target_dir = Path.home() / ".claude" / "commands" if user else Path.cwd() / ".claude" / "commands"
+    copied, skipped = _copy_claude_commands(target_dir, force)
+
+    if copied:
+        console.print(f"\n[green]Installed {len(copied)} command(s)[/green] to {target_dir}")
+        console.print("Open Claude Code and try [cyan]/precept-generate[/cyan].")
+    elif skipped:
+        console.print(f"\n[green]Slash commands already installed[/green] in {target_dir} [dim](--force to overwrite)[/dim].")
+    else:
+        console.print("\n[yellow]No command templates found to install.[/yellow]")
+
+
+def _copy_claude_commands(target_dir: Path, force: bool) -> tuple[list[str], int]:
+    """Copy bundled /precept slash commands into target_dir. Returns (copied, skipped)."""
     import importlib.resources as _res
     import shutil
 
-    target_dir = Path.home() / ".claude" / "commands" if user else Path.cwd() / ".claude" / "commands"
     target_dir.mkdir(parents=True, exist_ok=True)
-
     try:
         bundle = _res.files("precept.claude_commands")
     except ModuleNotFoundError:
@@ -208,21 +220,12 @@ def install_claude_commands(
         if entry.name.endswith(".md"):
             target = target_dir / entry.name
             if target.exists() and not force:
-                console.print(f"  [dim]skip[/dim]  {target} (already installed)")
                 skipped += 1
                 continue
             with _res.as_file(entry) as src:
                 shutil.copy(src, target)
             copied.append(entry.name)
-            console.print(f"  [green]wrote[/green] {target}")
-
-    if copied:
-        console.print(f"\n[green]Installed {len(copied)} command(s)[/green] to {target_dir}")
-        console.print("Open Claude Code and try [cyan]/precept-generate[/cyan].")
-    elif skipped:
-        console.print(f"\n[green]Slash commands already installed[/green] in {target_dir} [dim](--force to overwrite)[/dim].")
-    else:
-        console.print("\n[yellow]No command templates found to install.[/yellow]")
+    return copied, skipped
 
 
 @app.command()
@@ -2066,9 +2069,16 @@ def quickstart(
             path.write_text(content, encoding="utf-8")
             console.print(f"  [green]{'updated' if path.exists() and refresh else 'wrote'}[/green] {name}")
 
-    # 1b. Keep secrets + local state out of git. Append-only so we never clobber
-    #     an existing .gitignore.
-    _ensure_gitignore(target, [".env", ".precept/"])
+    # 1b. Ignore only secrets + the local vector index — commit the rules +
+    #     memory so the team shares them via this repo. Append-only.
+    _ensure_gitignore(target, [".env", ".precept/vectors.db"])
+
+    # 1c. Seed editable, repo-local rules (.precept/rules/<domain>.md) from the
+    #     built-in packs so anyone on the team can refine them.
+    from precept.rules import scaffold_rules
+    seeded = scaffold_rules(target)
+    if seeded:
+        console.print(f"  [green]wrote[/green] .precept/rules/  [dim]({len(seeded)} domains — edit freely, committed to the repo)[/dim]")
 
     # 2. Bring up the whole stack (Postgres + dashboard) via docker compose.
     if no_docker:
@@ -2109,40 +2119,26 @@ def quickstart(
             console.print("  [yellow]docker compose exited non-zero — check the output above.[/yellow]")
             status["stack"] = "[yellow]compose failed[/yellow]"
 
-    # 3. Register the MCP server with Claude Code.
+    # 3. Connect the agent via a committed, project-local .mcp.json — the whole
+    #    team gets the MCP server just by cloning the repo (no global config).
     if no_mcp:
-        console.print("[dim]Skipping MCP registration (--no-mcp).[/dim]")
+        console.print("[dim]Skipping MCP setup (--no-mcp).[/dim]")
         status["mcp"] = "[dim]skipped (--no-mcp)[/dim]"
-    elif claude_path is None:
-        # No CLI to register through — write a project-level .mcp.json so the
-        # connection still happens, and point at mcp-config for other clients.
+    else:
         mcp_path = target / ".mcp.json"
         if mcp_path.exists() and not force:
             console.print("  [dim]skip[/dim]  .mcp.json (exists)")
         else:
             mcp_path.write_text(_MCP_JSON, encoding="utf-8")
-            console.print("  [green]wrote[/green] .mcp.json (Claude Code CLI not found — registered via project config)")
+            console.print("  [green]wrote[/green] .mcp.json  [dim](project-local — commit to share with the team)[/dim]")
         console.print("  [dim]Other clients: run [cyan]precept mcp-config[/cyan] for the snippet.[/dim]")
-        status["mcp"] = "[green]✓[/green] via .mcp.json"
-    else:
-        if force:
-            # `claude mcp add` refuses to overwrite an existing server; drop it first.
-            subprocess.run([claude_path, "mcp", "remove", "precept"], cwd=str(target), capture_output=True)
-        rc = subprocess.run(
-            [claude_path, "mcp", "add", "precept", "--", "precept", "mcp", "--repo", "."],
-            cwd=str(target),
-        ).returncode
-        if rc == 0:
-            console.print("  [green]ok[/green]    registered MCP server 'precept'")
-            status["mcp"] = "[green]✓[/green] registered with Claude Code"
-        else:
-            console.print("  [yellow]claude mcp add failed — see output above.[/yellow]")
-            status["mcp"] = "[yellow]registration failed[/yellow]"
+        status["mcp"] = "[green]✓[/green] .mcp.json (in repo)"
 
-    # 4. Install the /precept slash commands (--force overwrites existing ones).
+    # 4. Install the /precept slash commands into the repo (<repo>/.claude/commands/).
     try:
-        install_claude_commands(user=True, force=force)
-        status["commands"] = "[green]✓[/green] installed"
+        cmd_copied, _ = _copy_claude_commands(target / ".claude" / "commands", force)
+        console.print(f"  [green]{'wrote' if cmd_copied else 'ok'}[/green]    .claude/commands/  [dim](/precept, /precept-generate)[/dim]")
+        status["commands"] = "[green]✓[/green] .claude/commands/ (in repo)"
     except SystemExit:
         status["commands"] = "[green]✓[/green] installed"
 
@@ -2153,10 +2149,10 @@ def quickstart(
         f"MCP         {status.get('mcp', '—')}",
         f"Commands    {status.get('commands', '—')}",
         "",
-        f"Stack files live in [cyan]{target}[/cyan] — cd here for [cyan]docker compose[/cyan].",
-        "MCP + slash commands are global (every repo).",
+        f"Everything lives in [cyan]{target}[/cyan] — .mcp.json, .claude/commands/,",
+        ".precept/rules/ + memory. Commit them to share with the team.",
         "",
-        "Open Claude Code in any repo and try:",
+        "Open Claude Code in this repo and try:",
         "  [cyan]/precept add Google SSO to /login[/cyan]",
     ]
     console.print(Panel("\n".join(lines), title="[bold green]Precept setup[/bold green]"))

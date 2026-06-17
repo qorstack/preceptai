@@ -562,18 +562,27 @@ def get_project_context(repo_path: str = ".") -> str:
 
 
 @mcp.tool()
-def get_cognition_pack(domain: str) -> str:
+def get_cognition_pack(domain: str, repo_path: str = ".") -> str:
     """
     Return the full cognition pack for a domain.
     Packs contain business rules, common requirements, risk flags,
     required workflows, and forbidden shortcuts.
 
+    If the repo has team-edited rules at `.precept/rules/<domain>.md`, those are
+    returned as `team_rules` and OVERRIDE the built-in defaults — follow them.
+
     Available domains: auth, otp, payment, webhook, order, notification, worker
     """
+    from precept.rules import load_repo_rules
     pack = get_pack(domain)
-    if not pack:
-        return json.dumps({"error": f"No built-in pack for domain '{domain}'. Available: auth, otp, payment, webhook, order, notification, worker"})
-    return json.dumps(pack.model_dump(), indent=2, ensure_ascii=False)
+    team_rules = load_repo_rules(repo_path, domain)
+    if not pack and not team_rules:
+        return json.dumps({"error": f"No pack or team rules for domain '{domain}'. Built-in domains: auth, otp, payment, webhook, order, notification, worker"})
+    out: dict = pack.model_dump() if pack else {"domain": domain}
+    if team_rules:
+        out["team_rules"] = team_rules
+        out["team_rules_source"] = f".precept/rules/{domain.lower()}.md (edit to change)"
+    return json.dumps(out, indent=2, ensure_ascii=False)
 
 
 @mcp.tool()
