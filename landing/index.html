@@ -31,8 +31,10 @@
     --muted:       #999999;
     --muted-soft:  #666666;
 
-    /* The single non-monochrome token, for inline links only */
-    --link: #c3d9f3;
+    /* 朱 — vermilion, the one warm accent (a hanko seal on sumi ink) */
+    --seal:      #d0463b;
+    --seal-soft: rgba(208,70,58,0.14);
+    --link:      #d0857a;
 
     --maxw: 1280px;
     --section: 120px;
@@ -72,7 +74,7 @@
   .mono, .caption, .eyebrow, .nav-link, .btn, .os-tab, .step-h, .tag, .scope, .approved, .install-title, .install-foot, .date {
     font-family: var(--f-mono); text-transform: uppercase; letter-spacing: 2px;
   }
-  .eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--muted); margin-bottom: 22px; }
+  .eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--seal); margin-bottom: 22px; }
   .caption { font-size: 11px; color: var(--muted); }
 
   code { font-family: var(--f-mono); text-transform: none; letter-spacing: 0; color: var(--body-strong); }
@@ -104,7 +106,7 @@
   .nav-link { font-size: 12px; color: var(--muted); }
   .nav-link:hover { color: var(--on-dark); }
   .nav-center { display: inline-flex; align-items: center; gap: 12px; justify-self: center; }
-  .brand-logo { width: 26px; height: 26px; display: block; filter: grayscale(1) brightness(1.7) contrast(0.85); opacity: 0.9; }
+  .brand-logo { width: 30px; height: 30px; display: block; }
   .wordmark { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; color: var(--on-dark); font-size: 16px; letter-spacing: 6px; }
   @media (max-width: 760px) { .nav-left { display: none; } .nav-inner { grid-template-columns: 1fr auto; } }
 
@@ -189,6 +191,18 @@
   .memo .date { font-size: 10px; color: var(--muted-soft); margin-top: 18px; display: block; }
 
   /* ─── Final CTA ─── */
+  /* ─── Japan / zen accents ─── */
+  .hero-logo { display: block; width: clamp(220px, 38vw, 360px); margin: 0 auto 28px; }
+  .kanji { font-size: 13px; letter-spacing: 10px; color: var(--seal); opacity: 0.85; margin-bottom: 18px; padding-left: 10px; }
+  .seal-rule { width: 40px; height: 2px; background: var(--seal); margin: 0 auto; border: 0; }
+
+  /* ikigai — the four questions Sage balances before code */
+  .ikigai { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); }
+  .ikigai div { background: var(--canvas); padding: 30px 28px; }
+  .ikigai .q { font-family: var(--f-mono); text-transform: uppercase; letter-spacing: 2px; font-size: 11px; color: var(--seal); margin-bottom: 10px; }
+  .ikigai .a { font-size: 16px; color: var(--body-strong); }
+  @media (max-width: 620px) { .ikigai { grid-template-columns: 1fr; } }
+
   .final { text-align: center; padding: 160px 0; }
   .final h2 { max-width: 20ch; margin: 0 auto 26px; }
   .final p { color: var(--muted); font-size: 18px; max-width: 52ch; margin: 0 auto 44px; font-family: var(--f-text); }
@@ -224,6 +238,8 @@
 <!-- ─── Hero ─── -->
 <header class="hero">
   <div class="wrap hero-inner">
+    <img class="hero-logo" src="logo-full.png" alt="Sage AI" />
+    <div class="kanji">賢者</div>
     <div class="eyebrow">Open Source · MIT License</div>
     <h1 class="display-xl">The cognition layer that grows with your team.</h1>
     <p class="lead">
@@ -389,6 +405,24 @@ idempotency key. No exceptions.</pre>
         <div class="feature-row"><span class="mk">✓</span><div><b>Tool-agnostic.</b> Any agent — Claude Code, Cursor, Codex, Copilot — reads the same Markdown.</div></div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ─── Ikigai ─── -->
+<section id="ikigai">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">生き甲斐 · Ikigai</div>
+      <h2 class="display-lg">Code with intention.</h2>
+      <p>Ikigai is the balance of four questions. A senior dev asks them before writing a line — so Sage makes every agent ask them too.</p>
+    </div>
+    <div class="ikigai">
+      <div><div class="q">Is it needed?</div><div class="a">Does the team or product actually need this — or does something already cover it?</div></div>
+      <div><div class="q">Will it last?</div><div class="a">Is it worth maintaining, in the shape the codebase already follows?</div></div>
+      <div><div class="q">Is it safe?</div><div class="a">What's the blast radius — settlement, auth, data, money?</div></div>
+      <div><div class="q">Did we agree?</div><div class="a">Does it respect the rules the team already decided in <code>agents/sage/</code>?</div></div>
+    </div>
+    <hr class="seal-rule" style="margin-top:48px;">
   </div>
 </section>
 
