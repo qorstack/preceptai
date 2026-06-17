@@ -1,22 +1,8 @@
-# Sage
-
-This project uses **Sage**. Before writing or modifying any code, read and
-follow **`AGENTS.md`** at the repo root — the cognition protocol.
-
-Every code change:
-
-1. Name the domain + action; read the relevant rules in `agents/sage/<domain>/`.
-2. Reuse what the team already has before creating anything new.
-3. Open your reply with `Risk: <LOW|MEDIUM|HIGH> — why` and
-   `Decision: <proceed|warn|ask|reject>`. Stop and ask on `ask`/`reject`.
-4. When the developer states a rule or correction, capture it as a
-   `status: proposed` entry under `agents/sage/<domain>/decisions/`.
-
-`AGENTS.md` is the source of truth — follow it verbatim.
-
+---
+applyTo: "agents/sage/**"
 ---
 
-## Sage Learning
+# Sage Learning
 
 When asked to "learn this codebase" or run sage-learning:
 

@@ -40,3 +40,6 @@ provider SDK directly — it bypasses our audit trail.
 ```
 
 Edit a file, commit, done — the agent follows your team's version.
+## Domains
+
+- [frontend](frontend/) - static pages, UI, responsive layout, and landing-page design.

@@ -1,3 +1,7 @@
+---
+applyTo: "**"
+---
+
 # Sage
 
 This project uses **Sage**. Before writing or modifying any code, read and
