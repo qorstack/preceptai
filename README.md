@@ -65,13 +65,20 @@ mkdir -p ~/precept && cd ~/precept   # a permanent home for the stack
 precept quickstart                    # safe to re-run; --force to update
 ```
 
-**No Docker? Run offline.** Skip the stack — Precept automatically falls back to
-local file-based memory (no Postgres, no internet, no embeddings). If Postgres is
-configured but unreachable it also degrades to file-based instead of hanging.
+**No Docker? Run offline.** Skip the stack — Precept stores memory in a local
+**SQLite + sqlite-vec** database: semantic search with **no server to deploy**.
+Files stay the git-syncable source of truth; the vector db is just a local index
+(per machine), so team sharing still works via git-sync. Add
+`precept-ai[embeddings]` for vector search; without it search is keyword-based.
+No Postgres, no internet. If Postgres is configured but unreachable, Precept
+degrades to this local store instead of hanging.
 
 ```bash
 precept quickstart --no-docker        # connects your agent; memory lives in .precept/
 ```
+
+> **Postgres is only for central, real-time team sharing at scale.** For solo and
+> small/mid teams, the local SQLite store + git-sync is enough — no pgvector deploy.
 
 ### What it creates, and where
 

@@ -453,6 +453,174 @@ class QdrantMemoryStore(MemoryStore):
 
 
 # ------------------------------------------------------------------
+# SQLite + sqlite-vec — semantic search with NO server
+# ------------------------------------------------------------------
+
+
+class SqliteMemoryStore(MemoryStore):
+    """Semantic memory with zero deployment.
+
+    The file-per-entry store stays the source of truth (git-syncable,
+    conflict-free), and a local SQLite + sqlite-vec database is a derived
+    vector index used only for `search()`. It is rebuilt from the files on
+    demand, so it never needs to be shared — each machine indexes the entries
+    it pulled via git. Degrades to keyword search when sqlite-vec or the
+    embedding model is unavailable, so it is always safe to use.
+    """
+
+    VECTOR_SIZE = 384
+
+    def __init__(self, store_dir: str | Path, db_path: str = "") -> None:
+        self._fallback = FileMemoryStore(store_dir)
+        self._conn = None
+        self._sqlite_vec = None
+        self._encoder = None        # None = not tried, False = tried & unavailable
+        self._indexed = False
+        try:
+            import sqlite3
+
+            import sqlite_vec
+            conn = sqlite3.connect(str(db_path or (Path(store_dir) / "vectors.db")), check_same_thread=False)
+            conn.enable_load_extension(True)
+            sqlite_vec.load(conn)
+            conn.enable_load_extension(False)
+            conn.execute(f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_memory USING vec0(embedding float[{self.VECTOR_SIZE}])")
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS vec_map "
+                "(rowid INTEGER PRIMARY KEY AUTOINCREMENT, entry_id TEXT UNIQUE, kind TEXT, domain TEXT)"
+            )
+            conn.commit()
+            self._conn = conn
+            self._sqlite_vec = sqlite_vec
+        except Exception:
+            self._conn = None  # degrade to keyword search via the file fallback
+
+    def _available(self) -> bool:
+        return self._conn is not None
+
+    def _ensure_encoder(self):
+        # Lazy: only load the (heavy) embedding model when a semantic op needs
+        # it, so store creation and keyword-only sessions never pay for it.
+        if self._encoder is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._encoder = SentenceTransformer("all-MiniLM-L6-v2")
+            except Exception:
+                self._encoder = False
+        return self._encoder or None
+
+    def _encode(self, text: str) -> list[float] | None:
+        enc = self._ensure_encoder()
+        return enc.encode(text).tolist() if enc else None
+
+    def _index_entry(self, entry: MemoryEntry, vec: list[float] | None = None) -> None:
+        if not self._available():
+            return
+        if vec is None:
+            vec = self._encode(f"{entry.title} {entry.body}")
+        if not vec:
+            return
+        try:
+            row = self._conn.execute("SELECT rowid FROM vec_map WHERE entry_id=?", (entry.id,)).fetchone()
+            if row:
+                rowid = row[0]
+                self._conn.execute("UPDATE vec_map SET kind=?, domain=? WHERE rowid=?", (entry.kind.value, entry.domain, rowid))
+            else:
+                cur = self._conn.execute(
+                    "INSERT INTO vec_map(entry_id,kind,domain) VALUES(?,?,?)",
+                    (entry.id, entry.kind.value, entry.domain),
+                )
+                rowid = cur.lastrowid
+            self._conn.execute(
+                "INSERT OR REPLACE INTO vec_memory(rowid,embedding) VALUES(?,?)",
+                (rowid, self._sqlite_vec.serialize_float32(vec)),
+            )
+            self._conn.commit()
+        except Exception:
+            pass
+
+    def _ensure_index(self) -> None:
+        """Index file entries missing from the vector table (e.g. git-pulled)."""
+        if not self._available() or self._indexed or self._ensure_encoder() is None:
+            return
+        try:
+            have = {r[0] for r in self._conn.execute("SELECT entry_id FROM vec_map")}
+            for entry in self._fallback.all():
+                if entry.id not in have:
+                    self._index_entry(entry)
+            self._indexed = True
+        except Exception:
+            pass
+
+    def save(self, entry: MemoryEntry) -> MemoryEntry:
+        saved = self._fallback.save(entry)
+        # Index opportunistically only if the model is already loaded — don't
+        # trigger a model download on save; search lazily builds the index.
+        if self._available() and self._encoder:
+            self._index_entry(saved)
+        return saved
+
+    def search(self, query: str, kind: MemoryKind | None = None, domain: str = "", limit: int = 10) -> list[MemoryEntry]:
+        if not self._available():
+            return self._fallback.search(query, kind, domain, limit)
+        self._ensure_index()
+        vec = self._encode(query)
+        if not vec:
+            return self._fallback.search(query, kind, domain, limit)
+        try:
+            rows = self._conn.execute(
+                "SELECT m.entry_id FROM vec_memory v JOIN vec_map m ON m.rowid=v.rowid "
+                "WHERE v.embedding MATCH ? AND k=? ORDER BY v.distance",
+                (self._sqlite_vec.serialize_float32(vec), max(limit * 5, limit)),
+            ).fetchall()
+            out: list[MemoryEntry] = []
+            for (eid,) in rows:
+                e = self._fallback.get(eid)
+                if e and (kind is None or e.kind == kind) and (not domain or e.domain == domain):
+                    out.append(e)
+                if len(out) >= limit:
+                    break
+            return out or self._fallback.search(query, kind, domain, limit)
+        except Exception:
+            return self._fallback.search(query, kind, domain, limit)
+
+    def delete(self, entry_id: str) -> bool:
+        ok = self._fallback.delete(entry_id)
+        if self._available():
+            try:
+                row = self._conn.execute("SELECT rowid FROM vec_map WHERE entry_id=?", (entry_id,)).fetchone()
+                if row:
+                    self._conn.execute("DELETE FROM vec_memory WHERE rowid=?", (row[0],))
+                    self._conn.execute("DELETE FROM vec_map WHERE entry_id=?", (entry_id,))
+                    self._conn.commit()
+            except Exception:
+                pass
+        return ok
+
+    def get(self, entry_id: str) -> MemoryEntry | None:
+        return self._fallback.get(entry_id)
+
+    def list_by_domain(self, domain: str) -> list[MemoryEntry]:
+        return self._fallback.list_by_domain(domain)
+
+    def all(self) -> list[MemoryEntry]:
+        return self._fallback.all()
+
+    def mark_superseded(self, old_id: str, new_id: str) -> bool:
+        return self._fallback.mark_superseded(old_id, new_id)
+
+    def get_synthesis(self, domain: str) -> dict | None:
+        return self._fallback.get_synthesis(domain)
+
+    def save_synthesis(self, domain: str, summary: str, key_themes: list[str],
+                       open_questions: list[str], synthesized_by: str = "ai") -> dict:
+        return self._fallback.save_synthesis(domain, summary, key_themes, open_questions, synthesized_by)
+
+    def synthesis_stale(self, domain: str) -> bool:
+        return self._fallback.synthesis_stale(domain)
+
+
+# ------------------------------------------------------------------
 # Factory
 # ------------------------------------------------------------------
 
@@ -490,4 +658,13 @@ def create_store(repo_path: str = ".", qdrant_url: str = "", qdrant_api_key: str
     memory_path, _, _mode = resolve_workspace_or_legacy(repo_path)
     if qdrant_url:
         return QdrantMemoryStore(url=qdrant_url, api_key=qdrant_api_key, fallback_dir=str(memory_path))
+    # Default: SQLite + sqlite-vec gives semantic search with no server. Files
+    # stay the git-syncable source of truth; the vector db is a local index.
+    # Set PRECEPT_NO_VECTOR=1 to force plain keyword (file) search.
+    if not os.getenv("PRECEPT_NO_VECTOR"):
+        try:
+            import sqlite_vec  # noqa: F401
+            return SqliteMemoryStore(store_dir=str(memory_path))
+        except ImportError:
+            pass
     return FileMemoryStore(store_dir=str(memory_path))
