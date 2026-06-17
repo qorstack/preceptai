@@ -1,125 +1,174 @@
-# AGENTS.md — Precept for AI agents
+# Precept — a cognition protocol for AI coding agents
 
-Guidance for AI coding agents (Claude Code, Cursor, Cline, etc.) installing,
-setting up, or integrating **Precept**. Read this before deciding whether and
-how to use it.
+> **Knowledge is passive. Cognition must be enforced.**
+> This file IS Precept. No install, no server, no Python — just this file plus a
+> folder of Markdown knowledge. Any agent that reads `AGENTS.md` (Claude Code,
+> Cursor, Codex, Copilot, …) follows the protocol below. Share it by committing
+> it. Improve it by editing it.
 
-## Copy-paste setup prompt
+You are working in a repo that uses Precept. **Before you write or modify any
+code, run the pipeline in §1.** It is mandatory, not optional. Treat the rules
+in `agents/preceptai/` as decisions your team already made — follow them, and
+make verdicts *stricter* when in doubt, never looser.
 
-Want your AI to set everything up? Paste this to your agent — it leans on the
-rest of this file, so there's nothing to repeat:
+---
 
-> Set up **Precept** on this machine so coding agents consult it before writing
-> code. (1) Install the CLI: `uv tool install --force git+https://github.com/qorstack/preceptai.git`.
-> (2) **Make a dedicated folder for the stack** (e.g. `~/precept`) and run
-> `precept quickstart` **inside it** — it writes `.env` + `docker-compose.yml`
-> **into that folder**, starts Postgres + the dashboard there via Docker,
-> registers the MCP server globally with Claude Code, and installs the `/precept`
-> slash commands. (3) **Verify**: the dashboard answers at
-> `http://localhost:9080` and `claude mcp list` shows `precept ✓`. (4) In a real
-> project repo, add a `precept.config` (`workspace` + `repo_name`) and run
-> `/precept-generate` once to seed team memory. If any step fails, read the
-> error, fix the root cause, retry, and report what you changed.
+## 1. The pipeline — run it before every code change
 
-## What it is
+Do these in order. Do not skip. Do not assume you already know the answer.
 
-Precept is a **cognitive enforcement layer**, not another coding agent. It sits
-between your agent and your repo over MCP, and forces the agent to *understand*
-a change — business logic, blast radius, reusable assets, team decisions —
-**before** it writes code. It returns a binding verdict: `proceed / warn / ask /
-reject`. Reasoning is rule-based (no LLM, deterministic, no API key). It works
-*alongside* the agent you already use; it does not replace it.
+1. **Name the intent.** In one line: what domain (`auth`, `payment`, `webhook`,
+   `order`, `otp`, `notification`, `worker`, or a repo-specific one) and what
+   action (add / change / delete / fix).
+2. **Read the knowledge.** Open `agents/preceptai/<domain>/` and read
+   `index.md`, `rules.md`, and any `decisions/*.md` whose title looks relevant.
+   **Quote the rules that apply** in your reply so the human sees you checked.
+   If the domain folder doesn't exist, note that and proceed with built-in
+   judgment — then capture what you learn (§3).
+3. **Reuse before you create.** If the team already has a service/util/component
+   for this, use it. Don't reinvent what `rules.md` or `decisions/` point to.
+4. **Assess impact & risk.** What does this change touch (other domains, shared
+   services, data, auth, money)? Decide a verdict:
+   - `proceed` — low risk, no conflicting rule → do it.
+   - `warn` — do it, but flag a caveat the human should know.
+   - `ask` — medium/high risk OR a rule says "confirm first" → **stop and ask.**
+   - `reject` — violates a `block` rule → **refuse and explain.**
+5. **Open your reply with the header** (§4), then act on the verdict.
+6. **Apply enforcement** from the matched rules (§5). A `block` rule overrides
+   your default plan.
 
-## Install + set up (one command)
+If verdict is `ask` or `reject`, **do not write code** until the human responds.
 
-```bash
-uv tool install --force git+https://github.com/qorstack/preceptai.git
-mkdir -p ~/precept && cd ~/precept   # a dedicated home for the stack
-precept quickstart                   # safe to re-run; --force to update
+---
+
+## 2. The knowledge — where it lives & its format
+
+All team knowledge is Markdown under **`agents/preceptai/`**, organized by domain:
+
+```text
+agents/preceptai/
+  index.md                              # what this tree is (auto-readable)
+  <domain>/
+    index.md                            # table of contents for the domain
+    rules.md                            # the domain's cognition rules (editable)
+    decisions/<slug>.md                 # one team decision per file
+    skills/<slug>.md                    # reusable how-to / playbook
 ```
 
-### What `precept quickstart` creates, and WHERE
+Every entry file is **YAML frontmatter + Markdown body**:
 
-This is the part people miss — there are three different locations:
+```markdown
+---
+id: use-idempotency-keys              # stable slug
+type: team_decision                   # team_decision | business_context | convention | skill
+title: Use idempotency keys
+domain: payment
+tags: [payment, safety]
+status: approved                      # proposed | approved | deprecated
+enforcement: block                    # block | warn | advise
+applies_to: [payment, "payments/**"]  # domains and/or file globs this governs
+source: human                         # human | ai
+supersedes: ""                        # id this replaces, if any
+related: [refund-window]              # related entry ids
+timestamp: 2026-06-17T00:00:00Z
+---
 
-| Thing | Where it lands | Notes |
-| --- | --- | --- |
-| `.env` + `docker-compose.yml` | **the folder you run `quickstart` in** (CWD) | The Postgres + dashboard stack lives here. `cd` back here to run `docker compose ...`. |
-| Postgres + dashboard containers | Docker (`precept-postgres`, `precept-web`) | Dashboard → `http://localhost:9080`, Postgres host port `55432`. |
-| MCP server registration | Claude Code **user config** (global) | Available in *every* repo, not just this folder. |
-| `/precept`, `/precept-generate` | `~/.claude/commands/` | Global slash commands. |
-
-So: run `quickstart` **once**, from a folder you'll remember (not a throwaway
-directory). The MCP server and slash commands are global; only the stack files
-are tied to that folder.
-
-Cross-platform (Windows / macOS / Linux). A preflight locates Docker and Claude
-Code even when they're installed but missing from `PATH`. Re-run with
-`precept quickstart --force` to update: it pulls the latest image, re-registers
-MCP, and reinstalls the commands (your `.env` is preserved).
-
-## How an agent uses it (the mandatory workflow)
-
-Before ANY code change, call the MCP tools in this order:
-
-1. `analyze_intent(request)` — **first, always.** Returns domain, impact, risk,
-   the `proceed/warn/ask/reject` decision, and any team skills/memory to read.
-2. `get_reusable_assets(domain)` — reuse what exists; don't reinvent.
-3. `assess_risk_in_context(request)` — you may make the verdict *stricter* using
-   team memory; never looser.
-4. `validate_generated_code(code)` — before writing. Fix blockers, re-validate.
-
-Honor the verdict: **`reject` → stop. `ask` → pause for a human** (call
-`request_approval` and wait). Never auto-proceed past these.
-
-In Claude Code, the `/precept <request>` slash command makes this consult
-mandatory (a plain prompt can slip past the pipeline).
-
-## Team knowledge (the differentiator)
-
-Precept memory is **team-shared and human-approved**, not personal:
-
-- When the dev states a team rule/decision, capture it without being asked —
-  `save_skill(...)` for multi-rule guidance, `remember_team_decision(...)` for a
-  single decision, `remember_business_context(...)` for context needing human
-  ratification.
-- AI-written memory lands as **Pending** until a human approves it on the
-  dashboard (`http://localhost:9080`). Approved entries git-sync to the team.
-- **Diff before every write**: call `recall_context` / `list_memory` /
-  `read_skill` first. Update the same entry in place if stale; don't duplicate.
-
-## Use with non-Claude agents
-
-Precept is a standard stdio MCP server — the command is always `precept mcp`.
-Print the exact config for your client:
-
-```bash
-precept mcp-config cursor      # or: claude · vscode · windsurf · cline · all
+All payment calls MUST pass an idempotency key. No exceptions.
+Reuse `payments/idempotency.py`; never roll your own.
 ```
 
-Generic config most clients accept:
+**How to read it:** scan the domain folder, prefer `status: approved` entries,
+ignore `status: deprecated` and any with `superseded` set. Treat `rules.md` as
+the always-on baseline for the domain.
 
-```json
-{ "mcpServers": { "precept": { "command": "precept", "args": ["mcp"] } } }
+---
+
+## 3. Learn from the conversation — capture what the dev tells you
+
+When the developer states a rule, correction, preference, or "always/never do
+X" — **capture it as knowledge, without being asked.** This is how Precept gets
+smarter from real use.
+
+1. **Diff first.** Check `agents/preceptai/<domain>/` for an existing entry on
+   the same point. If it exists and still matches → do nothing. If it's stale →
+   edit that file in place (don't create a near-duplicate).
+2. **Write a new entry** at `agents/preceptai/<domain>/decisions/<slug>.md`
+   using the format in §2, with:
+   - `status: proposed` and `source: ai` (the human ratifies later)
+   - a sensible `enforcement` (`block` for "must/never", `warn` for "prefer",
+     `advise` for "consider") and `applies_to`
+3. **Tell the dev** in one line: *"Captured as a proposed rule in
+   `agents/preceptai/payment/decisions/use-ledger-service.md` — set
+   `status: approved` to make it binding."*
+4. The dev approves by editing `status: proposed` → `approved` (or deletes it).
+   Commit = shared with the whole team.
+
+Keep entries small and specific. One decision per file.
+
+---
+
+## 4. Required reply header
+
+For **every** coding request, open your reply with:
+
+```text
+Risk: <LOW | MEDIUM | HIGH> — <one-sentence why>
+Decision: <proceed | warn | ask | reject>
 ```
 
-## Gotchas
+If `Risk: HIGH` or `Decision: ask|reject`, stop after the header and wait for the
+human. Never make them guess the risk.
 
-- The per-repo config file is named **`precept.config`** (exactly — not
-  `precept-ai.config`). It declares `workspace` + `repo_name`; without it, AI
-  memory falls back to `global` scope instead of your workspace.
-- `quickstart` never clobbers existing `.env` / `docker-compose.yml` — use
-  `--force` to refresh the compose file and pull the latest image.
-- Ports are non-standard on purpose (dashboard `9080`, Postgres `55432`) to
-  avoid clashing with anything already on `8080` / `5432`.
-- Verdicts are advisory until wired into CI / a pre-commit hook — see the README
-  "Enforce it" section for the hard gate (`precept check --strict`, exit codes
-  `0/1/2`).
+---
 
-## Pointers
+## 5. Enforcement semantics
 
-- [README.md](README.md) — full human guide (manual setup, enforcement, dashboard tour).
-- [`precept mcp-config`](README.md#works-with-any-ai-agent-mcp) — per-client MCP setup.
-- `/precept-generate` — seed team memory from a repo (run once per repo).
-- Dashboard — `http://localhost:9080` (approve memory, browse knowledge, audit log).
-- Source — https://github.com/qorstack/preceptai
+A matched rule's `enforcement` tells you how hard to apply it:
+
+- **`block`** — Do not produce code that violates it. If the request requires
+  violating it, `reject` and explain, or `ask` for an explicit override.
+- **`warn`** — Proceed, but call out the deviation in your reply.
+- **`advise`** — Treat as a strong default; follow unless the request clearly
+  intends otherwise.
+
+A `block` rule outranks your own preference and any generic best practice.
+
+---
+
+## 6. Keeping indexes current
+
+When you add or change entries in a domain, update that domain's `index.md` so
+it lists each entry (title · status · enforcement) — it's the fast map for the
+next agent. Keep the root `agents/preceptai/index.md` pointing at the domains
+that exist.
+
+---
+
+## 7. Worked example
+
+> **Dev:** "add a refund endpoint to /payments"
+
+A correct response **starts**:
+
+```text
+Risk: HIGH — payment mutation; touches settlement + webhook retry.
+Decision: ask — payment/rules.md requires idempotency + an approved refund path.
+```
+
+…then quotes the matched rules from `agents/preceptai/payment/rules.md`, points
+at the existing `payments/refund_service.py` to reuse, and waits for the human
+because the verdict is `ask`.
+
+> **Dev:** "always use our internal Ledger service for money movement, never call Stripe directly"
+
+You capture it (§3): write `agents/preceptai/payment/decisions/use-ledger-service.md`
+with `status: proposed`, `enforcement: block`, `applies_to: [payment]`, and tell
+the dev to approve it.
+
+---
+
+## Governance in one line
+
+`proposed` (AI or human draft) → human reviews/edits → `status: approved`
+(binding) → later `deprecated` or `superseded`. It's all plain Markdown in git:
+diff it, review it in a PR, share it by pushing. That's the whole system.
