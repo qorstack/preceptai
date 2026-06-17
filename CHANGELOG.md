@@ -4,6 +4,21 @@ All notable changes to Precept. Format: [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Changed — pivot to a single-file protocol
+
+- **Precept is now a single `AGENTS.md` cognition protocol** plus a Markdown
+  knowledge tree at `agents/preceptai/`. No install, no server, no Python, no MCP.
+- Added `integrations/` — thin per-agent adapters (Cursor, Windsurf, Cline,
+  Copilot, Gemini/Antigravity) that route each tool to `AGENTS.md`; Claude Code,
+  Codex, OpenCode, and Antigravity read it natively.
+- **Removed** the entire Python implementation (MCP server, CLI, memory stores,
+  reasoning engine, scanner, graph, web dashboard, cognition packs), packaging,
+  Docker, and the Python CI workflows. Recoverable from git history.
+- Rewrote README, llms.txt, CLAUDE.md, CONTRIBUTING, ROADMAP, and the landing
+  install flow around "copy one file."
+
+### Previously (Python implementation — now removed)
+
 ### Added — concurrency & safety
 
 - `storage` package — cross-platform file lock (`fcntl` POSIX / `msvcrt` Windows), atomic write (write-temp-then-rename), and `read_modify_write()` helper

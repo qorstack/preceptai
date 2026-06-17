@@ -65,6 +65,14 @@ share it by pushing.
 | Share with the team | deploy / sync | `git push` |
 | Works across agents | per-tool integration | every agent reads `AGENTS.md` |
 
+## Works with every agent
+
+`AGENTS.md` is read natively by Claude Code, OpenAI Codex, OpenCode, and Google
+Antigravity. For agents that look elsewhere (Cursor, Windsurf, Cline, GitHub
+Copilot, Gemini CLI), drop in a thin adapter from [`integrations/`](integrations/)
+— each just routes the tool to `AGENTS.md`, so there's one source of truth and
+nothing to keep in sync.
+
 ## Edit the rules
 
 They're yours. Open `agents/preceptai/payment/rules.md` (or any domain), change

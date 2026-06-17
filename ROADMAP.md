@@ -1,58 +1,36 @@
 # Roadmap
 
-High-level milestones. For detailed design specs, see [`internal/`](internal/).
+Precept is a single-file cognition protocol ([`AGENTS.md`](AGENTS.md)) plus
+Markdown knowledge ([`agents/preceptai/`](agents/preceptai/)). The roadmap is
+about making the protocol sharper and reaching more agents — not about building
+software.
 
-## Released
+## Now
 
-### v0.1 — System Understanding ✅
+- Tighten and clarify the protocol in `AGENTS.md`.
+- Expand starter knowledge: more domains and example `decisions/`.
+- More agent adapters in [`integrations/`](integrations/) as new tools appear.
 
-Scanner, conventions detector, reusable asset detector, cognitive graph, intent + impact + risk analyzers, reasoning engine, 8 MCP tools, CLI.
+## Next
 
-### v0.2 — Memory + Cognition Packs ✅
+- A small, optional **validator** (lint frontmatter / find broken links / flag
+  conflicting rules) — itself runnable by any agent reading a short spec, no
+  install required.
+- Worked **examples**: real repos showing `agents/preceptai/` trees.
+- A richer **conflict/synthesis** convention (how the agent reconciles two rules
+  that disagree) documented in `AGENTS.md`.
 
-File-based memory store, Qdrant fallback, human approval workflow, 7 built-in cognition packs (auth, otp, payment, webhook, order, notification, worker), 6 memory MCP tools.
+## Maybe
 
-### v0.3 — Workspace + Graph + Approval ✅
+- A hosted starter-knowledge gallery (copy a domain pack into your repo).
+- Conventions for cross-repo knowledge sharing (one knowledge repo, many repos).
 
-`precept.toml` multi-repo workspace, cross-repo impact analyzer, graph exporter (React Flow / Mermaid / DOT), approval queue, 8 workspace MCP tools.
+## History
 
-### v0.4 — Distributed Knowledge ✅
+A previous Python implementation (MCP server, CLI, stores, dashboard) was
+removed in favor of this single-file model — recoverable from git history.
 
-Central knowledge store at `~/.precept/workspaces/`, per-repo link config, auto-resolver, migration script. Dev clones one repo at a time and still gets shared memory + decisions.
+## Influence the roadmap
 
-## In progress
-
-### v0.5 — Sync + Self-Review + Hooks 🟡
-
-- Git sync CLI wrapper (`precept sync init/pull/push`)
-- AI self-review (`validate_generated_code` MCP tool — block bad code before write)
-- Commit-time enforcement (`precept commit-check` + pre-commit hook)
-- `precept init` auto-scaffold
-- Complete REST API for memory/workspace/approval
-- GitHub Actions CI
-
-## Planned
-
-### v0.6 — Workspace-aware analysis
-
-Persistent scan cache so AI can answer cross-repo questions even when only one repo is cloned locally.
-
-### v0.7 — Design Cognition
-
-Detect design tokens, component patterns, spacing scales — block AI from breaking the design system.
-
-### v1.0 — Frontend UI
-
-Next.js + React Flow app for visualizing cognitive graph, browsing memory, managing approval queue.
-
-## Speculative / Phase 2
-
-- ML-based risk scoring (trained on historical incidents)
-- Local LLM augmentation via Ollama (auto-extract memory from PRs)
-- Precept Cloud (managed sync + web UI for larger teams)
-- Business conflict detection (feature ↔ policy)
-- Auto-extracted decisions from PR descriptions
-
-## How to influence the roadmap
-
-Open a [GitHub Discussion](https://github.com/qorstack/preceptai/discussions) — concrete use cases drive priority more than feature requests.
+Open a [GitHub Discussion](https://github.com/qorstack/preceptai/discussions) —
+concrete use cases drive priority.

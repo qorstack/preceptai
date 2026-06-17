@@ -270,7 +270,7 @@ git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . 
       <div class="col">
         <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
         <h3 class="display-sm">Intent → Impact → Risk</h3>
-        <p>Every request runs through a rule-based pipeline that names the domain, the blast radius, and a binding decision — no LLM, fully reproducible.</p>
+        <p>A required pipeline that names the domain, the blast radius, and a binding decision before any code — written as plain rules the agent must follow.</p>
       </div>
       <div class="col">
         <div class="ico"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
@@ -292,7 +292,7 @@ git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . 
     <div class="sec-head">
       <div class="eyebrow">Where it fits</div>
       <h2 class="display-lg">Not another agent. The layer your agents are missing.</h2>
-      <p>Coding agents are great at producing code. None of them make sure it's the right code for your system, or that it respects what your team already decided. Precept sits in front of them over MCP and makes understanding mandatory.</p>
+      <p>Coding agents are great at producing code. None of them make sure it's the right code for your system, or that it respects what your team already decided. Precept is the AGENTS.md they read first — it makes understanding mandatory.</p>
     </div>
     <div class="grid grid-2">
       <div class="col">
@@ -306,12 +306,12 @@ git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . 
         <div class="eyebrow" style="margin-bottom:24px; color:var(--on-dark);">Precept · the cognition layer</div>
         <div class="feature-row"><span class="mk">✓</span><div><b>Enforces understanding</b> before any code is written</div></div>
         <div class="feature-row"><span class="mk">✓</span><div><b>Team-shared, human-approved</b> memory — git-synced</div></div>
-        <div class="feature-row"><span class="mk">✓</span><div><b>Every repo, any MCP client</b> — one shared brain</div></div>
+        <div class="feature-row"><span class="mk">✓</span><div><b>Every repo, any agent</b> — one shared protocol file</div></div>
         <div class="feature-row"><span class="mk">✓</span><div><b>Optimizes for correctness</b> &amp; team alignment</div></div>
       </div>
     </div>
     <p style="text-align:center; color:var(--muted); margin-top:48px; font-size:16px;">
-      Point it at the agents you already use — Claude Code · Cursor · Cline · Hermes Agent · any MCP client. It doesn't replace them. It makes them think first.
+      Point it at the agents you already use — Claude Code · Cursor · Codex · Copilot · Antigravity. It doesn't replace them. It makes them think first.
     </p>
   </div>
 </section>
@@ -323,18 +323,18 @@ git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . 
     <div class="sec-head">
       <div class="eyebrow">How it works</div>
       <h2 class="display-lg">Your agent asks. Precept answers with cognition.</h2>
-      <p>Before touching code, the agent calls analyze_intent over MCP and gets a structured report it must respect. Here's what it sees for a real request.</p>
+      <p>Before touching code, the agent follows the pipeline in AGENTS.md and reads the team's Markdown rules. Here's the verdict it must produce for a real request.</p>
     </div>
 
     <div class="grid grid-2" style="align-items:start; max-width:980px; margin:0 auto;">
       <div class="codeblock">
-        <div class="head"><span>In Claude Code</span></div>
-        <pre>/precept add a refund endpoint to /payments</pre>
-        <div class="head" style="border-top:1px solid var(--hairline)"><span>What the agent must do</span></div>
-        <pre><span class="m">1.</span> analyze_intent()      <span class="m"># first, always</span>
-<span class="m">2.</span> get_reusable_assets()  <span class="m"># reuse, not reinvent</span>
-<span class="m">3.</span> assess_risk_in_context()
-<span class="m">4.</span> validate_generated_code() <span class="m"># before write</span></pre>
+        <div class="head"><span>Your request</span></div>
+        <pre>add a refund endpoint to /payments</pre>
+        <div class="head" style="border-top:1px solid var(--hairline)"><span>What the agent does (per AGENTS.md)</span></div>
+        <pre><span class="m">1.</span> read agents/preceptai/payment/   <span class="m"># rules + decisions</span>
+<span class="m">2.</span> reuse before creating
+<span class="m">3.</span> emit Risk: / Decision: header
+<span class="m">4.</span> stop on ask | reject</pre>
       </div>
 
       <div class="report">
@@ -354,26 +354,30 @@ git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . 
     <div class="sec-head">
       <div class="eyebrow">Team knowledge</div>
       <h2 class="display-lg">One brain your whole team — and every agent — shares.</h2>
-      <p>When someone states a team decision, Precept captures it, a human approves it, and it git-syncs to everyone. The next time any agent in any repo touches that domain, the decision is right there in the report. Personal agent memory can't do this — it isn't governed, approved, or shared.</p>
+      <p>When someone states a team decision, the agent writes it as a Markdown file; a human approves it by flipping <code>status: proposed</code> to <code>approved</code>; <code>git push</code> shares it. Next time any agent in any repo touches that domain, the rule is right there. Personal agent memory can't do this — it isn't governed, approved, or shared.</p>
     </div>
 
     <div class="grid grid-2" style="align-items:start; max-width:980px; margin:0 auto;">
       <div>
         <div class="codeblock" style="margin-bottom:24px;">
-          <div class="head"><span>Save a team decision</span><button class="copy" data-copy='precept memory decide payment "Use idempotency keys"'>Copy</button></div>
-          <pre>precept memory decide payment \
-  "Use idempotency keys" \
-  --body "All payment calls require an
-  idempotency key. No exceptions."</pre>
+          <div class="head"><span>agents/preceptai/payment/decisions/use-idempotency-keys.md</span></div>
+          <pre><span class="m">---</span>
+title: Use idempotency keys
+domain: payment
+status: approved
+enforcement: block
+---
+All payment calls MUST pass an
+idempotency key. No exceptions.</pre>
         </div>
         <div class="memo">
           <div class="top">
-            <span class="scope">Workspace · Payment</span>
-            <span class="approved">✓ Approved · git-synced</span>
+            <span class="scope">payment · block</span>
+            <span class="approved">✓ approved · in git</span>
           </div>
           <h3 class="display-sm">Use idempotency keys</h3>
-          <p>All payment calls require an idempotency key. No exceptions. Surfaced automatically on every payment-domain request.</p>
-          <span class="date">Decided by @team · recalled in 14 sessions</span>
+          <p>Plain Markdown in your repo. Edit it, diff it, review it in a PR. The agent follows it on every payment change.</p>
+          <span class="date">source: human · committed</span>
         </div>
       </div>
 
@@ -382,7 +386,7 @@ git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . 
         <div class="feature-row"><span class="mk">✓</span><div><b>Workspace-scoped &amp; multi-repo.</b> One knowledge home, auto-linked across every repo in the product.</div></div>
         <div class="feature-row"><span class="mk">✓</span><div><b>Audit log.</b> Every recall, save, and decision is recorded — who, what, when.</div></div>
         <div class="feature-row"><span class="mk">✓</span><div><b>Approval gates.</b> High-risk changes wait in a queue until a human approves or rejects.</div></div>
-        <div class="feature-row"><span class="mk">✓</span><div><b>Tool-agnostic.</b> Any MCP client — Claude Code, Cursor, Cline — calls the same brain.</div></div>
+        <div class="feature-row"><span class="mk">✓</span><div><b>Tool-agnostic.</b> Any agent — Claude Code, Cursor, Codex, Copilot — reads the same Markdown.</div></div>
       </div>
     </div>
   </div>
@@ -393,7 +397,7 @@ git clone --depth 1 https://github.com/qorstack/preceptai t && cp -r t/agents . 
   <div class="wrap">
     <div class="eyebrow">Ship code your team actually agreed on</div>
     <h2 class="display-lg">Make your agents understand before they act.</h2>
-    <p>Open source. MCP-native. Two commands to a governed, shared cognition layer.</p>
+    <p>Open source. One file. A governed, shared cognition protocol — no server, no Python.</p>
     <div class="cta-row" style="justify-content:center; display:flex; gap:18px; flex-wrap:wrap;">
       <a href="#install" class="btn">Install Precept</a>
       <a href="https://github.com/qorstack/preceptai" target="_blank" rel="noopener" class="btn btn-quiet">Star on GitHub</a>
