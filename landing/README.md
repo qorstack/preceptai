@@ -1,6 +1,6 @@
 # Precept — landing page
 
-A single self-contained `index.html` (dark theme, heavy-blue brand accent,
+A single self-contained `index.html` (dark monochrome, Bugatti-style typography,
 Google Fonts via CDN). No build step, no dependencies.
 
 ## Preview locally
