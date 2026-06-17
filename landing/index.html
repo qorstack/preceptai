@@ -288,8 +288,8 @@
       .hero-shell::before {
         content: "";
         position: absolute;
-        inset: clamp(10px, 4vw, 54px) -9vw auto auto;
-        width: min(82vw, 980px);
+        inset: clamp(10px, 4vw, 54px) 0 auto auto;
+        width: min(72vw, 900px);
         aspect-ratio: 2.36 / 1;
         background: url("../assets/logo-full.png") center / contain no-repeat;
         opacity: 0.18;
@@ -297,9 +297,8 @@
         mask-image: linear-gradient(
           90deg,
           transparent 0%,
-          rgba(0, 0, 0, 0.55) 22%,
-          black 58%,
-          transparent 100%
+          rgba(0, 0, 0, 0.55) 24%,
+          black 48%
         );
         z-index: -1;
       }
@@ -910,8 +909,8 @@
         }
 
         .hero-shell::before {
-          inset: 18px -12vw auto auto;
-          width: min(100vw, 720px);
+          inset: 18px 0 auto auto;
+          width: min(88vw, 680px);
           opacity: 0.1;
         }
 
@@ -1048,8 +1047,8 @@
 
       @media (max-width: 420px) {
         .hero-shell::before {
-          inset: 60px -34vw auto auto;
-          width: 138vw;
+          inset: 60px -4vw auto auto;
+          width: 96vw;
           opacity: 0.08;
         }
 
@@ -1269,23 +1268,23 @@
             </div>
             <div class="verdict-body">
               <div class="request">
-                Request: add a refund endpoint to /payments
+                Request: add a "delete account" button to profile settings
               </div>
               <ul class="sage-header">
                 <li>
-                  <span class="key">Lens</span>
-                  <span><b>backend</b> / payment</span>
+                  <span class="key">Role</span>
+                  <span><b>backend</b> / user-settings</span>
                 </li>
                 <li>
                   <span class="key">Ikigai</span>
                   <span
-                    >needed: yes / safe: settlement + webhooks / agreed:
-                    idempotency required</span
+                    >needed: yes / safe: soft-delete + audit log / agreed:
+                    30-day grace period required</span
                   >
                 </li>
                 <li>
                   <span class="key">Risk</span>
-                  <span><b>HIGH</b> - money movement and retry paths</span>
+                  <span><b>HIGH</b> - irreversible action, touches auth + billing</span>
                 </li>
                 <li>
                   <span class="key">Decision</span>
@@ -1295,21 +1294,22 @@
                 </li>
               </ul>
               <div class="agent-answer">
-                <pre>Sage - backend - payment
-Ikigai - needed: yes / lasts: extend RefundService / safe: settlement + webhooks / agreed: idempotency required
-Risk: HIGH - payment mutation touches money movement and retry paths.
+                <pre>Role: backend — user-settings
+
+Ikigai: needed: yes / lasts: soft_delete.py / safe: audit log before delete / agreed: 30-day grace period
+Risk: HIGH - irreversible data loss, touches auth and billing records.
 Decision: ask
 
 Matched rules:
-"All payment calls MUST pass an idempotency key."
-"Reuse payments/refund_service.py; never recreate refund logic."
+"Never hard-delete users — use soft_delete() with 30-day grace."
+"All destructive actions must write to audit_log before executing."
 
-I found payments/refund_service.py and payments/idempotency.py.
+I found users/soft_delete.py and users/audit_log.py.
 Because this is high risk, I will wait for confirmation before editing code.</pre>
                 <div class="knowledge-files" aria-label="Sage knowledge files">
-                  <span>reads: agents/sage/payment/rules.md</span>
+                  <span>reads: agents/sage/users/rules.md</span>
                   <span>creates if missing: agents/sage/roles/role-backend.md</span>
-                  <span>captures new rules in: agents/sage/payment/decisions/*.md</span>
+                  <span>captures new rules in: agents/sage/users/decisions/*.md</span>
                 </div>
               </div>
             </div>
