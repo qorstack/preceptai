@@ -2071,14 +2071,16 @@ def quickstart(
 
     # 1b. Ignore only secrets + the local vector index — commit the rules +
     #     memory so the team shares them via this repo. Append-only.
-    _ensure_gitignore(target, [".env", ".precept/vectors.db"])
+    _ensure_gitignore(target, [".env", "agents/preceptai/.index/"])
 
-    # 1c. Seed editable, repo-local rules (.precept/rules/<domain>.md) from the
-    #     built-in packs so anyone on the team can refine them.
+    # 1c. Seed the OKF knowledge tree (agents/preceptai/) — root index + editable
+    #     per-domain rules from the built-in packs, so the team can refine them.
+    from precept.memory.okf_store import OkfMemoryStore
     from precept.rules import scaffold_rules
+    OkfMemoryStore(target / "agents" / "preceptai")  # writes agents/preceptai/index.md
     seeded = scaffold_rules(target)
     if seeded:
-        console.print(f"  [green]wrote[/green] .precept/rules/  [dim]({len(seeded)} domains — edit freely, committed to the repo)[/dim]")
+        console.print(f"  [green]wrote[/green] agents/preceptai/  [dim]({len(seeded)} domains of editable rules, committed to the repo)[/dim]")
 
     # 2. Bring up the whole stack (Postgres + dashboard) via docker compose.
     if no_docker:
@@ -2150,7 +2152,7 @@ def quickstart(
         f"Commands    {status.get('commands', '—')}",
         "",
         f"Everything lives in [cyan]{target}[/cyan] — .mcp.json, .claude/commands/,",
-        ".precept/rules/ + memory. Commit them to share with the team.",
+        "agents/preceptai/ (rules + memory). Commit them to share with the team.",
         "",
         "Open Claude Code in this repo and try:",
         "  [cyan]/precept add Google SSO to /login[/cyan]",

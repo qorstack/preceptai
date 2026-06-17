@@ -1,4 +1,4 @@
-"""Repo-local, user-editable cognition rules — `.precept/rules/<domain>.md`.
+"""Repo-local, user-editable cognition rules — `agents/preceptai/<domain>/rules.md`.
 
 Built-in packs (`precept.packs.builtin`) ship as code; this module lets ordinary
 users override or extend them per repo by editing plain Markdown. `quickstart`
@@ -25,11 +25,12 @@ _SECTIONS = [
 
 
 def rules_dir(repo_path: str | Path = ".") -> Path:
-    return Path(repo_path) / ".precept" / "rules"
+    return Path(repo_path) / "agents" / "preceptai"
 
 
 def rules_file(repo_path: str | Path, domain: str) -> Path:
-    return rules_dir(repo_path) / f"{domain.lower()}.md"
+    # One rules.md per domain inside the OKF tree: agents/preceptai/<domain>/rules.md
+    return rules_dir(repo_path) / domain.lower() / "rules.md"
 
 
 def pack_to_markdown(pack: CognitionPack) -> str:
@@ -78,12 +79,12 @@ def rules_for_domain(repo_path: str | Path, domain: str) -> str | None:
 
 def scaffold_rules(repo_path: str | Path) -> list[str]:
     """Write one editable `.md` per built-in domain. Never clobbers existing files."""
-    target = rules_dir(repo_path)
-    target.mkdir(parents=True, exist_ok=True)
+    rules_dir(repo_path).mkdir(parents=True, exist_ok=True)
     written: list[str] = []
     for domain, pack in BUILTIN_PACKS.items():
-        path = target / f"{domain}.md"
+        path = rules_file(repo_path, domain)
         if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(pack_to_markdown(pack), encoding="utf-8")
             written.append(domain)
     return written

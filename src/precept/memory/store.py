@@ -470,8 +470,10 @@ class SqliteMemoryStore(MemoryStore):
 
     VECTOR_SIZE = 384
 
-    def __init__(self, store_dir: str | Path, db_path: str = "") -> None:
-        self._fallback = FileMemoryStore(store_dir)
+    def __init__(self, store_dir: str | Path, db_path: str = "", fallback: MemoryStore | None = None) -> None:
+        # Source of truth: the given fallback store (e.g. OKF markdown) or, by
+        # default, a JSON file store at store_dir. The SQLite db is only a vector index.
+        self._fallback = fallback if fallback is not None else FileMemoryStore(store_dir)
         self._conn = None
         self._sqlite_vec = None
         self._encoder = None        # None = not tried, False = tried & unavailable
@@ -655,16 +657,34 @@ def create_store(repo_path: str = ".", qdrant_url: str = "", qdrant_api_key: str
             )
             # fall through to the file store instead of hanging/erroring
 
-    memory_path, _, _mode = resolve_workspace_or_legacy(repo_path)
+    memory_path, _, mode = resolve_workspace_or_legacy(repo_path)
     if qdrant_url:
         return QdrantMemoryStore(url=qdrant_url, api_key=qdrant_api_key, fallback_dir=str(memory_path))
-    # Default: SQLite + sqlite-vec gives semantic search with no server. Files
-    # stay the git-syncable source of truth; the vector db is a local index.
-    # Set PRECEPT_NO_VECTOR=1 to force plain keyword (file) search.
+
+    # Default: OKF Markdown tree at agents/preceptai/ is the source of truth
+    # (human + AI editable, git-syncable). For central/home modes it lives under
+    # the workspace; otherwise under the repo.
+    base = memory_path.parent if mode in ("central", "home") else Path(repo_path)
+    okf_root = base / "agents" / "preceptai"
+
+    from precept.memory.okf_store import OkfMemoryStore, migrate_to_okf
+    try:
+        migrate_to_okf(repo_path, okf_root)
+    except Exception:
+        pass
+    okf = OkfMemoryStore(okf_root)
+
+    # Wrap with a local SQLite + sqlite-vec index for semantic search (no server).
+    # PRECEPT_NO_VECTOR=1 forces plain keyword search over the markdown.
     if not os.getenv("PRECEPT_NO_VECTOR"):
         try:
             import sqlite_vec  # noqa: F401
-            return SqliteMemoryStore(store_dir=str(memory_path))
+            (okf_root / ".index").mkdir(parents=True, exist_ok=True)
+            return SqliteMemoryStore(
+                store_dir=str(okf_root),
+                db_path=str(okf_root / ".index" / "vectors.db"),
+                fallback=okf,
+            )
         except ImportError:
             pass
-    return FileMemoryStore(store_dir=str(memory_path))
+    return okf

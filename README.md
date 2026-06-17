@@ -74,7 +74,7 @@ No Postgres, no internet. If Postgres is configured but unreachable, Precept
 degrades to this local store instead of hanging.
 
 ```bash
-precept quickstart --no-docker        # connects your agent; memory lives in .precept/
+precept quickstart --no-docker        # connects your agent; knowledge lives in agents/preceptai/
 ```
 
 > **Postgres is only for central, real-time team sharing at scale.** For solo and
@@ -88,16 +88,16 @@ Everything is project-local — commit it and your team shares it:
 | --- | --- | --- |
 | `.mcp.json` | connects the agent to Precept (Claude Code reads it per-project) | **commit** |
 | `.claude/commands/` | `/precept`, `/precept-generate` slash commands | **commit** |
-| `.precept/rules/<domain>.md` | **editable** cognition rules (seeded from built-ins) | **commit** |
-| `.precept/` memory | team decisions / skills / syntheses | **commit** |
-| `.precept/vectors.db` | local SQLite vector index (rebuilt per machine) | ignored |
-| `.env` | Postgres creds + ports (only if you use `--with` Docker) | ignored |
+| `agents/preceptai/<domain>/rules.md` | **editable** cognition rules (seeded from built-ins) | **commit** |
+| `agents/preceptai/<domain>/` | team decisions / skills / syntheses, as OKF Markdown | **commit** |
+| `agents/preceptai/.index/` | local SQLite vector index (rebuilt per machine) | ignored |
+| `.env` | Postgres creds + ports (only if you run the Docker stack) | ignored |
 | `docker-compose.yml` | optional Postgres + dashboard stack | commit (optional) |
 
 `quickstart` writes a `.gitignore` for the two ignored entries automatically.
 Safe to re-run — existing files are left untouched (`--force` refreshes them).
 
-**Rules are yours to edit.** Open `.precept/rules/payment.md` (or any domain),
+**Rules are yours to edit.** Open `agents/preceptai/payment/rules.md` (or any domain),
 change the rules, commit — the AI follows your team's version over the built-in
 defaults on the next `analyze_intent` / `get_cognition_pack`.
 

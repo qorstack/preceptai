@@ -143,13 +143,12 @@ def test_memory_store_uses_central_when_linked(repo, isolated_home):
     )
     store.save(entry)
 
-    central_entries = isolated_home.resolve() / "workspaces" / "alpha" / "memory" / "entries"
-    assert central_entries.exists()
-    titles = [json.loads(p.read_text(encoding="utf-8"))["title"] for p in central_entries.glob("*.json")]
-    assert "test" in titles
-
-    legacy_entries = repo / ".precept" / "memory" / "entries"
-    assert not legacy_entries.exists()
+    # OKF tree lives under the central workspace, not the repo.
+    central_okf = isolated_home.resolve() / "workspaces" / "alpha" / "agents" / "preceptai"
+    assert central_okf.exists()
+    assert "test" in [e.title for e in store.all()]
+    assert any("test" in p.read_text(encoding="utf-8") for p in central_okf.rglob("*.md"))
+    assert not (repo / "agents" / "preceptai" / "billing").exists()
 
 
 def test_memory_store_uses_legacy_when_not_linked(repo, isolated_home):
@@ -168,9 +167,10 @@ def test_memory_store_uses_legacy_when_not_linked(repo, isolated_home):
     )
     store.save(entry)
 
-    legacy_entries = repo / ".precept" / "memory" / "entries"
-    assert legacy_entries.exists()
-    assert any(legacy_entries.glob("*.json"))
+    legacy_okf = repo / "agents" / "preceptai"
+    assert legacy_okf.exists()
+    assert any(legacy_okf.rglob("*.md"))
+    assert "legacy" in [e.title for e in store.all()]
 
 
 def test_approval_queue_uses_central_when_linked(repo, isolated_home):

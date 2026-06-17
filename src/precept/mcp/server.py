@@ -568,8 +568,8 @@ def get_cognition_pack(domain: str, repo_path: str = ".") -> str:
     Packs contain business rules, common requirements, risk flags,
     required workflows, and forbidden shortcuts.
 
-    If the repo has team-edited rules at `.precept/rules/<domain>.md`, those are
-    returned as `team_rules` and OVERRIDE the built-in defaults — follow them.
+    If the repo has team-edited rules at `agents/preceptai/<domain>/rules.md`,
+    those are returned as `team_rules` and OVERRIDE the built-in defaults — follow them.
 
     Available domains: auth, otp, payment, webhook, order, notification, worker
     """
@@ -581,7 +581,7 @@ def get_cognition_pack(domain: str, repo_path: str = ".") -> str:
     out: dict = pack.model_dump() if pack else {"domain": domain}
     if team_rules:
         out["team_rules"] = team_rules
-        out["team_rules_source"] = f".precept/rules/{domain.lower()}.md (edit to change)"
+        out["team_rules_source"] = f"agents/preceptai/{domain.lower()}/rules.md (edit to change)"
     return json.dumps(out, indent=2, ensure_ascii=False)
 
 
