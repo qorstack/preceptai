@@ -1,0 +1,42 @@
+---
+description: Sage Search Skill — research best practices for this stack and write them as team skills
+alwaysApply: false
+---
+
+When asked to run **sage-search-skill** or "research skills for this project":
+
+Scan this project's stack and domains, research current best practices and
+trending patterns relevant to it, then write the findings as reusable skill
+entries under `agents/sage/`. Run this once when starting on a new repo, or
+whenever the team wants a knowledge refresh.
+
+1. **Map the project.** Read root config files (`package.json`, `pyproject.toml`,
+   etc.) and a sample of source files. Identify the stack, framework(s), domains
+   (folder structure / feature areas), and what's already in `agents/sage/`.
+
+2. **Research current best practices** for this exact stack. Use web search if
+   available. Focus on: UI/component patterns, minimal code (YAGNI, SRP),
+   code quality, performance, and patterns trending in the last 12 months.
+   Prefer specific, opinionated guidance over generic advice.
+
+3. **Write skill entries** to `agents/sage/<domain>/skills/<slug>.md`:
+   ```markdown
+   ---
+   id: <slug>
+   type: skill
+   title: <short title>
+   domain: <domain>
+   status: proposed
+   source: ai
+   enforcement: advise
+   tags: [<tag>, ...]
+   ---
+
+   <one-paragraph explanation — what, why, when>
+
+   **Do:** concrete example
+   **Avoid:** anti-pattern
+   ```
+   One idea per file. Never duplicate existing entries. Update stale ones in place.
+
+4. **Report** what was written. The dev reviews and flips `status: approved`.

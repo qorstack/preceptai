@@ -28,16 +28,82 @@ No install, no server, no Python. Sage is a cognition protocol in a single
 
 ## Install — one file, any machine
 
+### 1. Copy the protocol
+
 Run this in your repo (works on Windows, macOS, and Linux):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md -o AGENTS.md
 ```
 
-Commit it. That's the whole setup — every agent that reads `AGENTS.md` now
-follows the protocol. (No terminal? Just download
+No terminal? Download
 [`AGENTS.md`](https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md)
-and drop it in your repo root.)
+and drop it in your repo root.
+
+### 2. Wire up your agent
+
+**Claude Code, Codex, OpenCode, Antigravity** read `AGENTS.md` natively — nothing else needed.
+
+For **Cursor, Windsurf, Cline, Copilot, Gemini**, copy the thin adapter for your tool:
+
+| Tool | Command |
+| --- | --- |
+| Claude Code | `cp -r integrations/.claude .` |
+| Cursor | `cp -r integrations/.cursor .` |
+| Windsurf | `cp -r integrations/.windsurf .` |
+| Cline | `cp -r integrations/.clinerules .` |
+| GitHub Copilot | `cp -r integrations/.github .` |
+| Gemini CLI | `cp integrations/GEMINI.md .` |
+
+Each adapter is one line: "read and follow `AGENTS.md`." Edit the protocol in
+one place and every agent stays in step.
+
+### 3. Optionally seed starter knowledge
+
+```bash
+git clone --depth 1 https://github.com/qorstack/sage t && cp -r t/agents . && rm -rf t
+```
+
+Commit everything. That's the whole setup.
+
+## Commands
+
+Three commands cover the full lifecycle:
+
+**`/sage`** — run the cognition pipeline before any code change
+
+```text
+/sage add stripe webhook handler
+
+Role: backend — payments/webhooks
+Ikigai: needed: yes / lasts: WebhookService / safe: financial data / agreed: idempotency required
+Risk: HIGH — payment mutation
+Decision: ask — I found payments/idempotency.py. Waiting for confirmation before editing.
+```
+
+**`/sage-learning`** — scan this codebase once and write team knowledge
+
+```text
+/sage-learning
+
+Mapped 3 domains: api, auth, payments
+Written: agents/sage/api/rules.md
+Written: agents/sage/payments/decisions/idempotency-keys.md
+12 rules captured — review and flip status: approved
+```
+
+**`/sage-search-skill`** — research current best practices for this stack and write them as skills
+
+```text
+/sage-search-skill
+
+Stack detected: TypeScript + React + Tailwind
+Researched: component patterns, accessibility, performance, 2025 trends
+Written: agents/sage/frontend/skills/component-composition.md
+Written: agents/sage/frontend/skills/avoid-premature-abstraction.md
+Written: agents/sage/frontend/skills/server-component-boundaries.md
+6 skills added — review and approve
+```
 
 ## What your agent does now
 

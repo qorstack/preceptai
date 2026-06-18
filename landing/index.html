@@ -1494,9 +1494,9 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
               <div class="eyebrow">Install</div>
               <h2>One file makes cognition enforceable.</h2>
               <p class="lead">
-                Drop AGENTS.md into the repo. Add optional starter knowledge.
-                Commit it. Any compatible coding agent now has a protocol to
-                follow before it writes code.
+                Drop AGENTS.md into the repo. Wire up your agent. Commit it.
+                Any compatible coding agent now has a protocol to follow before
+                it writes code.
               </p>
             </div>
 
@@ -1517,14 +1517,31 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
                       Copy
                     </button>
                   </div>
-                  <pre>
-curl -fsSL https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md -o AGENTS.md</pre
-                  >
+                  <pre>curl -fsSL https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md -o AGENTS.md</pre>
                 </div>
 
                 <div class="step">
                   <div class="step-head">
                     <span class="step-num">02</span>
+                    <span>Wire up your agent</span>
+                  </div>
+                  <p style="margin:0 0 12px;font-size:14px;color:var(--muted)">
+                    Claude Code, Codex, OpenCode, Antigravity — native, nothing else needed.<br>
+                    For Cursor, Windsurf, Cline, Copilot, Gemini — copy the thin adapter:
+                  </p>
+                  <pre># Claude Code
+cp -r integrations/.claude .
+
+# Cursor
+cp -r integrations/.cursor .
+
+# Windsurf / Cline / Copilot / Gemini — same pattern
+cp -r integrations/.&lt;tool&gt; .</pre>
+                </div>
+
+                <div class="step">
+                  <div class="step-head">
+                    <span class="step-num">03</span>
                     <span>Optionally seed starter knowledge</span>
                     <button
                       class="copy"
@@ -1533,11 +1550,79 @@ curl -fsSL https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md -o AGE
                       Copy
                     </button>
                   </div>
-                  <pre>
-# or let Sage fill knowledge in as agents capture rules
-git clone --depth 1 https://github.com/qorstack/sage t && cp -r t/agents . && rm -rf t</pre
-                  >
+                  <pre># or let /sage-learning fill it in from your real codebase
+git clone --depth 1 https://github.com/qorstack/sage t &amp;&amp; cp -r t/agents . &amp;&amp; rm -rf t</pre>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="commands">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Commands</div>
+              <h2>Three commands, full lifecycle.</h2>
+            </div>
+            <p>
+              Run the pipeline before every change, teach Sage your codebase
+              once, and keep knowledge fresh with researched best practices.
+            </p>
+          </div>
+
+          <div class="grid-3">
+            <div class="code-card">
+              <div class="panel-head">
+                <span>/sage</span>
+                <span style="color:var(--mint);font-size:11px">before every change</span>
+              </div>
+              <div class="install-body">
+                <pre>/sage add stripe webhook handler
+
+Role: backend — payments/webhooks
+Ikigai: needed: yes
+  lasts: WebhookService
+  safe: financial data
+  agreed: idempotency required
+Risk: HIGH — payment mutation
+Decision: ask</pre>
+              </div>
+            </div>
+
+            <div class="code-card">
+              <div class="panel-head">
+                <span>/sage-learning</span>
+                <span style="color:var(--amber);font-size:11px">run once per repo</span>
+              </div>
+              <div class="install-body">
+                <pre>/sage-learning
+
+Mapped 3 domains: api, auth, payments
+Written: agents/sage/api/rules.md
+Written: agents/sage/payments/
+  decisions/idempotency-keys.md
+12 rules captured
+→ review and flip status: approved</pre>
+              </div>
+            </div>
+
+            <div class="code-card">
+              <div class="panel-head">
+                <span>/sage-search-skill</span>
+                <span style="color:var(--violet);font-size:11px">research &amp; grow</span>
+              </div>
+              <div class="install-body">
+                <pre>/sage-search-skill
+
+Stack: TypeScript + React + Tailwind
+Written:
+  skills/component-composition.md
+  skills/avoid-premature-abstraction.md
+  skills/server-component-boundaries.md
+6 skills added
+→ review and approve</pre>
               </div>
             </div>
           </div>

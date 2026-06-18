@@ -30,10 +30,10 @@ cp integrations/GEMINI.md .
 | Copy | Destination | For |
 | --- | --- | --- |
 | `.claude/` | `.claude/commands/` | Claude Code |
-| `.cursor/` | `.cursor/rules/sage.mdc` | Cursor |
-| `.windsurf/` | `.windsurf/rules/sage.md` | Windsurf |
-| `.clinerules/` | `.clinerules/sage.md` | Cline |
-| `.github/` | `.github/instructions/sage*.instructions.md` | GitHub Copilot |
+| `.cursor/` | `.cursor/rules/` | Cursor |
+| `.windsurf/` | `.windsurf/rules/` | Windsurf |
+| `.clinerules/` | `.clinerules/` | Cline |
+| `.github/` | `.github/instructions/` | GitHub Copilot |
 | `GEMINI.md` | `GEMINI.md` | Gemini CLI |
 
 **OpenAI Codex, OpenCode, Google Antigravity** read `AGENTS.md` natively —
@@ -41,6 +41,14 @@ no adapter needed, just keep `AGENTS.md` at your repo root.
 
 Each adapter is intentionally tiny: "read and follow `AGENTS.md`." Edit the
 protocol in one place and every agent stays in step.
+
+## Commands included
+
+| Command | What it does |
+| --- | --- |
+| `/sage` | Run the cognition pipeline before any code change |
+| `/sage-learning` | Scan the codebase and capture team knowledge to `agents/sage/` |
+| `/sage-search-skill` | Research current best practices for this stack and write them as skills |
 
 > Don't see your agent? Most modern agents support either `AGENTS.md` or a
 > rules/instructions file — point it at `AGENTS.md` the same way.
