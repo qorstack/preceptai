@@ -372,7 +372,7 @@
       .ikigai-strip span:first-child {
         border-color: rgba(255, 90, 73, 0.42);
         background: rgba(255, 90, 73, 0.12);
-        color: #ffb0a7;
+        color: #ffccc6;
       }
 
       .hero-actions {
@@ -1535,14 +1535,24 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
                     </button>
                   </div>
                   <p style="margin:0 0 12px;font-size:14px;color:var(--muted)">Paste into Claude Code, Cursor, Copilot, or any AI agent:</p>
-                  <pre>Set up Sage in this repo.
+                  <pre style="overflow-x: hidden">Set up Sage in this repo.
 
-1. Fetch AGENTS.md and save it at the repo root.
-2. Detect which AI tools this repo uses (.claude/, .cursor/, etc.)
-   and install the matching adapter from integrations/.
-3. Fetch agents/sage/index.md.
-4. Tell me what was installed, list the 3 commands,
-   then ask if I want to run /sage-learning.</pre>
+1. Fetch https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md
+   and save it as AGENTS.md at the repo root.
+2. Detect which AI tools this repo uses by checking for .claude/, .cursor/,
+   .windsurf/, .clinerules/, .github/instructions/, or GEMINI.md.
+   For each one found, fetch the matching adapter from
+   https://raw.githubusercontent.com/qorstack/sage/main/integrations/&lt;tool-path&gt;
+   and place it in the repo. If none are found, ask me which tool I use.
+3. Fetch https://raw.githubusercontent.com/qorstack/sage/main/agents/sage/index.md
+   and save it as agents/sage/index.md.
+4. Tell me what was installed. Then list these three commands that are now
+   available (explain each in one sentence):
+   - /sage — run the cognition pipeline before any code change
+   - /sage-learning — scan this codebase and write team knowledge to agents/sage/
+   - /sage-search-skill — research best practices for this stack and add them as skills
+   Finally, ask me: "Would you like me to run /sage-learning now to capture
+   this codebase's patterns?"</pre>
                 </div>
 
                 <div class="step">
@@ -1786,7 +1796,7 @@ Reuse payments/idempotency.py; never roll your own.</pre
 
       document.querySelectorAll(".copy[data-copy]").forEach(function (button) {
         button.addEventListener("click", function () {
-          doCopy(button, button.getAttribute("data-copy"));
+          doCopy(button, button.dataset.copy);
         });
       });
     </script>
