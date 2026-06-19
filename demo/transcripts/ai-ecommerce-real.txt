@@ -1,0 +1,15 @@
+Sage · frontend · ecommerce-landing
+Ikigai — needed: yes · lasts: landing/index.html · safe: static UI only · agreed: no frontend rules exist yet
+Risk: LOW — static landing UI; no auth, data, billing, or backend mutation.
+Decision: proceed
+
+Matched Sage knowledge:
+- agents/sage/frontend/rules.md is missing.
+- role-frontend.md is missing, so I will create it.
+- Reuse landing/logo.png and landing/logo-full.png.
+
+Plan:
+1. Create agents/sage/roles/role-frontend.md.
+2. Reuse the existing landing theme and logo assets.
+3. Build hero, collection grid, trust strip, and checkout CTA.
+4. Capture agents/sage/frontend/decisions/ecommerce-landing.md.
