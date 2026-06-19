@@ -28,6 +28,28 @@ No install, no server, no Python. Sage is a cognition protocol in a single
 
 ## Install — one file, any machine
 
+### Let your AI set it up
+
+Paste this into any AI coding agent (Claude Code, Cursor, Copilot, Windsurf…):
+
+```text
+Set up Sage in this repo.
+
+1. Fetch https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md
+   and save it as AGENTS.md at the repo root.
+2. Detect which AI tools this repo uses by checking for .claude/, .cursor/,
+   .windsurf/, .clinerules/, .github/instructions/, or GEMINI.md.
+   For each one found, fetch the matching adapter from
+   https://raw.githubusercontent.com/qorstack/sage/main/integrations/<tool-path>
+   and place it in the repo. If none are found, ask me which tool I use.
+3. Fetch https://raw.githubusercontent.com/qorstack/sage/main/agents/sage/index.md
+   and save it as agents/sage/index.md.
+4. Tell me what was installed, then run /sage-learning to capture this
+   codebase's patterns into agents/sage/.
+```
+
+Or install manually:
+
 ### 1. Copy the protocol
 
 Run this in your repo (works on Windows, macOS, and Linux):
