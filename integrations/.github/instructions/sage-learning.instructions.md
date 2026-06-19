@@ -12,8 +12,11 @@ after big refactors. Everything you find is saved under `agents/sage/`.
 
 1. **Map the repo.** Identify domains, the stack, and conventions in use —
    naming, error handling, folder layout, logging, testing, repeated patterns.
-2. **Find the reusable assets.** Services, utils, components the team already
-   has — what new code should reuse instead of reinventing.
+2. **Find the reusable assets and read them — do not guess.** For each asset:
+   - **Open the file and read its exports** — signatures, parameter shapes,
+     return types. Never infer from the file name; only the source is authoritative.
+   - Document the full API in `decisions/<slug>.md` (exported symbols + purpose).
+   - Flag assets that cover more use-cases than their name suggests.
 3. **Spot the rules-in-practice.** Each consistent pattern is a candidate rule.
 4. **Write it to `agents/sage/`** (format in `AGENTS.md` §2):
    - per-domain `rules.md`; `decisions/<slug>.md`; update relevant role files.
