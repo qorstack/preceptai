@@ -22,6 +22,10 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
 2. Read `agents/sage/<domain>/rules.md` and relevant `decisions/` files.
    Quote the rules that apply. Find reusable assets — **open the source file
    and read its exports** before using them. Never infer an API from a name.
+   **Multi-repo workspace:** anchor all paths (`AGENTS.md`, `agents/sage/`,
+   role files) to the repo root of the file being edited — the closest ancestor
+   with `AGENTS.md`. Add `Repo: <repo-root>` to the intent block. Never read
+   or write knowledge across repos.
 3. Output the intent block (Role · Intent · Touches · Risk · Decision), then
    declare a **parallel plan** — group tasks by phase, mark each `[parallel]` or
    `[sequential]`, assign effort `low / medium / high` (ceiling = current model;

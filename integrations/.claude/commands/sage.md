@@ -3,6 +3,13 @@
 Run before any non-trivial code change. Steps 1–3 run **before** you write code.
 Steps 4–5 run **after**. All five are mandatory — never skip, never abbreviate.
 
+> **Multi-repo workspace:** When multiple repos are open at once, anchor every
+> path in this protocol (`AGENTS.md`, `agents/sage/`, role files) to the **repo
+> root that owns the file you are editing** — find it by locating the closest
+> ancestor directory that contains `AGENTS.md`. State it once in the Step 3
+> intent block as `Repo: <repo-root>`. Never read knowledge from another repo
+> and never write knowledge outside the active repo's `agents/sage/`.
+
 ---
 
 ## Step 1 — Load your role(s) (do this before reading the task)
@@ -72,6 +79,7 @@ Never start a phase without having output the role line for that phase.
 Output this block, then wait for `ask`/`reject` before continuing.
 
 ```text
+Repo    : <repo-root>  ← include only when multiple repos are open
 Role    : <role> — <one-line task summary>
 Intent  : <what this change does>
 Touches : <files, systems, domains affected>
