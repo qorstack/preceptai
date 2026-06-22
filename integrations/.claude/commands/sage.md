@@ -84,11 +84,11 @@ at the same time (no dependency on each other) and which must be sequential.
 For each task, assign an effort tier — **never exceed the model tier active in
 this session**; reduce to `low` for mechanical work to save tokens:
 
-| Effort | When to use |
-| ------ | ----------- |
-| `low` | Reading files, simple edits, boilerplate, no reasoning needed |
-| `medium` | Standard implementation, moderate complexity |
-| `high` | Complex logic, architecture, root-cause analysis, critical decisions |
+| Effort   | When to use                                                          |
+| -------- | -------------------------------------------------------------------- |
+| `low`    | Reading files, simple edits, boilerplate, no reasoning needed        |
+| `medium` | Standard implementation, moderate complexity                         |
+| `high`   | Complex logic, architecture, root-cause analysis, critical decisions |
 
 ```text
 Plan
@@ -103,8 +103,35 @@ Plan
 ```
 
 Execute parallel phases in a single response (all their tool calls together).
-State at the start of each phase: `[parallel: A, B running]` or
-`[sequential: C running — depends on A, B]`.
+Each task reports itself when IT finishes — do not wait for all to complete
+before reporting. Use these markers:
+
+```text
+── [phase 1 · parallel: A, B, C] ────────────────
+  … A tool calls …
+  [✓ A — <one-line result>]
+  … B tool calls …
+  [✓ B — <one-line result>]
+  … C tool calls …
+  [✓ C — <one-line result>]
+── [phase 1 → all done, proceeding to phase 2] ──
+
+── [phase 2 · sequential: D — depends on A, B] ──
+  … D tool calls …
+  [✓ D — <one-line result>]
+── [phase 2 → done, proceeding to phase 3] ──────
+
+── [phase 3 · parallel: E, F] ───────────────────
+  … E tool calls …
+  [✓ E — <one-line result>]
+  … F tool calls …
+  [✓ F — <one-line result>]
+── [phase 3 → all done] ─────────────────────────
+```
+
+If a task fails, report it immediately and pause:
+`[✗ B failed — <reason>. Pausing — waiting for input before continuing.]`
+Never silently continue past a failure.
 
 ---
 
