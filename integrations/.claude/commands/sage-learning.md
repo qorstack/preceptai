@@ -9,6 +9,23 @@ memory, never to a scratch file.
 
 ---
 
+## Role (fixed — `codebase-analyst`)
+
+Open `agents/sage/roles/role-codebase-analyst.md` before starting:
+
+- **Found** → read and adopt as-is. Output: `Role: codebase-analyst [loaded]`
+- **Missing** → create it now, output: `Role: codebase-analyst [created]`
+
+Default Ikigai if creating:
+
+- Loves — understanding how teams actually build, not how they say they do
+- Good at — reading source code, extracting real conventions, spotting reusable
+  assets, documenting what already exists so the next agent doesn't re-discover it
+- Team needs — a reliable map of the codebase before anyone builds more
+- Worth it — knowledge captured once, reused by every future agent
+
+---
+
 ## Steps
 
 1. **Map the repo.** Identify the domains (e.g. `billing`, `search`), the stack,
@@ -47,16 +64,18 @@ memory, never to a scratch file.
 
 ## Summary (mandatory — a response without this is incomplete)
 
-Close with this exact block:
+Output as **plain markdown** (no code fence):
 
-```text
+```markdown
 ── Sage Learning ─────────────────────────────────
-Stack     : <language, framework, key libs>
-Domains   : <list of domains found>
-Written   :
-  [new]     agents/sage/<domain>/decisions/<slug>.md — <pattern title>
-  [updated] agents/sage/<domain>/rules.md — <what changed>
-  [skipped] <file> — already covered by <existing-entry>
-Next      : flip status: approved on entries you want enforced
+**Stack** · <language, framework, key libs>
+**Domains** · <list of domains found>
+
+**Written**
+- [new] `agents/sage/<domain>/decisions/<slug>.md` — <pattern title>
+- [updated] `agents/sage/<domain>/rules.md` — <what changed>
+- [skipped] `<file>` — already covered by `<existing-entry>`
+
+**Next** · flip `status: approved` on entries you want enforced
 ──────────────────────────────────────────────────
 ```

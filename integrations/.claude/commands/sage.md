@@ -5,18 +5,53 @@ Steps 4–5 run **after**. All five are mandatory — never skip, never abbrevia
 
 ---
 
-## Step 1 — Pick your role
+## Step 1 — Load your role(s) (do this before reading the task)
 
-Name the domain + action. Pick the lens the task actually calls for — not just
-`dev`. Any senior expert applies: `frontend`, `infra`, `security`, `qa`,
-`architect`, `designer`, `data`, `writer` … infer it yourself.
+Pick the lens the request calls for — not just `dev`. Infer it from the request:
+`frontend`, `infra`, `security`, `qa`, `architect`, `designer`, `data`,
+`writer` … any senior expert role applies.
 
-Look for `agents/sage/roles/role-<lens>.md`:
+**Roles can hand off between phases.** A single task may use more than one role
+as work progresses — each phase uses the expert who owns that phase:
 
-- Found → adopt it as-is. Update it if this task reveals something new the role owns.
-- Missing → create it (Ikigai format: Loves / Good at / Team needs / Worth it + How I work).
+- `architect` → plan the approach
+- `dev` → implement
+- `debugger` → root-cause and fix
+- `qa` → validate
 
-State it first: `Role: frontend — building ecommerce landing`
+When you enter a new phase, load that phase's role file and output the handoff:
+`Role: dev [loaded] — handoff from architect`
+
+**To load or create any role:** open `agents/sage/roles/role-<lens>.md`.
+
+- **Found** → read it, adopt as-is. Output: `Role: <lens> [loaded]`
+  Do not re-derive. Update the file at the end if this task adds something new.
+- **Missing** → write it to disk now, before the next step. Use this format:
+
+  ```markdown
+  ---
+  role: <lens>
+  title: Senior <Lens>
+  covers: [<domain>]
+  updated: <today>
+  ---
+
+  ## Ikigai (who this role is)
+
+  - Loves — …
+  - Good at — … ← the role's expertise, stack, patterns, standards
+  - Team needs — …
+  - Worth it — …
+
+  ## How I work
+
+  - Reuse before writing; follow the domain's rules.md.
+  - Name the blast radius; stop on HIGH risk.
+  ```
+
+  Then output: `Role: <lens> [created]`
+
+Never start a phase without having output the role line for that phase.
 
 ---
 
@@ -99,11 +134,13 @@ Explain the specific condition, code path, or wrong assumption that caused the
 failure. Name the exact function/variable responsible.
 
 **Mechanism**
+
 - <trigger: what initiated the failure>
 - <propagation: how it spread to the surface>
 - <symptom: what the user or log observed>
 
 **Fix**
+
 - <what changed>
 - <why it addresses the root cause>
 - <trade-offs or caveats the team should know>
@@ -131,6 +168,7 @@ misleading naming, or an assumption that turned out wrong.
 Describe what was built or changed — sections, files, and their purpose.
 
 **Decisions**
+
 - <key choice and why>
 - <alternatives considered and ruled out>
 

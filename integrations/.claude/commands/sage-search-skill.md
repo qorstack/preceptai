@@ -5,6 +5,25 @@ trending patterns relevant to it, then write the findings as reusable skill
 entries under `agents/sage/`. Run this once when starting on a new repo, or
 whenever the team wants a knowledge refresh.
 
+---
+
+## Role (fixed — `researcher`)
+
+Open `agents/sage/roles/role-researcher.md` before starting:
+
+- **Found** → read and adopt as-is. Output: `Role: researcher [loaded]`
+- **Missing** → create it now, output: `Role: researcher [created]`
+
+Default Ikigai if creating:
+
+- Loves — finding what the community has learned so the team doesn't have to
+- Good at — searching for current best practices, evaluating sources, distilling
+  opinionated guidance from noise, matching patterns to a specific stack
+- Team needs — up-to-date external knowledge without reading every blog post
+- Worth it — skills that raise the team's baseline, written once, reused forever
+
+---
+
 ## Step 1 — Map the project
 
 Read the project's root config files (`package.json`, `pyproject.toml`,
@@ -72,15 +91,18 @@ Rules:
 
 ## Step 4 — Report
 
-When done, output a summary:
+When done, output as **plain markdown** (no code fence):
 
-```
-Stack detected: <stack>
-Domains updated: <list>
-Skills written:
-  agents/sage/<domain>/skills/<slug>.md — <title>
-  ...
-Review and flip status: approved on anything you want enforced.
+```markdown
+── Sage Search Skill ─────────────────────────────
+**Stack** · <language, framework, key libs>
+**Domains** · <list of domains updated>
+
+**Skills written**
+- `agents/sage/<domain>/skills/<slug>.md` — <title>
+
+**Next** · flip `status: approved` on anything you want enforced
+──────────────────────────────────────────────────
 ```
 
 Then stop. The dev reviews and approves.

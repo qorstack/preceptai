@@ -30,16 +30,19 @@ Do this:
      not just document this time.
 5. **Diff before writing**: never duplicate an existing entry; update in place.
 
-**A response without this block is incomplete.** Close with:
+**A response without this block is incomplete.** Output as **plain markdown** (no code fence):
 
-```text
+```markdown
 ── Sage Learning ─────────────────────────────────
-Stack     : <language, framework, key libs>
-Domains   : <list of domains found>
-Written   :
-  [new]     agents/sage/<domain>/decisions/<slug>.md — <pattern title>
-  [updated] agents/sage/<domain>/rules.md — <what changed>
-  [skipped] <file> — already covered by <existing-entry>
-Next      : flip status: approved on entries you want enforced
+**Stack** · <language, framework, key libs>
+**Domains** · <list of domains found>
+
+**Written**
+
+- [new] `agents/sage/<domain>/decisions/<slug>.md` — <pattern title>
+- [updated] `agents/sage/<domain>/rules.md` — <what changed>
+- [skipped] `<file>` — already covered by `<existing-entry>`
+
+**Next** · flip `status: approved` on entries you want enforced
 ──────────────────────────────────────────────────
 ```

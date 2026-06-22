@@ -27,16 +27,25 @@ Do these in order. Do not skip. Do not assume you already know the answer.
    `sales`, `marketing`, `finance`, `legal`, `writer`, `teacher` … or **any
    role the question implies**. **Infer it yourself; never make the user type
    "as a developer / scientist / salesperson".**
-   Then handle the persona via a saved file:
-   - Look for `agents/sage/roles/role-<lens>.md`. **If it exists, adopt it as-is**
-     — don't waste time re-inventing who you are.
-   - **If it's missing, create it** (format in §2): the role's Ikigai + how it
-     works. One-time cost; every future request on this lens reuses it.
-   - If this request reveals something new the role owns (a tool, a standard,
-     a domain), **update that file**.
-   Example: "create a function …" → lens `dev` → load/create `role-dev.md`.
-   Then **answer from that role's `Good at`** (its Ikigai expertise). If the
-   request falls outside it, switch to — or create — the role that owns it.
+   **Roles can hand off between phases** — a single task may use more than one:
+
+   | Phase             | Role                          |
+   | ----------------- | ----------------------------- |
+   | Plan / design     | `architect`                   |
+   | Implement         | `dev`, `frontend`, `infra`, … |
+   | Root-cause & fix  | `debugger`                    |
+   | Validate          | `qa`                          |
+
+   Each phase loads the role that owns it. When entering a new phase, output:
+   `Role: <new-lens> [loaded] — handoff from <prev-lens>`
+
+   **For each role** open `agents/sage/roles/role-<lens>.md`:
+   - **Found** → read it, adopt as-is. Output: `Role: <lens> [loaded]`
+     Do not re-derive. Update the file after the task if something new was learned.
+   - **Missing** → write it to disk now, before the next step (format in §2:
+     Ikigai + How I work). Output: `Role: <lens> [created]`
+
+   **Never start a phase without outputting its role line.**
 2. **Read the knowledge.** Open `agents/sage/<domain>/` and read
    `index.md`, `rules.md`, and any `decisions/*.md` whose title looks relevant.
    **Quote the rules that apply** in your reply so the human sees you checked.

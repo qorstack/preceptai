@@ -7,8 +7,14 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
 
 **Before code:**
 
-1. Name the domain + action; pick the role lens (`dev`, `frontend`, `infra`, …).
-   Load `agents/sage/roles/role-<lens>.md` or create it if missing.
+1. Pick the role lens for this phase (`architect`, `dev`, `debugger`, `frontend`,
+   `qa`, …) — infer from the request. Roles hand off between phases: plan with
+   `architect`, build with `dev`, fix with `debugger`. Each phase loads its own role.
+   **Open `agents/sage/roles/role-<lens>.md` immediately.**
+   - Found → read it, adopt as-is, output: `Role: <lens> [loaded]`. Do not re-derive.
+   - Missing → write the file to disk now (before step 2), output: `Role: <lens> [created]`.
+   On phase handoff output: `Role: <new-lens> [loaded] — handoff from <prev-lens>`.
+   Never start a phase without outputting the role line.
 2. Read `agents/sage/<domain>/rules.md` and relevant `decisions/` files.
    Quote the rules that apply. Find reusable assets — **open the source file
    and read its exports** before using them. Never infer an API from a name.
