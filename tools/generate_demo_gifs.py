@@ -10,10 +10,11 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "demo"
 TRANSCRIPTS = OUT_DIR / "transcripts"
 LOGO = ROOT / "landing" / "logo.png"
+LOGO_FULL = ROOT / "landing" / "logo-full.png"
 
 W, H = 960, 540
 FPS = 10
-DURATION = 9
+DURATION = 12
 FRAME_MS = int(1000 / FPS)
 
 BG = "#050505"
@@ -54,7 +55,7 @@ def font(size: int, bold: bool = False, mono: bool = False) -> ImageFont.FreeTyp
     return ImageFont.load_default()
 
 
-F_TITLE = font(38, True)
+F_TITLE = font(32, True)
 F_H2 = font(18, True)
 F_BODY = font(15)
 F_LABEL = font(12, True, mono=True)
@@ -118,6 +119,43 @@ def reveal_count(total: int, progress: float, start: float, end: float) -> int:
     return max(1, int(total * p))
 
 
+def first_line_index(lines: list[tuple[str, str]], prefix: str, fallback: int) -> int:
+    for index, (line, _) in enumerate(lines):
+        if line.startswith(prefix):
+            return index
+
+    return fallback
+
+
+def phased_reveal_count(lines: list[tuple[str, str]], progress: float) -> int:
+    step_3 = first_line_index(lines, "Step 3", max(1, len(lines) // 5))
+    step_4 = first_line_index(lines, "Step 4", max(step_3 + 1, int(len(lines) * 0.86)))
+    total = len(lines)
+
+    phases = (
+        (0, step_3, 0.10, 0.34),
+        (step_3, step_4, 0.34, 0.64),
+        (step_4, total, 0.64, 0.94),
+    )
+
+    if progress < phases[0][2]:
+        return 0
+
+    shown = 0
+
+    for start_count, end_count, start_time, end_time in phases:
+        if progress >= end_time:
+            shown = end_count
+            continue
+
+        if progress >= start_time:
+            phase_progress = (progress - start_time) / (end_time - start_time)
+
+            return max(start_count + 1, int(start_count + (end_count - start_count) * phase_progress))
+
+    return shown
+
+
 def draw_base(progress: float) -> Image.Image:
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
@@ -129,10 +167,14 @@ def draw_base(progress: float) -> Image.Image:
         a = r / 260
         d.ellipse((48 - r, 8 - r, 48 + r, 8 + r), fill=(int(5 + 32 * a), int(5 + 8 * a), int(5 + 5 * a)))
 
-    d.text((34, 24), "Sage IKEGAI", fill=INK, font=F_TITLE)
-    d.text((38, 72), "EXAMPLE", fill=AMBER, font=F_LABEL)
-    d.rounded_rectangle((34, 90, 926, 136), radius=10, fill="#11110f", outline=LINE)
-    d.text((54, 106), 'User: create an ecommerce landing page with product hero, collection grid, and checkout CTA', fill=TEXT, font=F_BODY)
+    if LOGO_FULL.exists():
+        logo_full = Image.open(LOGO_FULL).convert("RGBA")
+        logo_full.thumbnail((300, 72), Image.Resampling.LANCZOS)
+        img.paste(logo_full, (34, 18), logo_full)
+    else:
+        d.text((34, 28), "Sage IKEGAI", fill=INK, font=F_TITLE)
+    d.rounded_rectangle((34, 102, 926, 148), radius=10, fill="#11110f", outline=LINE)
+    d.text((54, 118), 'User: create an ecommerce landing page with product hero, collection grid, and checkout CTA', fill=TEXT, font=F_BODY)
     if LOGO.exists():
         logo = Image.open(LOGO).convert("RGBA")
         logo.thumbnail((44, 44), Image.Resampling.LANCZOS)
@@ -180,8 +222,8 @@ def render() -> None:
         progress = idx / (total - 1)
         img = draw_base(progress)
         d = ImageDraw.Draw(img)
-        ai_count = reveal_count(len(ai), progress, 0.08, 0.60)
-        draw_lines(d, (34, 150, 926, 500), "ai response", MINT, ai, ai_count, 22)
+        ai_count = phased_reveal_count(ai, progress)
+        draw_lines(d, (34, 162, 926, 500), "ai response", MINT, ai, ai_count, 21)
         frames.append(img)
 
     output = OUT_DIR / "sage-ikigai-example.gif"

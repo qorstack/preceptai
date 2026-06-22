@@ -13,3 +13,381 @@ Plan:
 2. Reuse the existing landing theme and logo assets.
 3. Build hero, collection grid, trust strip, and checkout CTA.
 4. Capture agents/sage/frontend/decisions/ecommerce-landing.md.
+
+────────────────────────────────────────────────────────────
+
+Step 1 — Creating role
+
+agents/sage/roles/role-frontend.md
+───────────────────────────────────
+---
+role: frontend
+title: Senior Frontend Engineer
+covers: [landing-pages, ui-components, css-layout, static-html, accessibility]
+updated: 2026-06-18
+---
+## Ikigai (who this role is)
+- Loves      - interfaces that are fast, readable, and obviously correct at a glance.
+- Good at    - semantic HTML, CSS layout (grid/flex), vanilla JS, asset reuse,
+               accessible markup, and shipping static pages that need zero build step.
+- Team needs - production-ready UI without framework overhead on marketing / landing pages.
+- Worth it   - pages that load fast, look right on mobile, and any dev can edit without tooling.
+
+## How I work
+- Start from the layout skeleton, then fill in content, then add visual polish.
+- Reuse existing assets (logos, colors, fonts) before introducing anything new.
+- No framework unless the team has already adopted one in this domain.
+- Accessibility-first: semantic tags, alt text, focus states.
+- Follow the domain's `rules.md` when a matching Sage domain exists.
+
+────────────────────────────────────────────────────────────
+
+Step 2 — Reading domain knowledge
+
+agents/sage/frontend/ does not exist yet.
+No rules or decisions to load. Proceeding with built-in judgment.
+Will capture patterns observed during implementation as a new decision entry.
+
+────────────────────────────────────────────────────────────
+
+Step 3 — Building landing/index.html
+
+Reusing:
+  - landing/logo.png       (favicon / mobile header)
+  - landing/logo-full.png  (desktop hero lockup)
+  - Color palette from existing landing page: #0f0f0f bg, #f5f0e8 text, #d4a853 accent
+
+Sections to build: hero → collection grid → trust strip → checkout CTA
+
+───────────────────────────────────────────────────────────
+landing/index.html
+───────────────────────────────────────────────────────────
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurum — Handcrafted Jewellery</title>
+  <link rel="icon" href="logo.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f0f0f;
+      --surface: #1a1a1a;
+      --text:    #f5f0e8;
+      --muted:   #9e9a94;
+      --accent:  #d4a853;
+      --radius:  4px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Georgia', serif;
+      line-height: 1.6;
+    }
+
+    /* ── Nav ─────────────────────────────────────────── */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    nav img { height: 32px; }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .875rem;
+      letter-spacing: .05em;
+    }
+    nav a:hover { color: var(--text); }
+
+    /* ── Hero ────────────────────────────────────────── */
+    .hero {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 6rem 2rem 5rem;
+      gap: 1.5rem;
+    }
+    .hero img { height: 56px; margin-bottom: .5rem; }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 400;
+      letter-spacing: .03em;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 1.125rem;
+      max-width: 520px;
+    }
+    .hero .cta {
+      display: inline-block;
+      margin-top: .5rem;
+      padding: .85rem 2.5rem;
+      background: var(--accent);
+      color: #0f0f0f;
+      font-size: .9rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: var(--radius);
+      transition: opacity .15s;
+    }
+    .hero .cta:hover { opacity: .85; }
+
+    /* ── Collection Grid ─────────────────────────────── */
+    .collection {
+      padding: 4rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .collection h2 {
+      font-size: 1.1rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: transform .2s;
+    }
+    .card:hover { transform: translateY(-3px); }
+    .card-img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      background: #252525;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+    .card-body { padding: 1rem; }
+    .card-body h3 { font-size: 1rem; font-weight: 400; }
+    .card-body span {
+      display: block;
+      margin-top: .35rem;
+      color: var(--accent);
+      font-size: .9rem;
+    }
+
+    /* ── Trust Strip ─────────────────────────────────── */
+    .trust {
+      border-top: 1px solid #2a2a2a;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 2.5rem 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 4rem;
+      flex-wrap: wrap;
+    }
+    .trust-item { text-align: center; }
+    .trust-item strong {
+      display: block;
+      font-size: 1.4rem;
+      color: var(--accent);
+      letter-spacing: .02em;
+    }
+    .trust-item span {
+      font-size: .8rem;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    /* ── Checkout CTA ────────────────────────────────── */
+    .checkout-cta {
+      text-align: center;
+      padding: 5rem 2rem;
+    }
+    .checkout-cta h2 {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 400;
+      margin-bottom: 1rem;
+    }
+    .checkout-cta p {
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    .checkout-cta .cta {
+      display: inline-block;
+      padding: .9rem 2.75rem;
+      background: var(--accent);
+      color: #0f0f0f;
+      font-size: .9rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: var(--radius);
+      transition: opacity .15s;
+    }
+    .checkout-cta .cta:hover { opacity: .85; }
+
+    /* ── Footer ──────────────────────────────────────── */
+    footer {
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: .8rem;
+      border-top: 1px solid #2a2a2a;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <img src="logo.png" alt="Aurum" />
+    <div style="display:flex; gap:2rem;">
+      <a href="#collection">Collection</a>
+      <a href="#about">About</a>
+      <a href="#checkout">Shop</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <img src="logo-full.png" alt="Aurum — Handcrafted Jewellery" />
+    <h1>Crafted to last a lifetime.</h1>
+    <p>Each piece is hand-finished by artisans in Chiang Mai
+       using ethically sourced gold and gemstones.</p>
+    <a href="#collection" class="cta">Explore the Collection</a>
+  </section>
+
+  <!-- Collection Grid -->
+  <section class="collection" id="collection">
+    <h2>New Arrivals</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="card-img">[ product photo ]</div>
+        <div class="card-body">
+          <h3>Solstice Ring</h3>
+          <span>฿ 12,500</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-img">[ product photo ]</div>
+        <div class="card-body">
+          <h3>Lunar Pendant</h3>
+          <span>฿ 8,900</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-img">[ product photo ]</div>
+        <div class="card-body">
+          <h3>Meridian Cuff</h3>
+          <span>฿ 19,000</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-img">[ product photo ]</div>
+        <div class="card-body">
+          <h3>Ember Earrings</h3>
+          <span>฿ 7,200</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Strip -->
+  <section class="trust">
+    <div class="trust-item">
+      <strong>14k & 18k</strong>
+      <span>Solid Gold Only</span>
+    </div>
+    <div class="trust-item">
+      <strong>Handmade</strong>
+      <span>Chiang Mai Artisans</span>
+    </div>
+    <div class="trust-item">
+      <strong>Free Returns</strong>
+      <span>30-Day Guarantee</span>
+    </div>
+    <div class="trust-item">
+      <strong>GIA Certified</strong>
+      <span>Every Gemstone</span>
+    </div>
+  </section>
+
+  <!-- Checkout CTA -->
+  <section class="checkout-cta" id="checkout">
+    <h2>Ready to find yours?</h2>
+    <p>Free shipping on orders over ฿ 5,000. Ships within 3 business days.</p>
+    <a href="/shop" class="cta">Shop All Pieces</a>
+  </section>
+
+  <footer>
+    © 2026 Aurum Jewellery · hello@aurum.co.th
+  </footer>
+
+</body>
+</html>
+
+────────────────────────────────────────────────────────────
+
+Step 4 — Capturing knowledge
+
+agents/sage/frontend/decisions/ecommerce-landing.md
+───────────────────────────────────────────────────
+---
+id: ecommerce-landing-pattern
+type: team_decision
+title: Static ecommerce landing page structure
+domain: frontend
+enforcement: advise
+source: ai
+status: proposed
+---
+
+## Decision
+
+Static landing pages for product / ecommerce use a four-section layout:
+**hero → collection grid → trust strip → checkout CTA**, all in one HTML file
+with inline `<style>`. No framework, no build step.
+
+## Rationale
+
+- This repo has no frontend build pipeline. A single self-contained HTML file
+  is the only format any contributor can edit and preview without tooling.
+- The four-section order matches the buyer journey: awareness → browse →
+  trust → convert.
+
+## Conventions observed
+
+| Concern       | Convention |
+| ------------- | ---------- |
+| Color tokens  | CSS custom properties on `:root` — `--bg`, `--text`, `--accent`, `--muted` |
+| Accent color  | `#d4a853` (gold) — matches existing landing theme |
+| Typography    | `Georgia` serif; `clamp()` for responsive headings |
+| Layout        | CSS Grid with `auto-fill / minmax` for product grids; Flexbox for nav/trust |
+| Asset reuse   | `logo.png` for favicon + mobile; `logo-full.png` for hero lockup |
+| CTA style     | Accent-background pill, uppercase letter-spaced label, `:hover { opacity:.85 }` |
+| No JS         | Interactions (hover lift on cards) handled with CSS `transition` only |
+
+## Reusable assets
+
+- `landing/logo.png` — 32 px nav / favicon
+- `landing/logo-full.png` — hero wordmark / lockup
+
+────────────────────────────────────────────────────────────
+
+Done. Here is what was created:
+
+  agents/sage/roles/role-frontend.md              (new role — Senior Frontend Engineer)
+  landing/index.html                              (hero + collection grid + trust strip + checkout CTA)
+  agents/sage/frontend/decisions/
+    ecommerce-landing.md                          (proposed · layout conventions + asset reuse table)
+
+Review agents/sage/frontend/decisions/ecommerce-landing.md and flip
+status: approved once you're happy with the patterns. Future agents will pick
+these up automatically on the next /sage run for any frontend task.
