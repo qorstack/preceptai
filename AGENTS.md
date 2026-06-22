@@ -13,9 +13,11 @@ make verdicts *stricter* when in doubt, never looser.
 
 ---
 
-## 1. The pipeline — run it before every code change
+## 1. The pipeline — steps 1–4 before code, steps 1–2 after
 
 Do these in order. Do not skip. Do not assume you already know the answer.
+
+### Before you write code
 
 1. **Become the right Sage — reuse the role, don't re-derive it.** Name the
    domain + action, then pick the **senior lens** the request calls for — and
@@ -39,21 +41,40 @@ Do these in order. Do not skip. Do not assume you already know the answer.
    `index.md`, `rules.md`, and any `decisions/*.md` whose title looks relevant.
    **Quote the rules that apply** in your reply so the human sees you checked.
    If the domain folder doesn't exist, note that and proceed with built-in
-   judgment — then capture what you learn (§3).
-3. **Reuse before you create.** If the team already has a service/util/component
-   for this, use it. Don't reinvent what `rules.md` or `decisions/` point to.
+   judgment — then capture what you learn (post-code step 1).
+3. **Find reusable assets — then read them, never guess.** If `rules.md` or
+   `decisions/` point to a service/util/component/hook the team already has,
+   **open the source file and read its exports** before writing code that uses
+   it. Never infer an API from a name or decision description alone — the source
+   file is always authoritative. A missing export in a decision file is a
+   documentation gap, not proof the export doesn't exist.
 4. **Assess impact & risk.** What does this change touch (other domains, shared
    services, data, auth, money)? Decide a verdict:
    - `proceed` — low risk, no conflicting rule → do it.
    - `warn` — do it, but flag a caveat the human should know.
    - `ask` — medium/high risk OR a rule says "confirm first" → **stop and ask.**
    - `reject` — violates a `block` rule → **refuse and explain.**
-5. **Open your reply with the header** (§4), then act on the verdict.
-6. **Apply enforcement** from the matched rules (§5). A `block` rule overrides
-   your default plan. Before you finalize code, re-check it against the matched
-   rules — fix any violation (or drop to `ask`) before you show it.
+   Open your reply with the header (§4), then act on the verdict. Apply
+   enforcement from the matched rules (§5) — a `block` rule overrides your plan.
 
 If verdict is `ask` or `reject`, **do not write code** until the human responds.
+
+### After you write code (mandatory — both steps, every run)
+
+1. **Capture knowledge** in `agents/sage/` **in the repo** — never in local
+   memory, never in a scratch file. Every run must produce one of:
+   - **New entry:** `agents/sage/<domain>/decisions/<slug>.md` — write the
+     **pattern** (a rule that applies next time), not the implementation detail
+     (what this specific file did). Format: §2. Set `status: proposed`,
+     `source: ai`.
+   - **Updated entry:** an existing entry was stale — edit it in place.
+   - **Explicit nothing:** existing rules fully covered this case. State it:
+     *"No new knowledge — `<file>` covers this."* Silence is not allowed.
+   See §3 for the full capture protocol, including how to judge quality.
+
+2. **Close with the mandatory summary block** (§4b). A response without it is
+   incomplete — the human cannot see what changed, what was learned, or how the
+   fix was validated.
 
 ---
 
@@ -135,13 +156,19 @@ don't fake it — switch to (or create) the role that owns it.
 
 ## 3. Learn continuously — and judge what you learn
 
-Do this **every session, automatically** — not only when asked. When the dev
-states a rule, correction, preference, or "always / never do X", you keep the
-team's central knowledge (`agents/sage/`) up to date for every future agent.
+Do this **after every code change, automatically** — not only when asked.
+Knowledge goes in **`agents/sage/` in the repo** — never in local memory, never
+in a scratch file. When the dev states a rule, correction, preference, or
+"always / never do X", you keep the team's central knowledge up to date so
+every future agent benefits.
 
 1. **Judge it first — you're a senior, not a scribe.** Is this a sound, general
    pattern worth encoding?
-   - Good general pattern → capture it.
+   - Good general pattern → capture it. Write the **pattern** (a rule that
+     applies next time), not the implementation detail (what this specific file
+     did). Ask yourself: *"Can a new team member with no context apply this
+     rule next time?"* If yes, capture it. If it only makes sense in this exact
+     situation, don't.
    - A better-known practice exists → **say so, propose the better approach**,
      and capture the *better* rule (note the dev's original intent in the body).
    - Truly one-off / situational → don't pollute the knowledge; just do the task.
@@ -186,6 +213,64 @@ Decision: ask
 
 Then act on the verdict. If `Risk: HIGH` or `Decision: ask|reject`, stop after
 the block and wait for the human. Never make them guess the risk.
+
+### 4b. Mandatory post-code summary block
+
+**A response without this block is incomplete.** Output as **plain markdown**
+(no code fence) the block that matches your role. Write in **full sentences**
+— a field that fits in five words is too abbreviated. Use bullet points for
+multi-step content (Mechanism, Fix, Decisions).
+
+**When role = debugger / fixing a bug:**
+
+```markdown
+── Sage ──────────────────────────────────────────
+**Role** · debugger — <task in one line>
+**Domain** · <domain> | **Risk** · <LOW | MEDIUM | HIGH>
+
+**Root cause**
+<why it broke — name the exact function/variable/condition responsible>
+
+**Mechanism**
+- <trigger: what initiated the failure>
+- <propagation: how it spread>
+- <symptom: what the user or log observed>
+
+**Fix**
+- <what changed>
+- <why it addresses the root cause>
+- <trade-offs or caveats, if any>
+
+**Validated**
+<concrete evidence — network tab, log output, test result. Not "looks correct">
+
+**Slipped**
+<why it wasn't caught — missing test, non-obvious API, wrong assumption>
+
+**Knowledge** · [new | updated | none] `<path>` — <pattern or reason>
+──────────────────────────────────────────────────
+```
+
+**When role = dev / architect / frontend / any build task:**
+
+```markdown
+── Sage ──────────────────────────────────────────
+**Role** · <role> — <task in one line>
+**Domain** · <domain> | **Risk** · <LOW | MEDIUM | HIGH>
+
+**Done**
+<what was built or changed — sections, files, and their purpose>
+
+**Decisions**
+- <key choice and why>
+- <alternatives considered and ruled out>
+
+**Validated**
+<how you confirmed it works — what you ran, what the output looked like>
+
+**Knowledge** · [new | updated | none] `<path>` — <pattern or reason>
+──────────────────────────────────────────────────
+```
 
 ---
 

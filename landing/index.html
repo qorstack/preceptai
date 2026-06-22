@@ -1284,7 +1284,10 @@
                 </li>
                 <li>
                   <span class="key">Risk</span>
-                  <span><b>HIGH</b> - irreversible action, touches auth + billing</span>
+                  <span
+                    ><b>HIGH</b> - irreversible action, touches auth +
+                    billing</span
+                  >
                 </li>
                 <li>
                   <span class="key">Decision</span>
@@ -1294,7 +1297,8 @@
                 </li>
               </ul>
               <div class="agent-answer">
-                <pre>Role: backend — user-settings
+                <pre>
+Role: backend — user-settings
 
 Ikigai: needed: yes / lasts: soft_delete.py / safe: audit log before delete / agreed: 30-day grace period
 Risk: HIGH - irreversible data loss, touches auth and billing records.
@@ -1305,11 +1309,17 @@ Matched rules:
 "All destructive actions must write to audit_log before executing."
 
 I found users/soft_delete.py and users/audit_log.py.
-Because this is high risk, I will wait for confirmation before editing code.</pre>
+Because this is high risk, I will wait for confirmation before editing code.</pre
+                >
                 <div class="knowledge-files" aria-label="Sage knowledge files">
                   <span>reads: agents/sage/users/rules.md</span>
-                  <span>creates if missing: agents/sage/roles/role-backend.md</span>
-                  <span>captures new rules in: agents/sage/users/decisions/*.md</span>
+                  <span
+                    >creates if missing: agents/sage/roles/role-backend.md</span
+                  >
+                  <span
+                    >captures new rules in:
+                    agents/sage/users/decisions/*.md</span
+                  >
                 </div>
               </div>
             </div>
@@ -1317,21 +1327,49 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
 
           <div>
             <div class="flow" aria-label="Sage pipeline">
+              <div
+                style="
+                  font-family: var(--mono);
+                  font-size: 10px;
+                  color: var(--muted);
+                  text-transform: uppercase;
+                  letter-spacing: 0.08em;
+                  padding: 0 4px 2px;
+                "
+              >
+                Before code
+              </div>
               <div class="flow-step">
-                <i></i><span>Read team knowledge</span
+                <i></i><span>Pick role + load knowledge</span
                 ><span class="tag">agents/sage</span>
               </div>
               <div class="flow-step">
                 <i></i><span>Find reuse path</span
-                ><span class="tag">no reinvention</span>
+                ><span class="tag">read exports</span>
               </div>
               <div class="flow-step">
-                <i></i><span>Assess blast radius</span
-                ><span class="tag">risk gate</span>
+                <i></i><span>State intent + risk verdict</span
+                ><span class="tag">proceed / ask</span>
+              </div>
+              <div
+                style="
+                  font-family: var(--mono);
+                  font-size: 10px;
+                  color: var(--muted);
+                  text-transform: uppercase;
+                  letter-spacing: 0.08em;
+                  padding: 6px 4px 2px;
+                "
+              >
+                After code
               </div>
               <div class="flow-step">
-                <i></i><span>Proceed, warn, ask, or reject</span
-                ><span class="tag">enforced</span>
+                <i></i><span>Capture knowledge</span
+                ><span class="tag">repo, not memory</span>
+              </div>
+              <div class="flow-step">
+                <i></i><span>Summary block</span
+                ><span class="tag">mandatory</span>
               </div>
             </div>
 
@@ -1494,9 +1532,9 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
               <div class="eyebrow">Install</div>
               <h2>One file makes cognition enforceable.</h2>
               <p class="lead">
-                Drop AGENTS.md into the repo. Wire up your agent. Commit it.
-                Any compatible coding agent now has a protocol to follow before
-                it writes code.
+                Drop AGENTS.md into the repo. Wire up your agent. Commit it. Any
+                compatible coding agent now has a protocol to follow before it
+                writes code.
               </p>
             </div>
 
@@ -1512,7 +1550,7 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
                     <span>Or let your AI set it up</span>
                     <button
                       class="copy"
-                      data-copy="Set up Sage in this repo.
+                      data-copy='Set up Sage in this repo.
 
 1. Fetch https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md
    and save it as AGENTS.md at the repo root.
@@ -1525,17 +1563,26 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
    and save it as agents/sage/index.md.
 4. Tell me what was installed. Then list these three commands that are now
    available (explain each in one sentence):
-   - /sage — run the cognition pipeline before any code change
+   - /sage — full cognition pipeline: read team knowledge + assess risk before code, then capture what you learned + write a summary after
    - /sage-learning — scan this codebase and write team knowledge to agents/sage/
    - /sage-search-skill — research best practices for this stack and add them as skills
-   Finally, ask me: &quot;Would you like me to run /sage-learning now to capture
-   this codebase&#39;s patterns?&quot;"
+   Finally, ask me: "Would you like me to run /sage-learning now to capture
+   this codebase&#39;s patterns?"'
                     >
                       Copy prompt
                     </button>
                   </div>
-                  <p style="margin:0 0 12px;font-size:14px;color:var(--muted)">Paste into Claude Code, Cursor, Copilot, or any AI agent:</p>
-                  <pre style="overflow-x: hidden">Set up Sage in this repo.
+                  <p
+                    style="
+                      margin: 0 0 12px;
+                      font-size: 14px;
+                      color: var(--muted);
+                    "
+                  >
+                    Paste into Claude Code, Cursor, Copilot, or any AI agent:
+                  </p>
+                  <pre style="overflow-x: hidden">
+Set up Sage in this repo.
 
 1. Fetch https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md
    and save it as AGENTS.md at the repo root.
@@ -1548,11 +1595,12 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
    and save it as agents/sage/index.md.
 4. Tell me what was installed. Then list these three commands that are now
    available (explain each in one sentence):
-   - /sage — run the cognition pipeline before any code change
+   - /sage — full cognition pipeline: read team knowledge + assess risk before code, then capture what you learned + write a summary after
    - /sage-learning — scan this codebase and write team knowledge to agents/sage/
    - /sage-search-skill — research best practices for this stack and add them as skills
    Finally, ask me: "Would you like me to run /sage-learning now to capture
-   this codebase's patterns?"</pre>
+   this codebase's patterns?"</pre
+                  >
                 </div>
 
                 <div class="step">
@@ -1566,7 +1614,9 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
                       Copy
                     </button>
                   </div>
-                  <pre>curl -fsSL https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md -o AGENTS.md</pre>
+                  <pre>
+curl -fsSL https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md -o AGENTS.md</pre
+                  >
                 </div>
 
                 <div class="step">
@@ -1574,18 +1624,28 @@ Because this is high risk, I will wait for confirmation before editing code.</pr
                     <span class="step-num">02</span>
                     <span>Wire up your agent</span>
                   </div>
-                  <p style="margin:0 0 12px;font-size:14px;color:var(--muted)">
-                    Claude Code, Codex, OpenCode, Antigravity — native, nothing else needed.<br>
-                    For Cursor, Windsurf, Cline, Copilot, Gemini — copy the thin adapter:
+                  <p
+                    style="
+                      margin: 0 0 12px;
+                      font-size: 14px;
+                      color: var(--muted);
+                    "
+                  >
+                    Claude Code, Codex, OpenCode, Antigravity — native, nothing
+                    else needed.<br />
+                    For Cursor, Windsurf, Cline, Copilot, Gemini — copy the thin
+                    adapter:
                   </p>
-                  <pre># Claude Code
+                  <pre>
+# Claude Code
 cp -r integrations/.claude .
 
 # Cursor
 cp -r integrations/.cursor .
 
 # Windsurf / Cline / Copilot / Gemini — same pattern
-cp -r integrations/.&lt;tool&gt; .</pre>
+cp -r integrations/.&lt;tool&gt; .</pre
+                  >
                 </div>
 
                 <div class="step">
@@ -1599,8 +1659,10 @@ cp -r integrations/.&lt;tool&gt; .</pre>
                       Copy
                     </button>
                   </div>
-                  <pre># or let /sage-learning fill it in from your real codebase
-git clone --depth 1 https://github.com/qorstack/sage t &amp;&amp; cp -r t/agents . &amp;&amp; rm -rf t</pre>
+                  <pre>
+# or let /sage-learning fill it in from your real codebase
+git clone --depth 1 https://github.com/qorstack/sage t &amp;&amp; cp -r t/agents . &amp;&amp; rm -rf t</pre
+                  >
                 </div>
               </div>
             </div>
@@ -1625,45 +1687,82 @@ git clone --depth 1 https://github.com/qorstack/sage t &amp;&amp; cp -r t/agents
             <div class="code-card">
               <div class="panel-head">
                 <span>/sage</span>
-                <span style="color:var(--mint);font-size:11px">before every change</span>
+                <span style="color: var(--mint); font-size: 11px"
+                  >before + after every change</span
+                >
               </div>
               <div class="install-body">
-                <pre>/sage add stripe webhook handler
+                <pre>
+Role    : debugger — fix infinite API loop
+Intent  : stop useCallback recreating every render
+Touches : BoqUsagePlanSection.tsx
+Risk    : LOW — dep array fix only
+Decision: proceed
 
-Role: backend — payments/webhooks
-Ikigai: needed: yes
-  lasts: WebhookService
-  safe: financial data
-  agreed: idempotency required
-Risk: HIGH — payment mutation
-Decision: ask</pre>
+... [fix applied] ...
+
+── Sage ────────────────────────────────
+Role      : debugger — fix infinite loop
+Domain    : frontend  |  Risk: LOW
+Root cause: useLoadingScreen() returns a
+            new object on every render.
+            Adding it to useCallback deps
+            triggers refetch on each render.
+Mechanism : render → new ref → callback
+            recreated → useEffect fires →
+            API called → setState → repeat
+Fix       : removed unstable refs from
+            deps, kept only [materialId]
+Validated : network tab: 1 call on load,
+            0 repeated calls
+Slipped   : hook API looks stable but
+            returns {} without useMemo
+Knowledge : [new] decisions/
+              usecallback-unstable-deps.md
+────────────────────────────────────────</pre
+                >
               </div>
             </div>
 
             <div class="code-card">
               <div class="panel-head">
                 <span>/sage-learning</span>
-                <span style="color:var(--amber);font-size:11px">run once per repo</span>
+                <span style="color: var(--amber); font-size: 11px"
+                  >run once per repo</span
+                >
               </div>
               <div class="install-body">
-                <pre>/sage-learning
+                <pre>
+/sage-learning
 
-Mapped 3 domains: api, auth, payments
-Written: agents/sage/api/rules.md
-Written: agents/sage/payments/
-  decisions/idempotency-keys.md
-12 rules captured
-→ review and flip status: approved</pre>
+── Sage Learning ───────────────────────
+Stack     : TypeScript, Next.js 15,
+            React 19, MUI, Valibot
+Domains   : frontend, api, auth, billing
+Written   :
+  [new]     frontend/rules.md
+  [new]     decisions/
+              usecallback-unstable-deps.md
+  [updated] roles/role-frontend.md
+  [skipped] loading-and-error-pattern.md
+              — already up to date
+Next      : flip status: approved on
+            entries you want enforced
+────────────────────────────────────────</pre
+                >
               </div>
             </div>
 
             <div class="code-card">
               <div class="panel-head">
                 <span>/sage-search-skill</span>
-                <span style="color:var(--violet);font-size:11px">research &amp; grow</span>
+                <span style="color: var(--violet); font-size: 11px"
+                  >research &amp; grow</span
+                >
               </div>
               <div class="install-body">
-                <pre>/sage-search-skill
+                <pre>
+/sage-search-skill
 
 Stack: TypeScript + React + Tailwind
 Written:
@@ -1671,7 +1770,8 @@ Written:
   skills/avoid-premature-abstraction.md
   skills/server-component-boundaries.md
 6 skills added
-→ review and approve</pre>
+→ review and approve</pre
+                >
               </div>
             </div>
           </div>

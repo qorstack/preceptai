@@ -27,34 +27,57 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
    `[new]` create `agents/sage/<domain>/decisions/<slug>.md` ·
    `[updated]` fix a stale entry ·
    `[none]` name the existing rule that covered this.
-5. **A response without this block is incomplete.** Write in **full sentences**,
-   not one-liners. Close with the block that matches your role:
+5. **A response without this block is incomplete.** Output as **plain markdown**
+   (no code fence) the block that matches your role. Full sentences; bullet
+   points for Mechanism, Fix, and Decisions.
 
    *Debugger / bug fix:*
 
-   ```text
+   ```markdown
    ── Sage ──────────────────────────────────────────
-   Role      : debugger — <task>
-   Domain    : <domain>  |  Risk: <LOW|MEDIUM|HIGH>
-   Root cause: <why it broke — name the exact function/variable/condition responsible>
-   Mechanism : <how the failure propagated step by step to the visible symptom>
-   Fix       : <what changed, why it addresses the root cause, any trade-offs>
-   Validated : <concrete evidence — network tab, log output, test result. Not "looks correct">
-   Slipped   : <why it wasn't caught — missing test, non-obvious API, wrong assumption>
-   Knowledge : [new | updated | none] <path or reason>
+   **Role** · debugger — <task>
+   **Domain** · <domain> | **Risk** · <LOW|MEDIUM|HIGH>
+
+   **Root cause**
+   <why it broke — name the exact function/variable/condition responsible>
+
+   **Mechanism**
+   - <trigger>
+   - <propagation>
+   - <symptom>
+
+   **Fix**
+   - <what changed and why it addresses the root cause>
+   - <trade-offs, if any>
+
+   **Validated**
+   <concrete evidence — network tab, log output, test result. Not "looks correct">
+
+   **Slipped**
+   <why it wasn't caught — missing test, non-obvious API, wrong assumption>
+
+   **Knowledge** · [new | updated | none] `<path>` — <reason>
    ──────────────────────────────────────────────────
    ```
 
    *Dev / build task:*
 
-   ```text
+   ```markdown
    ── Sage ──────────────────────────────────────────
-   Role      : <role> — <task>
-   Domain    : <domain>  |  Risk: <LOW|MEDIUM|HIGH>
-   Done      : <what was built or changed — sections, files, and their purpose>
-   Decisions : <key choices and why — include alternatives considered and ruled out>
-   Validated : <how you confirmed it works — what you ran, what the output looked like>
-   Knowledge : [new | updated | none] <path or reason>
+   **Role** · <role> — <task>
+   **Domain** · <domain> | **Risk** · <LOW|MEDIUM|HIGH>
+
+   **Done**
+   <what was built or changed — sections, files, and their purpose>
+
+   **Decisions**
+   - <key choice and why>
+   - <alternatives considered and ruled out>
+
+   **Validated**
+   <how you confirmed it works — what you ran, what the output looked like>
+
+   **Knowledge** · [new | updated | none] `<path>` — <reason>
    ──────────────────────────────────────────────────
    ```
 

@@ -23,8 +23,9 @@ four questions against your team's rules, and _then_ codes — or stops and asks
 | 🤝  | **Did we agree?** | does it respect the rules in `agents/sage/`?              |
 
 No install, no server, no Python. Sage is a cognition protocol in a single
-**`AGENTS.md`** — Markdown you read, edit, and `git push`. Any agent that reads
-`AGENTS.md` (Claude Code, Cursor, Codex, Copilot…) follows it.
+**[`AGENTS.md`](https://github.com/qorstack/sage/blob/main/AGENTS.md)** —
+Markdown you read, edit, and `git push`. Any agent that reads `AGENTS.md`
+(Claude Code, Cursor, Codex, Copilot…) follows it.
 
 ## Install — one file, any machine
 
@@ -46,7 +47,7 @@ Set up Sage in this repo.
    and save it as agents/sage/index.md.
 4. Tell me what was installed. Then list these three commands that are now
    available (explain each in one sentence):
-   - /sage — run the cognition pipeline before any code change
+   - /sage — full cognition pipeline: read team knowledge + assess risk before code, then capture what you learned + write a summary after
    - /sage-learning — scan this codebase and write team knowledge to agents/sage/
    - /sage-search-skill — research best practices for this stack and add them as skills
    Finally, ask me: "Would you like me to run /sage-learning now to capture
@@ -64,7 +65,7 @@ curl -fsSL https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md -o AGE
 ```
 
 No terminal? Download
-[`AGENTS.md`](https://raw.githubusercontent.com/qorstack/sage/main/AGENTS.md)
+[`AGENTS.md`](https://github.com/qorstack/sage/blob/main/AGENTS.md)
 and drop it in your repo root.
 
 ### 2. Wire up your agent
@@ -73,14 +74,14 @@ and drop it in your repo root.
 
 For **Cursor, Windsurf, Cline, Copilot, Gemini**, copy the thin adapter for your tool:
 
-| Tool | Command |
-| --- | --- |
-| Claude Code | `cp -r integrations/.claude .` |
-| Cursor | `cp -r integrations/.cursor .` |
-| Windsurf | `cp -r integrations/.windsurf .` |
-| Cline | `cp -r integrations/.clinerules .` |
-| GitHub Copilot | `cp -r integrations/.github .` |
-| Gemini CLI | `cp integrations/GEMINI.md .` |
+| Tool           | Command                            |
+| -------------- | ---------------------------------- |
+| Claude Code    | `cp -r integrations/.claude .`     |
+| Cursor         | `cp -r integrations/.cursor .`     |
+| Windsurf       | `cp -r integrations/.windsurf .`   |
+| Cline          | `cp -r integrations/.clinerules .` |
+| GitHub Copilot | `cp -r integrations/.github .`     |
+| Gemini CLI     | `cp integrations/GEMINI.md .`      |
 
 Each adapter is one line: "read and follow `AGENTS.md`." Edit the protocol in
 one place and every agent stays in step.
@@ -97,15 +98,51 @@ Commit everything. That's the whole setup.
 
 Three commands cover the full lifecycle:
 
-**`/sage`** — run the cognition pipeline before any code change
+**`/sage`** — run the full cognition pipeline before any code change
+
+Before writing, the agent establishes its role, reads team knowledge, and states
+intent + risk. After writing, it captures what it learned and closes with a
+summary. Every field is mandatory — a response without the summary block is
+considered incomplete.
 
 ```text
-/sage add stripe webhook handler
+/sage fix infinite API loop on the material create page
 
-Role: backend — payments/webhooks
-Ikigai: needed: yes / lasts: WebhookService / safe: financial data / agreed: idempotency required
-Risk: HIGH — payment mutation
-Decision: ask — I found payments/idempotency.py. Waiting for confirmation before editing.
+Role    : debugger — root-causing repeated GET /usage-plans calls
+Intent  : stop useCallback from recreating on every render
+Touches : src/views/apps/boq/request/BoqUsagePlanSection.tsx
+Risk    : LOW — dependency array fix, no logic change
+Decision: proceed
+
+... [fix applied] ...
+
+── Sage ──────────────────────────────────────────
+Role      : debugger — fix infinite API loop in BoqUsagePlanSection
+Domain    : frontend  |  Risk: LOW
+
+Root cause: useLoadingScreen() returns a new object literal { start, stop } on
+            every render because it does not wrap its return value in useMemo.
+            Including this in useCallback's dep array makes the hook treat it as
+            a new dependency on every render.
+
+Mechanism : Every render → new loadingScreen object → useCallback recreated →
+            useEffect fires → API called → setState → re-render → repeat.
+            This caused hundreds of GET /usage-plans calls per page load.
+
+Fix       : Removed loadingScreen and handleError from the dep array, keeping
+            only [materialId]. Both are used for side-effects only and their
+            instability cannot cause stale-closure bugs.
+
+Validated : Network tab after fix shows one GET /usage-plans on load, one more
+            when materialId changes. The repeat loop is gone.
+
+Slipped   : useLoadingScreen's API looks stable (named methods) but returns a
+            plain object literal without useMemo — non-obvious without reading
+            the hook source.
+
+Knowledge : [new] agents/sage/frontend/decisions/usecallback-unstable-deps.md
+                  → "Never put hook-returned objects in useCallback deps"
+──────────────────────────────────────────────────
 ```
 
 **`/sage-learning`** — scan this codebase once and write team knowledge
@@ -113,10 +150,17 @@ Decision: ask — I found payments/idempotency.py. Waiting for confirmation befo
 ```text
 /sage-learning
 
-Mapped 3 domains: api, auth, payments
-Written: agents/sage/api/rules.md
-Written: agents/sage/payments/decisions/idempotency-keys.md
-12 rules captured — review and flip status: approved
+── Sage Learning ─────────────────────────────────
+Stack     : TypeScript, Next.js 15, React 19, MUI, Valibot
+Domains   : frontend, api, auth, billing
+Written   :
+  [new]     agents/sage/frontend/rules.md — naming, layout, and hook conventions
+  [new]     agents/sage/frontend/decisions/usecallback-unstable-deps.md
+  [new]     agents/sage/frontend/decisions/react-hook-deps-stability.md
+  [updated] agents/sage/roles/role-frontend.md — added hooks/state section
+  [skipped] loading-and-error-pattern.md — already up to date
+Next      : flip status: approved on entries you want enforced
+──────────────────────────────────────────────────
 ```
 
 **`/sage-search-skill`** — research current best practices for this stack and write them as skills
@@ -131,21 +175,6 @@ Written: agents/sage/frontend/skills/avoid-premature-abstraction.md
 Written: agents/sage/frontend/skills/server-component-boundaries.md
 6 skills added — review and approve
 ```
-
-## What your agent does now
-
-Before touching code, it becomes the right senior and opens its reply with a
-verdict you can trust:
-
-```text
-Sage · backend · billing
-Ikigai — needed: yes · lasts: extends RefundService · safe: touches settlement · agreed: idempotency required
-Risk: HIGH — payment mutation
-Decision: ask
-```
-
-…then it reuses your existing services, follows your team's rules, and stops on
-`ask` / `reject` instead of charging ahead.
 
 ## Your rules, as Markdown
 
@@ -166,9 +195,9 @@ Edit a rule, commit, done — the agent follows your version. When you tell it a
 new rule in chat, it writes one as `status: proposed`; you approve by flipping it
 to `approved`. It even keeps a library of senior personas in `agents/sage/roles/`.
 
-Run **[`/sage-learning`](commands/sage-learning.md)** once to seed `agents/sage/`
-straight from your existing code — Sage studies the team's real patterns and
-writes them up so future code matches.
+Run **`/sage-learning`** once to seed `agents/sage/` straight from your existing
+code — Sage studies the team's real patterns and writes them up so future code
+matches.
 
 ## Works with every agent
 

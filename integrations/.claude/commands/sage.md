@@ -82,56 +82,62 @@ One-line entries count. What's not allowed is silence.
 
 ## Step 5 — Summary (mandatory, every run)
 
-**A response without this block is incomplete.** Close every response with the
-block that matches your role. Write in **full sentences** — a field that fits in
-five words is too abbreviated. No field left blank.
+**A response without this block is incomplete.** Output as **plain markdown**
+(no code fence) the block that matches your role. Write in **full sentences**
+— a field that fits in five words is too abbreviated. Use bullet points for
+multi-step content (Mechanism, Fix, Decisions).
 
 **When role = debugger / fixing a bug:**
 
-```text
+```markdown
 ── Sage ──────────────────────────────────────────
-Role      : debugger — <task in one line>
-Domain    : <domain>  |  Risk: <LOW | MEDIUM | HIGH>
+**Role** · debugger — <task in one line>
+**Domain** · <domain> | **Risk** · <LOW | MEDIUM | HIGH>
 
-Root cause: Explain the specific condition, code path, or wrong assumption that
-            caused the failure. Name the exact function/variable responsible.
+**Root cause**
+Explain the specific condition, code path, or wrong assumption that caused the
+failure. Name the exact function/variable responsible.
 
-Mechanism : Walk the failure propagation step by step — from trigger to visible
-            symptom. Be specific enough that someone can reproduce it from this
-            description alone.
+**Mechanism**
+- <trigger: what initiated the failure>
+- <propagation: how it spread to the surface>
+- <symptom: what the user or log observed>
 
-Fix       : Describe what changed, why it addresses the root cause, and any
-            trade-offs or caveats the team should know about the approach.
+**Fix**
+- <what changed>
+- <why it addresses the root cause>
+- <trade-offs or caveats the team should know>
 
-Validated : State the concrete evidence you observed — network tab, log output,
-            test result, manual check. "Looks correct" is not validation.
+**Validated**
+State the concrete evidence you observed — network tab, log output, test result,
+manual check. "Looks correct" is not validation.
 
-Slipped   : Explain why this wasn't caught earlier — missing test, non-obvious
-            API behaviour, misleading naming, or an assumption that turned out wrong.
+**Slipped**
+Explain why this wasn't caught earlier — missing test, non-obvious API behaviour,
+misleading naming, or an assumption that turned out wrong.
 
-Knowledge : [new]     <path> — <pattern title>
-            [updated] <path> — <what changed>
-            [none]    <which existing rule covered this>
+**Knowledge** · [new] `<path>` — <pattern title>
 ──────────────────────────────────────────────────
 ```
 
 **When role = dev / architect / frontend / any build task:**
 
-```text
+```markdown
 ── Sage ──────────────────────────────────────────
-Role      : <role> — <task in one line>
-Domain    : <domain>  |  Risk: <LOW | MEDIUM | HIGH>
+**Role** · <role> — <task in one line>
+**Domain** · <domain> | **Risk** · <LOW | MEDIUM | HIGH>
 
-Done      : Describe what was built or changed — sections, files, and their purpose.
+**Done**
+Describe what was built or changed — sections, files, and their purpose.
 
-Decisions : Explain the key choices made and why. If you considered alternatives,
-            say what you chose and what you ruled out and why.
+**Decisions**
+- <key choice and why>
+- <alternatives considered and ruled out>
 
-Validated : Describe how you confirmed it works — what you ran, what you checked,
-            what the output looked like.
+**Validated**
+Describe how you confirmed it works — what you ran, what you checked, what the
+output looked like.
 
-Knowledge : [new]     <path> — <pattern title>
-            [updated] <path> — <what changed>
-            [none]    <which existing rule covered this>
+**Knowledge** · [new | updated | none] `<path>` — <pattern or reason>
 ──────────────────────────────────────────────────
 ```
