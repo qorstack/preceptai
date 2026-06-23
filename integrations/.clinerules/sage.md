@@ -5,55 +5,69 @@ follow **`AGENTS.md`** at the repo root — the cognition protocol.
 
 Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
 
+---
+
+**Model & effort ceiling — applies to every step.** Read the actual model and
+effort from the current session context before starting — never assume from
+memory or a previous run. State what you detected in the intent block.
+
+- **Ceiling:** never exceed the session model version or effort on any sub-task
+- **Floor:** `sonnet @ low` — do not drop below this; do not use haiku
+- **Effort levels** (all apply to every model): `low` · `medium` · `high` · `max`
+  — pick the lowest tier that covers each task; do not default to high/max
+- **Format:** state full version + effort for every task —
+  `opus 4.8 @ effort:low`, `sonnet 4.6 @ effort:medium`
+
+---
+
 **Before code:**
 
-1. Pick the role lens for this phase (`architect`, `dev`, `debugger`, `frontend`,
-   `qa`, …) — infer from the request. Roles hand off between phases: plan with
-   `architect`, build with `dev`, fix with `debugger`. Each phase loads its own role.
+1. Pick the role lens (`architect`, `dev`, `debugger`, `frontend`, `qa`, …) —
+   infer from the request. Roles hand off between phases.
    **Open `agents/sage/roles/role-<lens>.md` immediately.**
-   - Found → read it, adopt as-is, output: `Role: <lens> [loaded]`. Do not re-derive.
-   - Missing → write the file to disk now (before step 2), output: `Role: <lens> [created]`.
-   On phase handoff output: `Role: <new-lens> [loaded] — handoff from <prev-lens>`.
+   - Found → read it, adopt as-is, output: `Role: <lens> [loaded]`
+   - Missing → write the file to disk now, output: `Role: <lens> [created]`
+   On handoff output: `Role: <new-lens> [loaded] — handoff from <prev-lens>`.
    Never start a phase without outputting the role line.
 2. Read `agents/sage/<domain>/rules.md` and relevant `decisions/` files.
    Quote the rules that apply. Find reusable assets — **open the source file
    and read its exports** before using them. Never infer an API from a name.
-   **Multi-repo workspace:** anchor all paths (`AGENTS.md`, `agents/sage/`,
-   role files) to the repo root of the file being edited — the closest ancestor
-   with `AGENTS.md`. Add `Repo: <repo-root>` to the intent block. Never read
-   or write knowledge across repos.
-3. Output the intent block (Role · Intent · Touches · Risk · Decision), then
-   declare a **parallel plan** — group tasks by phase, mark each `[parallel]` or
-   `[sequential]`, assign effort `low / medium / high` (ceiling = current model;
-   reduce to `low` for mechanical tasks to save tokens). Execute parallel phases
-   in a single response. Use phase markers:
-   `── [phase N · parallel: A, B] ───` to open a phase, then each task outputs
-   `[✓ A — result]` as soon as IT finishes (not after all finish),
-   `── [phase N → all done] ─────────` to close, and
-   `[✗ B failed — <reason>. Pausing.]` on failure — never continue silently.
-   Stop and ask on `ask` / `reject`.
+   **Multi-repo workspace:** anchor all paths to the repo root of the file
+   being edited. Add `Repo: <repo-root>` to the intent block. Never read or
+   write knowledge across repos.
+3. Output the intent block, then declare a **parallel plan**:
+
+   ```text
+   Role    : <role> — <task>
+   Model   : <version> @ effort:<level>  ← detected from session, not memory
+   Intent  : <what this change does>
+   Touches : <files, systems, domains>
+   Risk    : LOW | MEDIUM | HIGH — <why>
+   Decision: proceed | warn | ask | reject
+   ```
+
+   Group plan tasks by phase (`[parallel]` or `[sequential]`). Annotate each
+   task with its tier. Mark tasks with 🟨 when starting, ✅ when done,
+   ❌ on failure (pause immediately — never continue silently).
 
 **After code:**
 
-1. Capture knowledge — mandatory, every run. Knowledge goes to `agents/sage/`
-   **in the repo**, never to local memory. Write the **pattern** (transferable
-   rule), not the implementation. One of:
-   `[new]` create `agents/sage/<domain>/decisions/<slug>.md` ·
-   `[updated]` fix a stale entry ·
+1. Capture knowledge — mandatory, every run. Write to `agents/sage/` in the
+   repo, never to local memory. Write the pattern, not the implementation.
+   `[new]` create a `decisions/<slug>.md` · `[updated]` fix stale entry ·
    `[none]` name the existing rule that covered this.
-2. **A response without this block is incomplete.** Output as **plain markdown**
-   (no code fence) the block that matches your role. Full sentences; bullet
-   points for Mechanism, Fix, and Decisions.
+2. **A response without this block is incomplete.** Output as plain markdown:
 
    *Debugger / bug fix:*
 
    ```markdown
    ── Sage ──────────────────────────────────────────
    **Role** · debugger — <task>
+   **Model** · <version> @ effort:<level>
    **Domain** · <domain> | **Risk** · <LOW|MEDIUM|HIGH>
 
    **Root cause**
-   <why it broke — name the exact function/variable/condition responsible>
+   <why it broke — name the exact function/variable/condition>
 
    **Mechanism**
    - <trigger>
@@ -65,10 +79,10 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
    - <trade-offs, if any>
 
    **Validated**
-   <concrete evidence — network tab, log output, test result. Not "looks correct">
+   <concrete evidence — not "looks correct">
 
    **Slipped**
-   <why it wasn't caught — missing test, non-obvious API, wrong assumption>
+   <why it wasn't caught>
 
    **Knowledge** · [new | updated | none] `<path>` — <reason>
    ──────────────────────────────────────────────────
@@ -79,17 +93,18 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
    ```markdown
    ── Sage ──────────────────────────────────────────
    **Role** · <role> — <task>
+   **Model** · <version> @ effort:<level>
    **Domain** · <domain> | **Risk** · <LOW|MEDIUM|HIGH>
 
    **Done**
-   <what was built or changed — sections, files, and their purpose>
+   <what was built or changed>
 
    **Decisions**
    - <key choice and why>
    - <alternatives considered and ruled out>
 
    **Validated**
-   <how you confirmed it works — what you ran, what the output looked like>
+   <how you confirmed it works>
 
    **Knowledge** · [new | updated | none] `<path>` — <reason>
    ──────────────────────────────────────────────────

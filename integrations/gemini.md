@@ -5,6 +5,17 @@ follow **`AGENTS.md`** at the repo root — the cognition protocol.
 
 Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
 
+**Model & effort ceiling — applies to every step.** Read the actual model and
+effort from the current session context before starting — never assume from
+memory or a previous run. State what you detected in the intent block.
+
+- **Ceiling:** never exceed the session model version or effort on any sub-task
+- **Floor:** `sonnet @ low` — do not drop below this; do not use haiku
+- **Effort levels** (all apply to every model): `low` · `medium` · `high` · `max`
+  — pick the lowest tier that covers each task; do not default to high/max
+- **Format:** state full version + effort for every task —
+  `opus 4.8 @ effort:low`, `sonnet 4.6 @ effort:medium`
+
 **Before code:**
 
 1. Pick the role lens for this phase (`architect`, `dev`, `debugger`, `frontend`,
@@ -22,16 +33,19 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
    role files) to the repo root of the file being edited — the closest ancestor
    with `AGENTS.md`. Add `Repo: <repo-root>` to the intent block. Never read
    or write knowledge across repos.
-3. Output the intent block (Role · Intent · Touches · Risk · Decision), then
-   declare a **parallel plan** — group tasks by phase, mark each `[parallel]` or
-   `[sequential]`, assign effort `low / medium / high` (ceiling = current model;
-   reduce to `low` for mechanical tasks to save tokens). Execute parallel phases
-   in a single response. Use phase markers:
-   `── [phase N · parallel: A, B] ───` to open a phase, then each task outputs
-   `[✓ A — result]` as soon as IT finishes (not after all finish),
-   `── [phase N → all done] ─────────` to close, and
-   `[✗ B failed — <reason>. Pausing.]` on failure — never continue silently.
-   Stop and ask on `ask` / `reject`.
+3. Output the intent block, then declare a **parallel plan** — group tasks by
+   phase, mark each `[parallel]` or `[sequential]`. Annotate every task with
+   its model + effort tier. Mark tasks with 🟨 when starting, ✅ when done,
+   ❌ on failure — never continue silently. Stop and ask on `ask` / `reject`.
+
+   ```text
+   Role    : <role> — <task>
+   Model   : <version> @ effort:<level>  ← detected from session, not memory
+   Intent  : <what this change does>
+   Touches : <files, systems, domains>
+   Risk    : LOW | MEDIUM | HIGH — <why>
+   Decision: proceed | warn | ask | reject
+   ```
 
 **After code:**
 
@@ -50,6 +64,7 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
    ```markdown
    ── Sage ──────────────────────────────────────────
    **Role** · debugger — <task>
+   **Model** · <version> @ effort:<level>
    **Domain** · <domain> | **Risk** · <LOW|MEDIUM|HIGH>
 
    **Root cause**
@@ -79,6 +94,7 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
    ```markdown
    ── Sage ──────────────────────────────────────────
    **Role** · <role> — <task>
+   **Model** · <version> @ effort:<level>
    **Domain** · <domain> | **Risk** · <LOW|MEDIUM|HIGH>
 
    **Done**

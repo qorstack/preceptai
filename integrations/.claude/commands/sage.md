@@ -5,19 +5,44 @@ Steps 4–5 run **after**. All five are mandatory — never skip, never abbrevia
 
 ## Model & effort — applies to every step
 
-**Ceiling: the model and effort active in this session.** Never exceed either.
-Pick the lowest tier that adequately covers the work at each step — downgrade
-aggressively for mechanical work to save tokens:
+### Detect the session ceiling — do this before every task
 
-| Model    | Effort   | When to use                                                        |
-| -------- | -------- | ------------------------------------------------------------------ |
-| `haiku`  | `low`    | File reads, simple edits, boilerplate — no reasoning needed        |
-| `sonnet` | `medium` | Standard implementation, moderate complexity                       |
-| `opus`   | `high`   | Complex logic, architecture, root-cause, critical decisions        |
-| `opus`   | `max`    | Hardest multi-system problems — reserve for when high isn't enough |
+**Read the actual model and effort from the current session context.** Do not
+recall from memory or assume from a previous run — the user may have changed
+it. State what you detected at the top of Step 3.
 
-State the chosen model + effort in the Step 3 intent block and in the final
-summary. Also annotate each task in the parallel plan with its own tier.
+The session ceiling is the **model version + effort level** the user has set
+right now (e.g. `opus 4.8 @ effort:low`, `sonnet 4.6 @ effort:medium`). You must **never exceed either
+dimension** on any sub-task, for any reason.
+
+### Floor
+
+**Minimum tier is `sonnet @ low`.** Do not drop below this. Do not use haiku.
+
+### Effort levels (apply to every model)
+
+Every model supports every effort level. Pick the lowest effort that adequately
+covers the sub-task — do not default to high or max:
+
+| Effort   | When to use                                                       |
+| -------- | ----------------------------------------------------------------- |
+| `low`    | Simple edits, file reads, boilerplate — minimal reasoning needed  |
+| `medium` | Standard implementation, moderate complexity                      |
+| `high`   | Complex logic, architecture, root-cause, critical/risky decisions |
+| `max`    | Hardest multi-system problems — only when `high` is not enough    |
+
+### How to pick
+
+1. Note the session ceiling (model version + effort).
+2. For each sub-task, ask: what is the _minimum_ effort needed?
+3. Cap at the session ceiling — if the ceiling is `opus 4.8 @ effort:low`,
+   every sub-task must be `≤ opus 4.8` **and** `≤ low`, even complex ones.
+4. State the full version + effort for every task:
+   `sonnet 4.6 @ effort:medium`, `opus 4.8 @ effort:low`, etc.
+
+State the session ceiling once in the Step 3 intent block, then annotate each
+task in the parallel plan with its own chosen tier. Repeat the chosen tier in
+the final summary.
 
 > **Multi-repo workspace:** When multiple repos are open at once, anchor every
 > path in this protocol (`AGENTS.md`, `agents/sage/`, role files) to the **repo

@@ -152,7 +152,7 @@ mandatory — a response without the summary block is considered incomplete.
 /sage fix infinite API loop on the material create page
 
 Role    : debugger — root-causing repeated GET /usage-plans calls
-Model   : sonnet @ effort:medium
+Model   : sonnet 4.6 @ effort:medium
 Intent  : stop useCallback from recreating on every render
 Touches : src/views/apps/boq/request/BoqUsagePlanSection.tsx
 Risk    : LOW — dependency array fix, no logic change
@@ -162,7 +162,7 @@ Decision: proceed
 
 ── Sage ──────────────────────────────────────────
 Role      : debugger — fix infinite API loop in BoqUsagePlanSection
-Model     : sonnet @ effort:medium
+Model     : sonnet 4.6 @ effort:medium
 Domain    : frontend  |  Risk: LOW
 
 Root cause: useLoadingScreen() returns a new object literal { start, stop } on
