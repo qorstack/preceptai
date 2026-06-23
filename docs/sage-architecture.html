@@ -211,12 +211,117 @@ hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
   text-align: center;
 }
 
+/* TL;DR card */
+.tldr-card {
+  background: rgba(104, 217, 155, 0.06);
+  border: 1px solid rgba(104, 217, 155, 0.2);
+  border-left: 3px solid var(--mint);
+  border-radius: var(--radius-lg);
+  padding: 18px 24px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.tldr-card .tldr-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mint);
+  margin-bottom: 10px;
+}
+.tldr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
+.tldr-stat { display: flex; flex-direction: column; gap: 2px; }
+.tldr-stat-label { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+.tldr-stat-value { font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+
+/* Clickable SVG nodes */
+svg a { cursor: pointer; }
+svg a:hover rect { opacity: 0.85; }
+
+/* Component meta block — responsibility / tech / exposes / consumes */
+.comp-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+.comp-meta-item {
+  background: rgba(247,244,237,0.03);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.comp-meta-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.comp-meta-value {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* Narrative article — flowing content, no panel boxes */
+.doc-article { padding: 8px 0 0; }
+.doc-article h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 40px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  scroll-margin-top: 24px;
+}
+.doc-article h2 .h2-accent {
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.doc-article h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  margin-top: 22px;
+  margin-bottom: 10px;
+}
+.doc-article p { margin-bottom: 14px; }
+.doc-article ol, .doc-article ul { padding-left: 22px; margin-bottom: 14px; }
+.doc-article li { margin-bottom: 6px; }
+.doc-article .table-wrap { margin-bottom: 20px; }
+.doc-article pre { margin-bottom: 20px; }
+.bridge {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-style: italic;
+  margin: 24px 0 0;
+  padding: 10px 14px;
+  border-left: 2px solid rgba(247,244,237,0.12);
+  background: rgba(247,244,237,0.02);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
 .svg-diagram {
   background: rgba(5, 5, 5, 0.5);
   border-radius: var(--radius);
   position: relative;
   overflow: hidden;
-  height: 480px;
+  height: 80vh;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
@@ -364,9 +469,22 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
         <p class="doc-date">Generated 2026-06-23 · sage-docs</p>
       </header>
 
+      <div class="tldr-card">
+        <div class="tldr-label">TL;DR</div>
+        <p>Sage คือ cognition protocol สำหรับ AI coding agents — ประกอบด้วย <strong>AGENTS.md</strong> (protocol หลัก), <strong>agents/sage/</strong> (knowledge store ที่ทีมและ AI เขียนร่วมกัน), และ <strong>integrations/</strong> (adapter얇 สำหรับแต่ละ tool) ทุก AI agent อ่าน AGENTS.md ก่อนทำงาน แล้ว capture สิ่งที่เรียนรู้กลับคืนสู่ knowledge store อัตโนมัติ ไม่มี server, ไม่มี build — แค่ Markdown ที่ทุกคนอ่านและแก้ไขได้</p>
+        <div class="tldr-grid">
+          <div class="tldr-stat"><span class="tldr-stat-label">Core artifact</span><span class="tldr-stat-value">AGENTS.md</span></div>
+          <div class="tldr-stat"><span class="tldr-stat-label">Skills</span><span class="tldr-stat-value">4 commands</span></div>
+          <div class="tldr-stat"><span class="tldr-stat-label">Knowledge format</span><span class="tldr-stat-value">Markdown + YAML frontmatter</span></div>
+          <div class="tldr-stat"><span class="tldr-stat-label">Supported agents</span><span class="tldr-stat-value">Claude, Cursor, Copilot, Windsurf, Cline, Codex</span></div>
+          <div class="tldr-stat"><span class="tldr-stat-label">Components</span><span class="tldr-stat-value">5 (protocol · knowledge · integrations · docs · landing)</span></div>
+          <div class="tldr-stat"><span class="tldr-stat-label">Install</span><span class="tldr-stat-value">cp -r integrations/&lt;tool&gt; .</span></div>
+        </div>
+      </div>
+
       <section class="diagram-section">
         <h2>Overview Diagram</h2>
-        <div class="diagram-label">Top-to-bottom · Source → AI Agent → Output</div>
+        <div class="diagram-label">คลิก node เพื่อ jump ไปยัง section นั้น · scroll to zoom · drag to pan</div>
         <div class="diagram-container">
           <div class="svg-diagram" id="svg-zoom-container">
             <div class="diagram-controls">
@@ -404,6 +522,7 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
                 <text x="32" y="20" fill="#8f897d" font-size="9"
                       font-family="'JetBrains Mono',monospace" font-weight="700">SAGE REPOSITORY</text>
 
+                <a href="#agents-md">
                 <rect x="22" y="26" width="222" height="142" rx="7"
                       fill="#1a3d32" stroke="#68d99b" stroke-width="1.5"/>
                 <text x="133" y="52" text-anchor="middle" fill="#68d99b"
@@ -416,8 +535,10 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
                 <text x="133" y="120" text-anchor="middle" fill="#8f897d" font-size="7.5">§5  enforcement rules</text>
                 <text x="133" y="135" text-anchor="middle" fill="#8f897d" font-size="7.5">§4  output blocks</text>
                 <text x="133" y="157" text-anchor="middle"
-                      fill="rgba(104,217,155,0.45)" font-size="7">source of truth</text>
+                      fill="rgba(104,217,155,0.45)" font-size="7">↓ click to jump</text>
+                </a>
 
+                <a href="#knowledge-store">
                 <rect x="260" y="26" width="240" height="142" rx="7"
                       fill="rgba(10,15,13,0.9)" stroke="rgba(247,244,237,0.18)" stroke-width="1"/>
                 <text x="380" y="52" text-anchor="middle" fill="#f7f4ed"
@@ -430,8 +551,10 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
                 <text x="380" y="120" text-anchor="middle" fill="#8f897d" font-size="7.5">&lt;domain&gt;/decisions/*.md</text>
                 <text x="380" y="135" text-anchor="middle" fill="#8f897d" font-size="7.5">&lt;domain&gt;/skills/*.md</text>
                 <text x="380" y="157" text-anchor="middle"
-                      fill="rgba(247,244,237,0.28)" font-size="7">read + written by AI and humans</text>
+                      fill="rgba(247,244,237,0.28)" font-size="7">↓ click to jump</text>
+                </a>
 
+                <a href="#integrations">
                 <rect x="516" y="26" width="254" height="142" rx="7"
                       fill="rgba(10,15,13,0.9)" stroke="rgba(247,244,237,0.18)" stroke-width="1"/>
                 <text x="643" y="52" text-anchor="middle" fill="#f7f4ed"
@@ -444,7 +567,8 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
                 <text x="643" y="120" text-anchor="middle" fill="#8f897d" font-size="7.5">.clinerules/ .github/</text>
                 <text x="643" y="135" text-anchor="middle" fill="#8f897d" font-size="7.5">sage · sage-learning · sage-docs</text>
                 <text x="643" y="157" text-anchor="middle"
-                      fill="rgba(247,244,237,0.28)" font-size="7">thin wrappers pointing at AGENTS.md</text>
+                      fill="rgba(247,244,237,0.28)" font-size="7">↓ click to jump</text>
+                </a>
 
                 <line x1="133" y1="168" x2="133" y2="208" stroke="rgba(104,217,155,0.55)" stroke-width="1.5"/>
                 <text x="140" y="193" fill="rgba(104,217,155,0.65)" font-size="7" font-family="'JetBrains Mono',monospace">reads protocol</text>
@@ -472,6 +596,7 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
                 <line x1="578" y1="364" x2="578" y2="396" stroke="rgba(169,140,255,0.55)" stroke-width="1.5" marker-end="url(#ar-violet)"/>
                 <text x="530" y="384" fill="rgba(169,140,255,0.6)" font-size="7" font-family="'JetBrains Mono',monospace">/sage-docs</text>
 
+                <a href="#knowledge-store">
                 <rect x="10" y="400" width="372" height="108" rx="7"
                       fill="rgba(14,11,4,0.85)" stroke="rgba(240,196,92,0.38)" stroke-width="1.5"/>
                 <text x="196" y="423" text-anchor="middle" fill="#f0c45c"
@@ -481,22 +606,38 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
                 <text x="196" y="460" text-anchor="middle" fill="#8f897d" font-size="7.5">rules · decisions · skills written per domain</text>
                 <text x="196" y="474" text-anchor="middle" fill="#8f897d" font-size="7.5">reviewed by humans · shared via git</text>
                 <text x="196" y="488" text-anchor="middle" fill="#8f897d" font-size="7.5">read by every future AI session</text>
-                <text x="196" y="500" text-anchor="middle" fill="rgba(240,196,92,0.38)" font-size="7">status: approved → enforced by AI</text>
+                <text x="196" y="500" text-anchor="middle" fill="rgba(240,196,92,0.38)" font-size="7">↓ click to jump</text>
+                </a>
 
-                <rect x="398" y="400" width="372" height="108" rx="7"
+                <a href="#docs-output">
+                <rect x="398" y="400" width="176" height="108" rx="7"
                       fill="rgba(8,6,18,0.85)" stroke="rgba(169,140,255,0.38)" stroke-width="1.5"/>
-                <text x="584" y="423" text-anchor="middle" fill="#a98cff"
-                      font-size="9.5" font-weight="700" font-family="'JetBrains Mono',monospace">DOCS/*.HTML</text>
-                <text x="584" y="438" text-anchor="middle" fill="#d7d0c2" font-size="8">Human-readable documentation</text>
-                <line x1="412" y1="445" x2="756" y2="445" stroke="rgba(169,140,255,0.14)" stroke-width="1"/>
-                <text x="584" y="460" text-anchor="middle" fill="#8f897d" font-size="7.5">flow diagrams · API specs · architecture docs</text>
-                <text x="584" y="474" text-anchor="middle" fill="#8f897d" font-size="7.5">styled with inlined CSS (dark theme)</text>
-                <text x="584" y="488" text-anchor="middle" fill="#8f897d" font-size="7.5">inline SVG diagrams — no external renderer</text>
-                <text x="584" y="500" text-anchor="middle" fill="rgba(169,140,255,0.38)" font-size="7">generated by /sage-docs on demand</text>
+                <text x="486" y="423" text-anchor="middle" fill="#a98cff"
+                      font-size="9.5" font-weight="700" font-family="'JetBrains Mono',monospace">DOCS/</text>
+                <text x="486" y="438" text-anchor="middle" fill="#d7d0c2" font-size="8">HTML output</text>
+                <line x1="412" y1="445" x2="560" y2="445" stroke="rgba(169,140,255,0.14)" stroke-width="1"/>
+                <text x="486" y="460" text-anchor="middle" fill="#8f897d" font-size="7.5">self-contained HTML</text>
+                <text x="486" y="474" text-anchor="middle" fill="#8f897d" font-size="7.5">inline SVG diagrams</text>
+                <text x="486" y="488" text-anchor="middle" fill="#8f897d" font-size="7.5">/sage-docs on demand</text>
+                <text x="486" y="500" text-anchor="middle" fill="rgba(169,140,255,0.38)" font-size="7">↓ click to jump</text>
+                </a>
+
+                <a href="#landing">
+                <rect x="588" y="400" width="182" height="108" rx="7"
+                      fill="rgba(18,6,6,0.85)" stroke="rgba(255,90,73,0.32)" stroke-width="1.5"/>
+                <text x="679" y="423" text-anchor="middle" fill="#ff5a49"
+                      font-size="9.5" font-weight="700" font-family="'JetBrains Mono',monospace">LANDING/</text>
+                <text x="679" y="438" text-anchor="middle" fill="#d7d0c2" font-size="8">Promo site</text>
+                <line x1="602" y1="445" x2="756" y2="445" stroke="rgba(255,90,73,0.1)" stroke-width="1"/>
+                <text x="679" y="460" text-anchor="middle" fill="#8f897d" font-size="7.5">sage.qorstack.com</text>
+                <text x="679" y="474" text-anchor="middle" fill="#8f897d" font-size="7.5">GitHub Pages</text>
+                <text x="679" y="488" text-anchor="middle" fill="#8f897d" font-size="7.5">index.html only</text>
+                <text x="679" y="500" text-anchor="middle" fill="rgba(255,90,73,0.28)" font-size="7">↓ click to jump</text>
+                </a>
               </g>
             </svg>
 
-            <div class="diagram-hint">scroll to zoom · drag to pan</div>
+            <div class="diagram-hint">scroll to zoom · drag to pan · click node to jump</div>
           </div>
         </div>
         <p class="diagram-caption">
@@ -505,99 +646,102 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
         </p>
       </section>
 
-      <section class="quick-ref">
-        <h2>Quick Reference</h2>
-        <div class="quick-ref-grid">
-          <div class="quick-ref-item">
-            <div class="quick-ref-label">Core artifact</div>
-            <div class="quick-ref-value">AGENTS.md (single file)</div>
-          </div>
-          <div class="quick-ref-item">
-            <div class="quick-ref-label">No. of commands</div>
-            <div class="quick-ref-value">4 skills</div>
-          </div>
-          <div class="quick-ref-item">
-            <div class="quick-ref-label">Knowledge format</div>
-            <div class="quick-ref-value">Markdown + YAML frontmatter</div>
-          </div>
-          <div class="quick-ref-item">
-            <div class="quick-ref-label">Supported agents</div>
-            <div class="quick-ref-value">Claude, Cursor, Copilot, Windsurf, Cline, Codex</div>
-          </div>
-          <div class="quick-ref-item">
-            <div class="quick-ref-label">Install method</div>
-            <div class="quick-ref-value">cp -r integrations/&lt;tool&gt; .</div>
-          </div>
-          <div class="quick-ref-item">
-            <div class="quick-ref-label">No. of components</div>
-            <div class="quick-ref-value">4 layers</div>
-          </div>
-        </div>
-      </section>
+      <article class="doc-article">
 
-      <section class="doc-section">
-        <h2>Components</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Component</th><th>Type</th><th>Location</th><th>Responsibility</th><th>Editable by</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>AGENTS.md</code></td><td>Protocol</td><td>repo root</td>
-                <td>The full cognition pipeline — steps §1–4, knowledge format §2, enforcement §5, output blocks §4</td>
-                <td>Human (team leads)</td>
-              </tr>
-              <tr>
-                <td><code>agents/sage/</code></td><td>Knowledge store</td><td>repo root</td>
-                <td>Team rules, decisions, skills, and role personas — the living knowledge the AI reads before acting</td>
-                <td>Human + AI</td>
-              </tr>
-              <tr>
-                <td><code>integrations/</code></td><td>Adapters</td><td>sage repo</td>
-                <td>Thin per-tool wrappers (Claude Code, Cursor, Windsurf, …) that point each agent at AGENTS.md — no logic of its own</td>
-                <td>Sage maintainers</td>
-              </tr>
-              <tr>
-                <td><code>landing/</code></td><td>Promo site</td><td>sage repo</td>
-                <td>Static HTML site deployed to GitHub Pages / sage.qorstack.com — describes Sage for new users</td>
-                <td>Human</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="doc-section">
-        <h2>AGENTS.md — The Protocol</h2>
         <p>
-          <code>AGENTS.md</code> คือ Sage ทั้งหมด — ไม่มี server, ไม่มี Python, ไม่มี build step.
-          AI agent ใดก็ตามที่อ่านไฟล์นี้ก่อนทำงานจะ follow the protocol อัตโนมัติ
+          Sage ประกอบด้วย 4 layer ที่ทำงานต่อกัน — แต่ละ layer มีหน้าที่ชัดเจน
+          และไม่มีอะไรที่ซ้อนทับกัน: <code>AGENTS.md</code> คือ protocol,
+          <code>agents/sage/</code> คือ knowledge ของทีม, <code>integrations/</code>
+          คือ adapter บางๆ ที่เชื่อม AI tool กับ protocol, และ <code>docs/</code>
+          คือ output ที่มนุษย์อ่านได้ ทั้ง 4 ชิ้นนี้ต่อกันเป็น feedback loop เดียว
         </p>
-        <h3>Pipeline §1–4 (Before code)</h3>
+
+        <h2 id="agents-md">
+          <span class="h2-accent" style="background:var(--mint)"></span>
+          AGENTS.md — หัวใจของ Protocol
+        </h2>
+
+        <div class="comp-meta">
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Responsibility</div>
+            <div class="comp-meta-value">Full cognition pipeline — roles, pipeline §1–4, knowledge format, enforcement, output blocks</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Tech</div>
+            <div class="comp-meta-value">Single Markdown file · ไม่มี server ไม่มี build — อ่านได้ทุก AI tool</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Exposes</div>
+            <div class="comp-meta-value">Protocol ที่ AI follow · role loading hook · summary block format · enforcement levels</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Consumes</div>
+            <div class="comp-meta-value">ไม่มี dependency — คือ root ของทุกอย่าง</div>
+          </div>
+        </div>
+
+        <p>
+          <code>AGENTS.md</code> คือ Sage ทั้งหมด ไม่มี server, ไม่มี Python,
+          ไม่มี build step — AI agent ใดก็ตามที่อ่านไฟล์นี้ก่อนทำงานจะ follow
+          the protocol อัตโนมัติ สิ่งที่อยู่ใน AGENTS.md แบ่งเป็นสองช่วง:
+          ก่อนเขียนโค้ด และหลังเขียนโค้ด
+        </p>
+
+        <h3>ก่อนเขียนโค้ด — Pipeline §1–4</h3>
         <ol>
-          <li><strong>Become the role</strong> — เลือก senior lens ที่เหมาะสม (dev, architect, qa, designer, …) แล้วเปิด <code>agents/sage/roles/role-&lt;lens&gt;.md</code></li>
-          <li><strong>Read the knowledge</strong> — เปิด <code>agents/sage/&lt;domain&gt;/rules.md</code> และ <code>decisions/*.md</code> ที่เกี่ยวข้อง</li>
-          <li><strong>Find reusable assets</strong> — อ่าน source file ของ service/util/component ที่ rules ชี้ไว้ก่อนเขียนโค้ดที่ใช้มัน</li>
-          <li><strong>Assess &amp; plan</strong> — ประเมิน verdict (proceed / warn / ask / reject), แบ่งงานเป็น [parallel] / [sequential], assign effort tier</li>
+          <li><strong>Become the role</strong> — เลือก senior lens ที่เหมาะสม (dev, architect, qa, designer, …) แล้วเปิด <code>agents/sage/roles/role-&lt;lens&gt;.md</code> เพื่อรับ persona ก่อนเริ่มคิด</li>
+          <li><strong>Read the knowledge</strong> — เปิด <code>agents/sage/&lt;domain&gt;/rules.md</code> และ <code>decisions/*.md</code> ที่เกี่ยวข้อง เพื่อรู้ว่าทีมตัดสินใจอะไรไปแล้วบ้าง</li>
+          <li><strong>Find reusable assets</strong> — อ่าน source file ของ service/util/component ที่ rules ชี้ไว้ก่อนเขียนโค้ดที่ใช้มัน ไม่สร้างซ้ำสิ่งที่มีอยู่แล้ว</li>
+          <li><strong>Assess &amp; plan</strong> — ประเมิน verdict (proceed / warn / ask / reject) แบ่งงานเป็น [parallel] / [sequential] และ assign effort tier ก่อน commit</li>
         </ol>
-        <h3>After code (mandatory)</h3>
+
+        <h3>หลังเขียนโค้ด — mandatory capture</h3>
         <ol>
-          <li>Capture knowledge → <code>agents/sage/&lt;domain&gt;/decisions/&lt;slug&gt;.md</code></li>
-          <li>Output the mandatory summary block (role · domain · risk · done · decisions · validated · knowledge)</li>
+          <li>เขียน pattern ที่เรียนรู้ได้กลับเข้า <code>agents/sage/&lt;domain&gt;/decisions/&lt;slug&gt;.md</code></li>
+          <li>Output summary block บังคับ: role · domain · risk · done · decisions · validated · knowledge</li>
         </ol>
+
         <div class="callout callout-note">
           <span class="callout-icon">📌</span>
-          <div><strong>Single source of truth.</strong> ห้าม fork wording ของ protocol เข้าไปใน integration files — integration files แค่ pointer มาที่ AGENTS.md</div>
+          <div><strong>Single source of truth.</strong> ห้าม fork wording ของ protocol เข้าไปใน integration files — integration files แค่ pointer มาที่ AGENTS.md เท่านั้น เพื่อให้ทุก tool อ่าน protocol เดียวกันเสมอ</div>
         </div>
-      </section>
 
-      <section class="doc-section">
-        <h2>agents/sage/ — Knowledge Store</h2>
-        <p>
-          Knowledge store เติบโตได้สองทาง: human เขียนเอง หรือ AI เขียนให้หลังทำงาน.
-          ทุก entry เป็น YAML frontmatter + Markdown body — 1 idea ต่อ 1 ไฟล์
+        <p class="bridge">
+          Protocol อ่านได้อย่างเดียวไม่พอ — มันต้องมี knowledge ของ codebase นั้นๆ ด้วย
+          นั่นคือหน้าที่ของ layer ถัดไป
         </p>
+
+        <h2 id="knowledge-store">
+          <span class="h2-accent" style="background:var(--amber)"></span>
+          agents/sage/ — Knowledge Store
+        </h2>
+
+        <div class="comp-meta">
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Responsibility</div>
+            <div class="comp-meta-value">Team knowledge store — rules, decisions, skills, role personas ที่เติบโตได้</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Tech</div>
+            <div class="comp-meta-value">Markdown + YAML frontmatter · 1 idea ต่อ 1 ไฟล์ · git-versioned</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Exposes</div>
+            <div class="comp-meta-value">Domain rules · past decisions · skill playbooks · role personas — AI อ่านก่อนทุก task</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Consumes</div>
+            <div class="comp-meta-value">AGENTS.md — กำหนด format ของทุก entry และเวลาที่ต้องอ่าน</div>
+          </div>
+        </div>
+
+        <p>
+          Knowledge store คือสิ่งที่ทำให้ Sage แตกต่างจาก system prompt ทั่วไป —
+          มันเติบโตได้ ทั้ง human เขียนเอง และ AI เขียนให้หลังทุก task
+          ทุก entry เป็น YAML frontmatter + Markdown body หนึ่งไฟล์ต่อหนึ่ง idea
+          ทำให้ diff ใน git อ่านง่าย และ review ได้ทีละ decision
+        </p>
+
         <h3>Directory layout</h3>
         <pre><code>agents/sage/
   index.md                        # table of contents
@@ -612,30 +756,70 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
     skills/
       &lt;slug&gt;.md                   # best practice / how-to playbook
   docs/
-    docs-style.css                # CSS template — inlined by sage-docs</code></pre>
-        <h3>Entry frontmatter fields</h3>
+    docs-style-template.md        # CSS + JS template — inlined by sage-docs</code></pre>
+
+        <p>
+          แต่ละ entry มี frontmatter fields ที่ควบคุมพฤติกรรมของ AI:
+          <code>status: approved</code> ได้รับน้ำหนักมากกว่า <code>proposed</code>
+          และ <code>enforcement: block</code> หมายความว่า AI ต้อง reject task
+          ถ้าจะฝ่าฝืน rule นั้น — ไม่ใช่แค่เตือน
+        </p>
+
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Field</th><th>Values</th><th>Purpose</th></tr>
+              <tr><th>Field</th><th>Values</th><th>ความหมาย</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>type</code></td><td>team_decision · convention · skill · business_context</td><td>ประเภทของ entry</td></tr>
-              <tr><td><code>status</code></td><td>proposed · approved · deprecated</td><td>AI อ่านทุก entry แต่ให้น้ำหนัก approved มากกว่า</td></tr>
-              <tr><td><code>enforcement</code></td><td>block · warn · advise</td><td>block = ห้ามเขียนโค้ด, warn = เตือน, advise = แนะนำ</td></tr>
-              <tr><td><code>source</code></td><td>human · ai</td><td>บันทึกว่าใครเขียน entry นี้</td></tr>
-              <tr><td><code>applies_to</code></td><td>domain name หรือ file glob</td><td>บอก AI ว่า rule นี้ใช้กับไฟล์ไหน</td></tr>
+              <tr><td><code>type</code></td><td>team_decision · convention · skill · business_context</td><td>ประเภทของ entry — กำหนดว่า AI จะใช้มันยังไง</td></tr>
+              <tr><td><code>status</code></td><td>proposed · approved · deprecated</td><td>AI อ่านทุก entry แต่ approved ได้น้ำหนักสูงสุด ส่วน deprecated จะถูก ignore</td></tr>
+              <tr><td><code>enforcement</code></td><td>block · warn · advise</td><td>block = reject task, warn = ดำเนินการต่อพร้อมเตือน, advise = แนะนำเท่านั้น</td></tr>
+              <tr><td><code>source</code></td><td>human · ai</td><td>บันทึกว่าใครเขียน — human entries ได้ trust level สูงกว่า</td></tr>
+              <tr><td><code>applies_to</code></td><td>domain name หรือ file glob</td><td>AI อ่าน rule เฉพาะเมื่อกำลังทำงานกับ file ที่ตรงกับ pattern นี้</td></tr>
             </tbody>
           </table>
         </div>
-      </section>
 
-      <section class="doc-section">
-        <h2>integrations/ — Per-tool Adapters</h2>
-        <p>แต่ละ adapter บอก AI tool นั้นๆ ว่า "อ่านและทำตาม AGENTS.md" ไม่มี logic ของตัวเอง — เป็นแค่ routing layer</p>
+        <p class="bridge">
+          Knowledge store อยู่ใน repo ของทีม ไม่ใช่ใน Sage repo — ทำให้ทีม
+          เป็นเจ้าของความรู้ของตัวเอง แต่ AI tool ที่ใช้งานต้องรู้จัก Sage protocol ก่อน
+          นั่นคือหน้าที่ของ integrations
+        </p>
+
+        <h2 id="integrations">
+          <span class="h2-accent" style="background:var(--cyan)"></span>
+          integrations/ — Per-tool Adapters
+        </h2>
+
+        <div class="comp-meta">
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Responsibility</div>
+            <div class="comp-meta-value">Thin adapter ต่อ AI tool — routing เท่านั้น ไม่มี logic ของตัวเอง</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Tech</div>
+            <div class="comp-meta-value">Tool-specific config files (.claude/commands/, .cursor/rules/, .github/instructions/, …)</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Exposes</div>
+            <div class="comp-meta-value">/sage · /sage-learning · /sage-search-skill · /sage-docs — ต่อทุก tool ที่ support</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Consumes</div>
+            <div class="comp-meta-value">AGENTS.md (routes to it) · agents/sage/ (referenced by commands)</div>
+          </div>
+        </div>
+
+        <p>
+          Integrations เป็นเพียง routing layer — แต่ละ adapter บอก AI tool ว่า
+          "อ่านและทำตาม AGENTS.md" ไม่มี logic ของตัวเอง ไม่ duplicate protocol
+          ทีมทำแค่ <code>cp -r integrations/&lt;tool&gt; .</code> ครั้งเดียวแล้วทุก AI
+          session จะเริ่มด้วย Sage pipeline อัตโนมัติ
+        </p>
+
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Tool</th><th>Integration path</th><th>Install command</th></tr></thead>
+            <thead><tr><th>Tool</th><th>Integration path</th><th>Install</th></tr></thead>
             <tbody>
               <tr><td>Claude Code</td><td><code>integrations/.claude/</code></td><td><code>cp -r integrations/.claude .</code></td></tr>
               <tr><td>Cursor</td><td><code>integrations/.cursor/</code></td><td><code>cp -r integrations/.cursor .</code></td></tr>
@@ -646,60 +830,168 @@ pre:not(.mermaid) code { background: none; border: none; padding: 0; color: inhe
             </tbody>
           </table>
         </div>
-        <h3>Skills included</h3>
+
+        <p>
+          นอกจาก protocol หลัก integrations ยังมี skills พิเศษที่ทีมเรียกใช้ได้ตามต้องการ:
+        </p>
+
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Command</th><th>When to use</th><th>Output</th></tr></thead>
+            <thead><tr><th>Command</th><th>เรียกใช้เมื่อ</th><th>Output</th></tr></thead>
             <tbody>
               <tr><td><code>/sage</code></td><td>ทุกครั้งก่อนเขียนโค้ด (auto via AGENTS.md)</td><td>Sage summary block</td></tr>
               <tr><td><code>/sage-learning</code></td><td>ครั้งแรกที่ setup repo · หลัง refactor ใหญ่</td><td><code>agents/sage/</code> files</td></tr>
-              <tr><td><code>/sage-search-skill</code></td><td>ต้องการ best practices ปัจจุบันสำหรับ stack</td><td><code>agents/sage/&lt;domain&gt;/skills/</code> files</td></tr>
+              <tr><td><code>/sage-search-skill</code></td><td>ต้องการ best practices สำหรับ stack ปัจจุบัน</td><td><code>agents/sage/&lt;domain&gt;/skills/</code> files</td></tr>
               <tr><td><code>/sage-docs</code></td><td>ต้องการ document ที่คนอ่าน — flow, API, architecture</td><td><code>docs/&lt;slug&gt;.html</code></td></tr>
             </tbody>
           </table>
         </div>
-      </section>
 
-      <section class="doc-section">
-        <h2>Data Flow — How It All Connects</h2>
+        <p class="bridge">
+          เมื่อ integrations พาให้ AI ทำงานตาม protocol สิ่งที่ AI ผลิตออกมาเพื่อคนอ่าน
+          ไปอยู่ใน layer สุดท้าย
+        </p>
+
+        <h2 id="docs-output">
+          <span class="h2-accent" style="background:var(--violet)"></span>
+          docs/ — Human-readable Output
+        </h2>
+
+        <div class="comp-meta">
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Responsibility</div>
+            <div class="comp-meta-value">Self-contained HTML docs ที่ทีมอ่านได้ — flow diagrams, API specs, architecture</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Tech</div>
+            <div class="comp-meta-value">Static HTML · CSS inlined · inline SVG diagrams · ไม่มี external dependency</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Exposes</div>
+            <div class="comp-meta-value">docs/&lt;slug&gt;.html — เปิดใน browser ได้ทันที ไม่ต้อง server</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Consumes</div>
+            <div class="comp-meta-value">Source material ที่ทีมให้ · CSS + JS จาก docs-style-template.md · สร้างหรืออัปเดตด้วย /sage-docs</div>
+          </div>
+        </div>
+
+        <p>
+          ทุก HTML file ใน <code>docs/</code> เป็น single file สมบูรณ์ — CSS inline,
+          JS inline, SVG inline ไม่มีการ fetch ใดๆ เมื่อเปิดในบราวเซอร์
+          diagram มี zoom/pan ในตัว และทุก node ที่มีส่วนอธิบายด้านล่างจะ clickable
+          ให้ jump ไปยัง section นั้นได้ทันที
+        </p>
+
+        <p class="bridge">
+          ทั้ง 4 layer ทำงานเป็น feedback loop เดียว — ไม่ใช่ pipeline ที่ทำครั้งเดียวจบ
+        </p>
+
+        <h2 id="landing">
+          <span class="h2-accent" style="background:var(--red)"></span>
+          landing/ — Promo Site
+        </h2>
+
+        <div class="comp-meta">
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Responsibility</div>
+            <div class="comp-meta-value">Static promo site สำหรับ sage.qorstack.com — อธิบาย Sage แก่ผู้ใช้ใหม่</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Tech</div>
+            <div class="comp-meta-value">Static HTML/CSS · ไม่มี build step · deployed via GitHub Pages</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Exposes</div>
+            <div class="comp-meta-value">Public-facing docs ที่ sage.qorstack.com — install guide, feature overview</div>
+          </div>
+          <div class="comp-meta-item">
+            <div class="comp-meta-label">Consumes</div>
+            <div class="comp-meta-value">ไม่มี dependency กับ runtime system — แยกอิสระจาก protocol และ knowledge store</div>
+          </div>
+        </div>
+
+        <p>
+          <code>landing/index.html</code> เป็นหน้าแรกที่คนนอกเห็น — แยกอิสระจาก
+          <code>AGENTS.md</code> และ <code>agents/sage/</code> ทั้งหมด
+          แก้ไขได้โดยตรงโดยไม่กระทบ protocol ทั้งนี้ wording ใน landing ต้องไม่
+          duplicate protocol — แค่อธิบายว่า Sage คืออะไรและ install ยังไง
+        </p>
+
+        <p class="bridge">
+          ทั้งสามส่วนนี้ไม่ได้ทำงานเป็น step แยกกัน — มันเป็น lifecycle เดียว
+          ที่วนซ้ำทุก AI session ดังนี้
+        </p>
+
+        <h2 id="data-flow">
+          <span class="h2-accent" style="background:var(--mint)"></span>
+          Data Flow — ทุกอย่างทำงานร่วมกันอย่างไร
+        </h2>
+
+        <p>
+          ครั้งแรกที่ทีมใช้ Sage มีสองขั้นตอน one-time setup จากนั้นทุก AI session
+          หลังจากนั้นจะวน loop เดิมอัตโนมัติโดยที่ทีมไม่ต้องทำอะไรเพิ่ม
+        </p>
+
         <ul class="steps-list">
           <li class="step-item">
             <div class="step-number">1</div>
             <div class="step-content">
               <div class="step-title">Install integration (one-time)</div>
-              <div class="step-detail"><code>cp -r integrations/.claude .</code> — copy adapter files เข้า repo ของทีม. Codex และ Gemini CLI ไม่ต้อง copy เพราะอ่าน <code>AGENTS.md</code> ได้เลย</div>
+              <div class="step-detail">
+                <code>cp -r integrations/.claude .</code> — copy adapter files เข้า repo ของทีม
+                Codex และ Gemini CLI ไม่ต้อง copy เพราะอ่าน <code>AGENTS.md</code> ได้โดยตรง
+              </div>
             </div>
           </li>
           <li class="step-item">
             <div class="step-number">2</div>
             <div class="step-content">
               <div class="step-title">Bootstrap knowledge (one-time)</div>
-              <div class="step-detail">รัน <code>/sage-learning</code> ครั้งแรก — AI scan codebase แล้วเขียน rules, decisions, skills เข้า <code>agents/sage/</code> ใน repo ของทีม</div>
+              <div class="step-detail">
+                รัน <code>/sage-learning</code> ครั้งแรก — AI scan codebase แล้วเขียน
+                rules, decisions, skills เข้า <code>agents/sage/</code> ใน repo ของทีม
+                ตั้งแต่นี้ไป knowledge store จะเติบโตเองทุก session
+              </div>
             </div>
           </li>
           <li class="step-item">
             <div class="step-number">3</div>
             <div class="step-content">
               <div class="step-title">AI อ่าน AGENTS.md ก่อนทุก task</div>
-              <div class="step-detail">Adapter บอก AI ให้อ่าน <code>AGENTS.md</code> → AI run pipeline §1–4: pick role → read domain knowledge → find reusable assets → assess &amp; plan</div>
+              <div class="step-detail">
+                Adapter บอก AI ให้อ่าน <code>AGENTS.md</code> → AI run pipeline §1–4
+                โดยอัตโนมัติ: pick role → read domain knowledge → find reusable assets → assess &amp; plan
+                ก่อนเขียน code แม้แต่บรรทัดเดียว
+              </div>
             </div>
           </li>
           <li class="step-item">
             <div class="step-number">4</div>
             <div class="step-content">
               <div class="step-title">AI เขียนโค้ด + capture knowledge</div>
-              <div class="step-detail">หลังเขียนโค้ด AI เขียน pattern ที่เรียนรู้ได้กลับเข้า <code>agents/sage/&lt;domain&gt;/decisions/</code> ทุก run — ความรู้ของทีมเพิ่มขึ้นโดยอัตโนมัติ</div>
+              <div class="step-detail">
+                หลังเขียนโค้ด AI เขียน pattern ที่เรียนรู้ได้กลับเข้า
+                <code>agents/sage/&lt;domain&gt;/decisions/</code> ทุก run —
+                ความรู้ของทีมสะสมขึ้นเรื่อยๆ และ AI session ถัดไปจะฉลาดกว่าเดิม
+              </div>
             </div>
           </li>
           <li class="step-item">
             <div class="step-number">5</div>
             <div class="step-content">
               <div class="step-title">Generate human-readable docs (on demand)</div>
-              <div class="step-detail">รัน <code>/sage-docs</code> → AI วิเคราะห์ source material → classify doc type → generate inline SVG diagram → write <code>docs/&lt;slug&gt;.html</code> with CSS inlined</div>
+              <div class="step-detail">
+                รัน <code>/sage-docs</code> → AI วิเคราะห์ source material → classify doc type
+                → generate inline SVG diagram → write <code>docs/&lt;slug&gt;.html</code>
+                ด้วย CSS inlined สามารถ update ไฟล์เดิมได้โดย Sage จะ merge content
+                ที่ยังถูกต้องและ update เฉพาะส่วนที่เปลี่ยน
+              </div>
             </div>
           </li>
         </ul>
-      </section>
+
+      </article>
 
       <footer class="doc-footer">
         <span class="sage-brand">Sage Docs</span>

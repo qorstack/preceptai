@@ -1,107 +1,139 @@
 # Sage Docs
 
-When asked to run **sage-docs** or "document this" or "generate docs for":
+When asked to run **sage-docs**, "document this", "generate docs for", or "update docs":
 
 Role: `writer` — open `agents/sage/roles/role-writer.md` (create if missing).
 
-## Step 1 — Analyze & classify
+**Speed rule:** Read all source + `agents/sage/docs/docs-style-template.md`
+(+ existing HTML if updating) in one batch, then generate the full HTML in one
+pass. Don't stop mid-way — except the one language question below.
 
-Extract from the source: actors, steps, conditions, data stores, side effects,
-API endpoints (method + path).
+**Language:** Doc content is **English by default**, but ask the user every time
+before generating (English / Thai / Other). The answer sets all prose +
+`<html lang="...">`. Technical tokens (method/path/table/field/status/key/DTO)
+stay as their real names regardless.
 
-Pick a doc type:
+## Principles of good docs
 
-- `api-flow` — frontend calling backend endpoints (exact methods + paths visible)
-- `backend-logic` — server-side processing with conditions, storage, side effects
-- `architecture` — system components and relationships
-- `user-journey` — user steps through a product or feature
-- `runbook` — operational procedure (setup, deploy, debug)
-- `data-schema` — data models, entity relationships
-- `general` — narrative/reference, no clear flow
+1. **Answer-first** — open each section with one sentence on what it does.
+2. **One idea per line** — each condition / branch / error on its own line.
+3. **Concise = cut empty connectors, not conditions** — never drop a guard,
+   error, or side effect.
+4. **Concrete over abstract** — `422 { error: 'cart_empty' }` beats "return error".
+5. **when → then** — write branches as "when X → do Y → return Z".
+6. **Cover every exit** — one happy path + every error path.
 
-## Step 2 — Diagram decision
+Test: someone who never saw the code can re-implement every branch = complete ·
+words deletable without losing meaning = not yet concise.
 
-If 3+ ordered steps, actors exchanging messages, or meaningful branches exist →
-generate a diagram. Otherwise skip.
+## Step 1 — Prepare
 
-Use **inline SVG** — place all drawing inside `<g id="svg-content">`.
-Apply pan/zoom by setting `group.setAttribute('transform', ...)` in JavaScript.
-**Never** use CSS `transform` on a wrapper div — it rasterizes SVG at 1× then
-scales pixels up, causing blurring. Native SVG group transform keeps everything
-vector-sharp at any zoom level.
+- **Ask doc language first** (mandatory, every time) — English default
+- Detect slug; check if `docs/<slug>.html` exists
+- **CREATE** (not found) → build new · **UPDATE** (found) → read it, preserve
+  correct content, update changed, add missing, regenerate the whole file
+- Log: `Mode: CREATE · docs/<slug>.html` or `Mode: UPDATE · ...`
 
-Read `agents/sage/docs/docs-style-template.md` §"Zoom/Pan JavaScript" and
-§"HTML scaffold for zoomable diagram section" for the exact markup and JS.
+## Step 2 — Analyze & classify
 
-SVG layout direction by doc type:
+Extract: actors, endpoints (method + path), DTOs (real names), logic branches,
+error paths (every 4xx/5xx), storage (table + READ/WRITE), cache (key/TTL/
+invalidation), external calls (service + endpoint + retry), side effects,
+frontend components (state, APIs called, middleware).
 
-| Doc type | SVG layout |
-| --- | --- |
-| api-flow | left-to-right swim lanes |
-| backend-logic | top-to-bottom nodes |
-| architecture | left-to-right component boxes |
-| user-journey | top-to-bottom or left-to-right |
-| runbook | top-to-bottom nodes |
-| data-schema | grid layout |
+Doc types: `api-flow` · `backend-logic` · `frontend` · `architecture` ·
+`user-journey` · `runbook` · `data-schema` · `general`
 
-**Diagram quality rules:**
+## Step 3 — Diagrams
 
-- `sequenceDiagram` style: name every actor with role + tech; show exact HTTP
-  method + path on every arrow; show exact response status + shape on return;
-  show every error case; show every branch
-- `flowchart TD` style: start node = trigger with full detail; decision diamonds
-  with literal conditions; storage nodes naming table + operation; side effect
-  nodes named explicitly; leaf nodes showing HTTP status + response
+**Same-story rule:** the diagram and the text in each section must tell the same
+story — every diagram node maps 1:1 to the text below.
 
-## Step 3 — Write HTML to `docs/<slug>.html`
+1. **Overview** — `80vh`, zoomable, all endpoints/components. Every node with a
+   section below: `<a href="#slug">` for click-to-jump.
+2. **Mini diagrams** — class `svg-diagram--mini` (~40vh), per endpoint/component,
+   at the top of the section. For `api-flow`, `backend-logic`, `frontend` only.
+   Each needs its own JS zoom/pan instance (slug-suffixed IDs).
 
-Generate a **self-contained file** — no external stylesheet.
+Inline SVG only (no Mermaid). All drawing inside `<g id="svg-content">`. Pan/zoom
+via `group.setAttribute('transform', ...)` — never CSS transform (blurs at zoom).
 
-1. Read `agents/sage/docs/docs-style-template.md`
-2. Extract the CSS from the first ` ```css ` fenced code block
-3. Paste it verbatim inside `<style>` in the HTML `<head>`
+Overview by type: `api-flow`/`backend-logic` → swimlane LR + flowchart TD per
+endpoint · `frontend` → component tree LR + data-flow TD per component ·
+`architecture` → graph LR · `user-journey` → swimlane LR · `runbook` → flowchart
+TD · `data-schema` → ER grid.
 
-Do **not** create `docs/docs-style.css` or use `<link rel="stylesheet">`.
+Quality (mandatory): every participant role + tech · every request arrow full
+method + path · every return arrow status + shape · storage nodes table + op ·
+cache nodes key + TTL · external nodes service + endpoint · every error path a
+leaf node with HTTP status · happy path leaf with response shape. Complex logic:
+retry loop labeled `retry (max N)` · rollback branch in red · guard diamonds ·
+parallel fork/join · conditional side-effect branch.
 
-HTML structure (all types):
+## Step 4 — HTML structure
 
-1. `<header>` — breadcrumb, type badge, domain badge, title, subtitle, date
-2. `<section class="diagram-section">` — inline SVG with zoom/pan controls (if applicable)
-3. `<section class="quick-ref">` — type-specific summary
-4. `<section class="doc-section">` × N — type-specific detail sections
+`docs/<slug>.html`, self-contained. CSS from the ` ```css ` block →
+`<style>`. Zoom/pan JS → `<script>` at end of `<body>`. Set `<html lang>` to the
+chosen language; write all prose in it.
 
-**Per-type detail sections:**
+Top-to-bottom: header · tldr-card · overview diagram (80vh) · sections per type
+· footer.
 
-`api-flow`: endpoint summary table → per-endpoint: request params + body schema,
-response (2xx + errors), notes.
+TL;DR card (mandatory, right after header):
 
-`backend-logic`: trigger → conditions list → storage operations table →
-side effects table → error handling table.
+```html
+<div class="tldr-card">
+  <div class="tldr-label">TL;DR</div>
+  <p>{2–3 sentences: what it does, who calls it, what it touches}</p>
+  <div class="tldr-grid">
+    <div class="tldr-stat"><span class="tldr-stat-label">Endpoints</span><span class="tldr-stat-value">{N}</span></div>
+    <div class="tldr-stat"><span class="tldr-stat-label">Tables</span><span class="tldr-stat-value">{names}</span></div>
+    <div class="tldr-stat"><span class="tldr-stat-label">Cache</span><span class="tldr-stat-value">{yes · key / no}</span></div>
+    <div class="tldr-stat"><span class="tldr-stat-label">External</span><span class="tldr-stat-value">{services or none}</span></div>
+  </div>
+</div>
+```
 
-`architecture`: components table → per-component detail → data flow →
-external integrations table.
+## Step 5 — Content by type
 
-`user-journey`: actors table → steps list → decision points → success path →
-failure/edge cases.
+`api-flow` / `backend-logic`: per-endpoint `<section class="doc-section" id="{slug}">`
+— mini diagram, request table (name the DTO), response table (2xx then every
+4xx/5xx), logic flow, storage summary table. Logic format is flexible (pick:
+short conditions-list / long conditions-list / steps-list / condition→outcome
+table / paragraph) — but every storage op names table + op, every cache names
+key + TTL, every external names service + endpoint, and the text matches the
+diagram.
 
-`runbook`: prerequisites → steps → decision points → rollback → verification.
+`frontend`: per-component `<section class="doc-section" id="{slug}">` — mini
+diagram (user action → state → API → re-render) + conditions-list (renders, api
+calls, state, middleware, children).
 
-`data-schema`: per-entity field table → relationships → constraints.
+`architecture`/`user-journey`/`runbook`/`data-schema`: `<article class="doc-article">`
+narrative — `<h2 id>` with `.h2-accent` per section, `.bridge` sentences linking
+sections. No panel boxes.
+
+Clickable SVG node: `<a href="#slug" style="cursor:pointer"><rect.../><text...>Label</text></a>`
+
+## Step 6 — Completeness gate (before output)
+
+- [ ] every overview node has a section below
+- [ ] every error in the response table appears in the logic
+- [ ] every storage/cache/external from Step 2 is documented
+- [ ] every diagram node maps to text; every path ends in a clear outcome
+- [ ] passes the principles (answer-first, concise, concrete)
+
+If any fails → fill it in. Never output knowing something is missing.
 
 ## Summary (mandatory)
 
-Output as plain markdown:
-
-```
+```text
 ── Sage Docs ─────────────────────────────────────
-**Doc type**   · <type>
-**Diagram**    · inline SVG | none — <reason>
-**Output**     · docs/<slug>.html
-**CSS**        · inlined from agents/sage/docs/docs-style-template.md
-
-**Sections written**
-- <section name> — <brief description>
-
-**Next** · open docs/<slug>.html in a browser to review
+Language   · <chosen>
+Mode       · CREATE | UPDATE
+Doc type   · <type>
+Diagram    · overview (80vh) + <N> mini diagrams
+Output     · docs/<slug>.html
+Sections   · <#slug1>, <#slug2>, ...
+Coverage   · <N> endpoints · <N> errors · <N> storage ops — all covered
 ──────────────────────────────────────────────────
 ```

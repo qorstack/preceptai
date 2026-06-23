@@ -69,10 +69,17 @@ Do these in order. Do not skip. Do not assume you already know the answer.
    work into phases:
    - Identify which tasks have no dependency on each other → mark `[parallel]`
    - Identify which must wait for a prior result → mark `[sequential]`
-   - Assign an effort tier to each task: `low` (mechanical — reading, simple
-     edits) · `medium` (standard implementation) · `high` (complex logic,
-     critical decisions). **Ceiling = the model active in this session.** Reduce
-     to `low` wherever reasoning is not needed to save tokens.
+   - Assign an effort tier to each task. **The session effort is both the
+     default and the hard ceiling for model and effort** — you may go BELOW it
+     for trivial tasks, but NEVER above it. If the session is `@ low`, every
+     task is `low`, even complex ones; "standard implementation" or "complex
+     logic" is not a reason to raise above the session level. Tier meanings:
+     `low` (mechanical — reading, simple edits) · `medium` (standard
+     implementation) · `high` (complex logic, critical decisions) — but ignore
+     any tier above the session effort. Default model floor is `sonnet`, but use
+     `haiku @ low` for trivial fully-specified tasks with no decisions
+     (translation/rewording, adding a log line, an explicit one-line edit) to
+     save tokens; use `sonnet` for anything touching logic or behavior.
    - Execute parallel phases in a single response (all tool calls together).
      State at each phase start: `[parallel: A, B running]` or
      `[sequential: C — depends on A, B]`.

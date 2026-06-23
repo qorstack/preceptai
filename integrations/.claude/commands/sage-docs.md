@@ -1,377 +1,465 @@
-# /sage-docs — turn any document into a human-readable HTML file with diagram
+# /sage-docs — create or update an HTML doc that humans actually read
 
-Take a source document (spec, README, meeting note, PRD, code comment) and
-produce a polished HTML file that:
+Take source material (spec, README, PRD, code, meeting note) and produce
+`docs/<slug>.html` — a continuous top-to-bottom narrative, no jumping around.
 
-1. **Detects** whether the content can be visualized as a flow/sequence/component
-   diagram — if yes, renders a Mermaid diagram at the top with full technical detail
-2. **Classifies** the content into a doc type and uses the matching HTML pattern
-3. **Writes** a styled HTML file to `docs/` using the team's shared stylesheet
+**Speed rule:** Read every file you need in one batch (docs-style-template +
+source material + existing HTML if updating), then generate the full HTML in a
+single pass. Do not stop to ask mid-way — **with one exception:** the doc
+language (see §1), asked once before you start, every time. After that, no more
+questions.
 
-Run this whenever a team member needs a document that a human will actually open
-and read — not AI knowledge, but shareable documentation.
-
----
-
-## Role (fixed — `writer`)
-
-Open `agents/sage/roles/role-writer.md` before starting:
-
-- **Found** → read and adopt as-is. Output: `Role: writer [loaded]`
-- **Missing** → create it now, output: `Role: writer [created]`
-
-Default Ikigai if creating:
-
-- Loves — making complex systems understandable at a glance
-- Good at — analyzing content structure, choosing the right diagram type,
-  writing docs that engineers and non-engineers can both use
-- Team needs — clear documentation that doesn't require source-diving to understand
-- Worth it — a well-written doc with a diagram is read; a wall of text is not
+**Document language:** Doc content is **English by default**, but you must ask
+the user every time before generating (see §1). If they pick another language,
+write the prose and set `<html lang="...">` accordingly. Technical tokens
+(method, path, table, field, status, key, DTO name) stay in English / their real
+names regardless of language.
 
 ---
 
-## Step 1 — Analyze the source material
+## Principles of good docs (govern every section below)
 
-Read the source material provided by the user. Extract:
+The goal is **easy to read + complete conditions + concise** — these three
+conflict if written badly. Use these principles to get all three at once:
 
-- **Actors** — who/what initiates, processes, or receives (users, services, APIs,
-  databases, queues, external systems)
-- **Steps** — ordered sequence of operations
-- **Conditions** — if/else branches, guard clauses, error cases
-- **Data stores** — databases, caches, files, queues — and what gets read/written
-- **Side effects** — emails, events, webhooks, external API calls, notifications
-- **API endpoints** — HTTP method + path (e.g. `POST /api/v1/orders`)
+1. **Answer-first** — open each section with one sentence saying what it does,
+   before the details. The reader needs the big picture before the edge cases.
+2. **One idea per line** — each condition / branch / error on its own line.
+   Don't cram multiple logic steps into one sentence — complete because it's
+   clearly separated, not because it's long.
+3. **Concise = cut empty connectors, not conditions** — remove "in the case
+   that", "which will then", "normally" — but never remove a guard, error, or
+   side effect. Every condition stays; it's just written shorter.
+4. **Concrete over abstract** — `422 { error: 'cart_empty' }` beats "return
+   error if invalid"; `UPDATE orders SET status='paid'` beats "save the status"
+   — use real table/field/status/key names.
+5. **Show conditions as when → then** — write every branch as "when X → do Y →
+   return Z", not loose prose. The reader must be able to trace each path
+   top-to-bottom.
+6. **Cover every exit** — every path ends in a clear outcome: one happy path +
+   every error path. If the response table has 422 and 409, the logic must show
+   both.
 
-Then classify into one doc type:
+> **The test:** if someone who has never seen the code can re-implement every
+> branch correctly from the doc = complete · if you can delete words without
+> losing meaning = not yet concise enough.
 
-| Type | When to pick |
+---
+
+## Workflow
+
+### 1 — Prepare
+
+**Ask doc language (mandatory — do this first, every time):** Use
+AskUserQuestion to ask which language the docs should be in, before reading
+source or writing anything. Never skip, never assume — even if you asked in a
+previous session.
+
+- options: **English (default/recommended)** · Thai · Other
+- the answer sets the language of all prose + `<html lang="...">`
+- technical tokens (method/path/table/field/status/key/DTO) always stay as
+  their real names
+
+**Load role:** open `agents/sage/roles/role-writer.md` → adopt immediately.
+If missing, create it (persona: loves making complex systems clear at a glance).
+
+**Detect mode:**
+
+- derive slug from the document title (kebab-case)
+- check whether `docs/<slug>.html` exists
+- **CREATE** — file doesn't exist → build new from source
+- **UPDATE** — file exists → read it, preserve content that's still correct,
+  update what changed, add what's missing, regenerate the whole file
+
+Log before proceeding:
+`Mode: CREATE · docs/<slug>.html` or `Mode: UPDATE · docs/<slug>.html · changed: <list>`
+
+---
+
+### 2 — Analyze source and classify
+
+**Read everything in one batch:** docs-style-template.md + all source.
+
+Extract from the source:
+
+| What to find | Example |
 | --- | --- |
-| `api-flow` | Document shows frontend/client calling backend endpoints — extract exact methods + paths |
-| `backend-logic` | Document describes server-side processing — conditions, storage, side effects |
-| `architecture` | Document describes system components and their relationships |
-| `user-journey` | Document describes steps a user takes through a product or feature |
-| `runbook` | Document is an operational procedure — setup, deploy, debug, rollback |
-| `data-schema` | Document describes data models, entity relationships, field definitions |
-| `general` | None of the above — narrative, reference, or ADR without a clear flow |
+| Actors | user, frontend service, backend service, DB, queue, external API |
+| Endpoints | `POST /api/v1/orders` — full method + path |
+| DTOs | `CreateOrderDto`, `OrderResponseDto` — real names from code |
+| Logic branches | validate → check stock → reserve → charge — every if/else, every guard |
+| Error paths | every 4xx/5xx — when it happens, what it returns |
+| Storage | table name, READ or WRITE, under what condition |
+| Cache | Redis key pattern, TTL, invalidation trigger |
+| External calls | service name, endpoint called, timeout/retry |
+| Side effects | event published, email sent, webhook fired |
+| Frontend components | component name, state held, APIs called, middleware |
 
-State your classification:
+**Classify doc type:**
+
+| Type | Pick when |
+| --- | --- |
+| `api-flow` | source shows frontend/client calling backend endpoints |
+| `backend-logic` | source describes server-side processing — conditions, storage, side effects |
+| `frontend` | source describes component tree, state flow, API calls from the UI |
+| `architecture` | source describes system components and their relationships |
+| `user-journey` | source describes steps a user takes through a feature |
+| `runbook` | source is an operational procedure — setup, deploy, debug |
+| `data-schema` | source describes data models, entity relationships |
+| `general` | none of the above |
+
+---
+
+### 3 — Plan the diagrams
+
+**First rule (mandatory):** the diagram and the text in each section must tell
+**the same story** — the diagram shows it, the text (list / table / paragraph
+per §5) explains the detail. If the diagram has branches A → B → C, the text
+below must explain all three — each diagram node maps 1:1 to the text.
+
+**Every doc can have two levels:**
+
+**Overview diagram** (80vh, zoomable, full width)
+
+- shows all endpoints or components at a glance
+- every node that has a section below must be wrapped in `<a href="#slug">` so a
+  click jumps to it
+- use inline SVG only — no Mermaid, no CSS transform on a wrapper div (blurs at
+  zoom) → use `group.setAttribute('transform', …)` only
+
+**Mini diagrams** (40vh, class `svg-diagram--mini`, per endpoint/component)
+
+- placed at the top of the section, always before the request/response tables
+- used for `api-flow`, `backend-logic`, `frontend` only
+- each mini diagram needs its own JS zoom/pan instance (slug-suffixed IDs)
+
+**Overview style by doc type:**
+
+| Type | Overview | Mini per item |
+| --- | --- | --- |
+| `api-flow` | swimlane LR — participants + arrows | flowchart TD per endpoint |
+| `backend-logic` | flowchart TD of the whole module | flowchart TD per endpoint |
+| `frontend` | component tree LR | data flow TD per component |
+| `architecture` | graph LR — components + edges | none |
+| `user-journey` | swimlane LR | none |
+| `runbook` | flowchart TD | none |
+| `data-schema` | ER grid | none |
+
+**Diagram quality — all mandatory:**
+
+For swimlane (LR):
+
+- every participant: role + tech → `Frontend (Next.js)`, `DB (PostgreSQL)`
+- every request arrow: `POST /api/v1/orders` — full method + path
+- every return arrow: `201 { order_id, status }` — status + shape
+- solid line = request, dashed line = response
+- DB query shows table + operation: `SELECT * FROM orders WHERE id=$1`
+
+For flowchart TD:
+
+- Start node: trigger with full detail → `POST /api/v1/payments\n{order_id, amount}`
+- Decision diamond: literal condition → `order.status == 'pending'?`
+- Storage node: table + op → `UPDATE orders SET status='paid', paid_at=NOW()`
+- Cache node: key + TTL → `Redis SET order:{id} TTL=300s`
+- External call node: service + endpoint → `Stripe POST /v1/charges`
+- Side effect node: `Publish OrderPaid → payments.events`
+- Every error path needs a leaf node: `422 { error: 'insufficient_stock' }`
+- Happy path leaf: `200 OK { order_id, total, status: 'confirmed' }`
+
+**Drawing complex logic — extra rules:**
+
+- **Retry logic:** draw a loop arrow back up, labeled `retry (max 3)`
+- **Compensation / rollback:** draw a separate branch in red (`#ar-red` or stroke var(--red))
+- **Guard clause:** a diamond before the main logic — if it fails → error leaf node immediately
+- **Parallel ops:** draw a fork (two lines) then join back
+- **Conditional side effect:** branch off the main path to the side-effect node
+
+---
+
+### 4 — HTML structure
+
+**Output file:** `docs/<slug>.html` — self-contained, no external stylesheet.
+
+1. Extract CSS from the ` ```css ` block in docs-style-template.md → put in `<style>`
+2. Extract zoom/pan JS from docs-style-template.md → put in `<script>` at end of `<body>`
+
+Set `<html lang="...">` to the language chosen in §1 (`en` for English, `th` for
+Thai) and write all prose in that language.
+
+**The document must always read top-to-bottom:**
 
 ```text
-Doc type: <type>
-Diagram: yes — <mermaid-type> | no — <reason>
+<header>          breadcrumb · badges · title · subtitle · date
+<div.tldr-card>   TL;DR 2–3 sentences + stat grid
+<section.diagram-section>  overview diagram (80vh)
+<article/sections>         content per type — see §5
+<footer>
+```
+
+**TL;DR card (mandatory, always right after header):**
+
+```html
+<div class="tldr-card">
+  <div class="tldr-label">TL;DR</div>
+  <p>{2–3 sentences in chosen language: what this module does, who calls it, what it touches}</p>
+  <div class="tldr-grid">
+    <div class="tldr-stat">
+      <span class="tldr-stat-label">Endpoints</span
+      ><span class="tldr-stat-value">{N}</span>
+    </div>
+    <div class="tldr-stat">
+      <span class="tldr-stat-label">Tables</span
+      ><span class="tldr-stat-value">{table names}</span>
+    </div>
+    <div class="tldr-stat">
+      <span class="tldr-stat-label">Cache</span
+      ><span class="tldr-stat-value">{yes · key pattern / no}</span>
+    </div>
+    <div class="tldr-stat">
+      <span class="tldr-stat-label">External</span
+      ><span class="tldr-stat-value">{services or none}</span>
+    </div>
+  </div>
+</div>
 ```
 
 ---
 
-## Step 2 — Generate the diagram (if applicable)
+### 5 — Content by doc type
 
-**Diagram decision rule:** If you identified 3+ ordered steps, actors exchanging
-messages, or a meaningful branch (condition → different outcome), generate a
-diagram. If the content is a flat list, a pure reference, or fewer than 3 steps,
-skip the diagram and note why.
+#### `api-flow` and `backend-logic` — per-endpoint panel
 
-Choose the Mermaid diagram type:
+Use `<section class="doc-section">` (panel box), one per endpoint — each is a
+self-contained unit.
 
-| Doc type | Mermaid diagram |
+```html
+<section
+  id="{method-path-slug}"
+  class="doc-section"
+  style="margin-bottom:32px; scroll-margin-top:24px;"
+>
+  <h2>
+    <span class="badge badge-method badge-{verb}">{VERB}</span>
+    &nbsp;<code>{/api/path}</code>
+    <span
+      style="margin-left:auto; font-size:0.78rem; color:var(--muted); font-weight:400"
+      >{purpose}</span
+    >
+  </h2>
+
+  <!-- Mini diagram: flowchart TD showing the full request journey -->
+  <!-- MUST show: auth check → validate DTO → every guard → main logic →
+       storage ops → cache ops → external calls → side effects → response -->
+  <!-- MUST show: every error branch with its HTTP status as a leaf node -->
+  <div class="diagram-container" style="margin:16px 24px 0;">
+    <div class="svg-diagram svg-diagram--mini" id="svg-zoom-{slug}">
+      <!-- controls + SVG with id="svg-content-{slug}" -->
+    </div>
+  </div>
+
+  <!-- Request — name the DTO class above the table -->
+  <!-- Response — 2xx row first, then every 4xx/5xx row -->
+
+  <!-- Logic flow — the text MUST mirror the diagram above -->
+  <!-- Each item maps 1:1 to a node in the mini diagram -->
+  <!-- Include: cache hit/miss, DB ops (table + op), external calls, retry logic -->
+
+  <!-- Storage summary table: Store | Op | Table/Key | Condition -->
+  <!-- One row per: DB read, DB write, cache get, cache set, external call -->
+</section>
+```
+
+**Logic documentation — pick the format that fits the endpoint:**
+
+No fixed format — choose based on what the endpoint actually has:
+
+| What the endpoint has | Fitting format |
 | --- | --- |
-| `api-flow` | `sequenceDiagram` |
-| `backend-logic` | `flowchart TD` |
-| `architecture` | `graph LR` |
-| `user-journey` | `sequenceDiagram` or `flowchart TD` |
-| `runbook` | `flowchart TD` |
-| `data-schema` | `erDiagram` or `classDiagram` |
+| simple CRUD (validate → save → return) | short `conditions-list`, 3–4 items |
+| many branches, retry, compensation | long `conditions-list` + diagram emphasizing branches |
+| a clear sequential process | `steps-list` with step numbers |
+| logic depending on multiple states | table (condition → outcome) |
+| internal utility, no auth/cache | a short paragraph instead of a list |
 
-**Diagram quality rules — these are mandatory, not optional:**
+**Example conditions-list** (use when logic has several guards / branches):
 
-For `sequenceDiagram` (api-flow, user-journey):
+```html
+<ul class="conditions-list">
+  <li class="condition-item">
+    <span class="condition-when">auth</span>
+    <span class="condition-then"
+      >Verify JWT → extract <code>userId</code> → if invalid → 401</span
+    >
+  </li>
+  <li class="condition-item">
+    <span class="condition-when">cache</span>
+    <span class="condition-then"
+      >Redis GET <code>cart:{userId}</code> — hit: use it, miss: SELECT from
+      <code>cart_items</code></span
+    >
+  </li>
+  <li class="condition-item">
+    <span class="condition-when">guard</span>
+    <span class="condition-then"
+      >if cart is empty → 422 <code>{ error: 'cart_empty' }</code></span
+    >
+  </li>
+  <li class="condition-item">
+    <span class="condition-when">external</span>
+    <span class="condition-then"
+      >POST Stripe /v1/charges — on fail → retry max 3 → UPDATE
+      <code>orders</code> SET status='failed'</span
+    >
+  </li>
+  <li class="condition-item">
+    <span class="condition-when">side effect</span>
+    <span class="condition-then"
+      >Publish <code>OrderCreated</code> → <code>orders.events</code></span
+    >
+  </li>
+</ul>
+```
 
-- Name every participant with both role and technology: `participant FE as Frontend (Next.js)`
-- Show the exact HTTP method + path on every request arrow: `FE->>BE: POST /api/v1/orders`
-- Show the exact response status + shape on return arrows: `BE-->>FE: 201 { order_id, total, status }`
-- Use `alt / else / opt` blocks for every conditional branch
-- Show database queries as actual SQL-lite notation: `BE->>DB: SELECT * FROM carts WHERE id = $cart_id`
-- Show every error case with its HTTP status code
+**Rules for every format:**
 
-For `flowchart TD` (backend-logic, runbook):
-
-- Start node = trigger with full detail: `A([Trigger: POST /api/v1/payments\nBody: order_id, amount])`
-- Every decision diamond must show the condition literally: `D{order.status == 'pending'?}`
-- Every storage operation must name the table + operation: `G[UPDATE orders\nSET status='paid', paid_at=NOW()]`
-- Every side effect must be named: `H[Publish event: OrderPaid\nQueue: payments.events]`
-- Leaf nodes must show the HTTP response or outcome: `Z([200 OK\n{ payment_id, status: 'paid' }])`
-
-For `graph LR` (architecture):
-
-- Group related nodes with `subgraph`
-- Name every edge with the protocol/method: `FE -->|REST /api| BE`
-- Use distinct node shapes: `[Service]` `[(Database)]` `>Queue]` `([External API])`
-
-For `erDiagram` (data-schema):
-
-- Show all relationships with cardinality
-- Include at least the primary key and 3–5 key fields per entity
-- Name relationship verbs (PLACES, CONTAINS, BELONGS_TO)
+- include only what the endpoint actually has — don't force an auth row onto a public endpoint
+- every storage op must name table + READ/WRITE
+- every cache must name key pattern + TTL
+- every external call must name service + endpoint + retry/timeout if any
+- the logic written down must match the diagram above — same story
 
 ---
 
-## Step 3 — Build the HTML file
+#### `frontend` — per-component panel
 
-### Output location
+```html
+<section
+  id="{component-slug}"
+  class="doc-section"
+  style="margin-bottom:32px; scroll-margin-top:24px;"
+>
+  <h2>
+    {ComponentName}
+    <span style="color:var(--muted); font-weight:400; font-size:0.85rem"
+      >— {Page/Feature}</span
+    >
+  </h2>
+
+  <!-- Mini diagram: data/event flow — user action → state → API → re-render -->
+  <!-- Show: props received, state held, API calls triggered, child components -->
+  <div class="diagram-container" style="margin:16px 24px 0;">
+    <div class="svg-diagram svg-diagram--mini" id="svg-zoom-{slug}">
+      <!-- controls + SVG -->
+    </div>
+  </div>
+
+  <div style="padding:16px 24px 24px;">
+    <ul class="conditions-list">
+      <li class="condition-item">
+        <span class="condition-when">renders</span>
+        <span class="condition-then">{what data it shows, where it comes from}</span>
+      </li>
+      <li class="condition-item">
+        <span class="condition-when">api calls</span>
+        <span class="condition-then"
+          >{method + path + when → e.g. GET /api/v1/orders on mount}</span
+        >
+      </li>
+      <li class="condition-item">
+        <span class="condition-when">state</span>
+        <span class="condition-then"
+          >{local useState vs store — key fields}</span
+        >
+      </li>
+      <li class="condition-item">
+        <span class="condition-when">middleware</span>
+        <span class="condition-then"
+          >{axios interceptors, auth guard, error boundary}</span
+        >
+      </li>
+      <li class="condition-item">
+        <span class="condition-when">children</span>
+        <span class="condition-then">{child components — what each does}</span>
+      </li>
+    </ul>
+  </div>
+</section>
+```
+
+---
+
+#### `architecture`, `user-journey`, `runbook`, `data-schema` — narrative article
+
+Use `<article class="doc-article">`, no panel box — content flows as a narrative.
+
+```html
+<article class="doc-article">
+  <p>{intro connecting the overview diagram to the details below}</p>
+
+  <h2 id="{section-slug}">
+    <span class="h2-accent" style="background:var(--mint)"></span>
+    {Section title}
+  </h2>
+  <p>{narrative description — tell the story, not just a list}</p>
+  <!-- relevant table/list/code -->
+  <p class="bridge">{one sentence linking this section to the next}</p>
+
+  <h2 id="{next-section-slug}">
+    <span class="h2-accent" style="background:var(--amber)"></span>
+    {Next section title}
+  </h2>
+  <!-- and so on -->
+</article>
+```
+
+`architecture`: intro → per-component (name, responsibility, tech, exposes, consumes)
+`user-journey`: intro → steps-list → decision points → success/failure paths
+`runbook`: intro → prerequisites → steps-list → rollback → verification callouts
+`data-schema`: intro → per-entity field table → relationships table → constraints table
+
+---
+
+### 6 — Clickable SVG nodes
+
+Every node in the overview diagram that has a section below must be wrapped like:
+
+```svg
+<a href="#section-slug" style="cursor:pointer">
+  <rect x="..." y="..." width="..." height="..." rx="6"
+        fill="rgba(113,215,255,0.12)" stroke="#71d7ff" stroke-width="1.5"/>
+  <text x="..." y="..." fill="#71d7ff" font-size="11" text-anchor="middle">
+    POST /api/v1/orders
+  </text>
+</a>
+```
+
+Plain HTML anchor inside SVG — no JS needed, just `href="#slug"`.
+
+---
+
+### 7 — Completeness gate (before output)
+
+Before writing the file, check nothing from the §2 extraction was dropped:
+
+- [ ] every endpoint/component in the overview diagram has a section below
+- [ ] every error in the response table appears in the logic flow (422 in table → 422 in logic)
+- [ ] every storage / cache / external call extracted in §2 is documented
+- [ ] every diagram node maps to text (no orphan node without explanation)
+- [ ] every path in the diagram ends in a clear outcome (no line that goes nowhere)
+- [ ] passes the §"Principles of good docs" — answer-first, concise, concrete
+
+If any item fails → go back and fill it in. Never output knowing something is missing.
+
+### 8 — Summary (mandatory)
 
 ```text
-docs/<slug>.html
-```
-
-Where `<slug>` is kebab-case derived from the document title
-(e.g. `checkout-payment-flow.html`, `auth-service-architecture.html`).
-
-### Self-contained HTML — inline the CSS
-
-Every generated doc is a **single self-contained file** — no external stylesheet.
-
-1. Read `agents/sage/docs/docs-style-template.md`
-2. Extract the CSS from the first ` ```css ` fenced code block
-3. Paste it verbatim inside `<style>` in the HTML `<head>`
-
-Do **not** write a `docs/docs-style.css` file or use `<link rel="stylesheet">`.
-
-### Diagram approach — inline SVG, not Mermaid
-
-Use an **inline `<svg>`** with all drawing inside `<g id="svg-content">`.
-Apply pan/zoom by setting `group.setAttribute('transform', …)` in JavaScript.
-
-**Never** use CSS `transform` on a wrapper div — it rasterizes at 1× then scales
-the pixels up, causing blurring at zoom. Native SVG group transform keeps
-everything vector-sharp at any zoom level.
-
-Read `agents/sage/docs/docs-style-template.md` §"Zoom/Pan JavaScript" and
-§"HTML scaffold for zoomable diagram section" for the exact markup and JS to use.
-
-Use the diagram type table from Step 2 to decide the SVG layout direction:
-
-- `sequenceDiagram` style → left-to-right swim lanes in SVG
-- `flowchart TD` style → top-to-bottom nodes in SVG
-- `graph LR` style → left-to-right component boxes in SVG
-- `erDiagram` / `classDiagram` style → grid layout in SVG
-
-### HTML shell
-
-Every doc uses this shell (fill in `{…}` placeholders):
-
-```html
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{Title} — Sage Docs</title>
-  <style>
-{paste full CSS from agents/sage/docs/docs-style-template.md here}
-  </style>
-</head>
-<body>
-<div class="doc-wrapper">
-
-  <header class="doc-header">
-    <nav class="breadcrumb">
-      <a href="./index.html">Docs</a>
-      <span class="breadcrumb-sep">›</span>
-      <span>{Domain}</span>
-      <span class="breadcrumb-sep">›</span>
-      <span>{Title}</span>
-    </nav>
-    <div class="doc-meta">
-      <span class="badge badge-{type}">{type-label}</span>
-      <span class="badge badge-domain">{domain}</span>
-    </div>
-    <h1>{Title}</h1>
-    <p class="doc-subtitle">{one-sentence description}</p>
-    <p class="doc-date">Generated {date} · sage-docs</p>
-  </header>
-
-  <!-- DIAGRAM SECTION (include only if diagram was generated) -->
-  <!-- Use the SVG scaffold from docs-style-template.md -->
-  <section class="diagram-section">
-    <h2>Overview Diagram</h2>
-    <div class="diagram-label">{label — e.g. "Top-to-bottom · Trigger → Logic → Output"}</div>
-    <div class="diagram-container">
-      <div class="svg-diagram" id="svg-zoom-container">
-        <div class="diagram-controls">
-          <button onclick="diagramZoomIn()" title="Zoom in">+</button>
-          <div class="sep"></div>
-          <button onclick="diagramZoomOut()" title="Zoom out">−</button>
-          <div class="sep"></div>
-          <button onclick="diagramZoomFit()" title="Reset" style="font-size:11px">fit</button>
-          <div class="sep"></div>
-          <span class="zoom-level" id="zoom-label">100%</span>
-        </div>
-        <svg id="svg-canvas" width="100%" height="100%"
-             xmlns="http://www.w3.org/2000/svg"
-             style="font-family:'Inter',system-ui,sans-serif; display:block;">
-          <defs>
-            <marker id="ar-mint"   viewBox="0 0 10 8" refX="9" refY="4" markerWidth="6" markerHeight="5" orient="auto"><polygon points="0,0 10,4 0,8" fill="#68d99b" opacity="0.8"/></marker>
-            <marker id="ar-amber"  viewBox="0 0 10 8" refX="9" refY="4" markerWidth="6" markerHeight="5" orient="auto"><polygon points="0,0 10,4 0,8" fill="#f0c45c" opacity="0.7"/></marker>
-            <marker id="ar-violet" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="6" markerHeight="5" orient="auto"><polygon points="0,0 10,4 0,8" fill="#a98cff" opacity="0.7"/></marker>
-            <marker id="ar-cyan"   viewBox="0 0 10 8" refX="9" refY="4" markerWidth="6" markerHeight="5" orient="auto"><polygon points="0,0 10,4 0,8" fill="#71d7ff" opacity="0.8"/></marker>
-          </defs>
-          <g id="svg-content">
-            {SVG nodes, lines, text — detailed per doc type}
-          </g>
-        </svg>
-        <div class="diagram-hint">scroll to zoom · drag to pan</div>
-      </div>
-    </div>
-    <p class="diagram-caption">{one-line caption}</p>
-  </section>
-
-  <!-- QUICK REFERENCE (always present, content varies by type) -->
-  <section class="quick-ref">
-    <h2>Quick Reference</h2>
-    {type-specific quick-ref content — see Step 4}
-  </section>
-
-  <!-- DETAIL SECTIONS (type-specific — see Step 4) -->
-  {detail sections}
-
-  <footer class="doc-footer">
-    <span class="sage-brand">Sage Docs</span>
-    <span>Generated by sage-docs · {date}</span>
-  </footer>
-
-</div>
-{paste zoom/pan JS from agents/sage/docs/docs-style-template.md here, inside <script>}
-</body>
-</html>
-```
-
----
-
-## Step 4 — Type-specific content patterns
-
-Use these patterns exactly. Each section is a `<section class="doc-section">`.
-
-### api-flow
-
-**Quick ref** — endpoint summary table:
-
-```html
-<div class="table-wrap">
-  <table>
-    <thead><tr>
-      <th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th>
-    </tr></thead>
-    <tbody>
-      <tr>
-        <td><span class="badge badge-method badge-post">POST</span></td>
-        <td><code>/api/v1/orders</code></td>
-        <td>JWT Bearer</td>
-        <td>Create a new order from cart</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-```
-
-**Detail sections** (one `<section class="doc-section">` per endpoint):
-
-1. Endpoint header (method badge + path)
-2. Request — URL params table, query params table, request body schema table
-3. Response — 2xx table, 4xx/5xx error table (code, condition, body)
-4. Notes / edge cases
-
-### backend-logic
-
-**Quick ref** — trigger + branch summary:
-
-```html
-<div class="quick-ref-grid">
-  <div class="quick-ref-item">
-    <div class="quick-ref-label">Trigger</div>
-    <div class="quick-ref-value">POST /api/v1/payments</div>
-  </div>
-  <div class="quick-ref-item">
-    <div class="quick-ref-label">Main branches</div>
-    <div class="quick-ref-value">3 (pending → success, already paid, cancelled)</div>
-  </div>
-  ...
-</div>
-```
-
-**Detail sections:**
-
-1. **Trigger** — what starts this flow (HTTP endpoint, cron expression, event name)
-2. **Business Logic** — conditions list using `.conditions-list` + `.condition-item` markup
-3. **Storage Operations** — table: operation (READ/WRITE), store name, what/when
-4. **Side Effects** — table: effect, trigger condition, detail
-5. **Error Handling** — table: error case, HTTP status, response body, logged?
-
-### architecture
-
-**Quick ref** — components grid (name, type, tech, responsibility).
-
-**Detail sections:**
-
-1. **Components** — one subsection per component: name, responsibility, tech, exposes (API/events)
-2. **Data Flow** — narrative description with inline `<code>` for protocols
-3. **External Integrations** — table: service name, purpose, auth method, direction
-
-### user-journey
-
-**Quick ref** — actors + entry points.
-
-**Detail sections:**
-
-1. **Actors** — table: actor, description, entry point
-2. **Journey Steps** — `.steps-list` + `.step-item` markup
-3. **Decision Points** — conditions list
-4. **Success Path** — what the user sees/gets
-5. **Failure/Edge Cases** — table: case, what happens, recovery
-
-### runbook
-
-**Quick ref** — prerequisites + estimated time grid.
-
-**Detail sections:**
-
-1. **Prerequisites** — checklist (unordered list)
-2. **Steps** — `.steps-list` with `.step-item` (number badge + title + detail)
-3. **Decision Points** — conditions list
-4. **Rollback** — numbered steps
-5. **Verification** — checklist of things to confirm success
-
-### data-schema
-
-**Quick ref** — entity list grid.
-
-**Detail sections:**
-
-1. Per entity: field table (name, type, constraints, description)
-2. **Relationships** — table: from → to, type (1:N, M:N), join key
-3. **Constraints / Validations** — table: field, rule, enforced at (DB/app/API)
-
-### general
-
-No diagram unless the AI finds a clear flow in the content.
-
-**Detail sections:** derive from the source material's own structure.
-Use `.callout` boxes for warnings, important notes, or key decisions.
-
----
-
-## Step 5 — Summary (mandatory — a response without this is incomplete)
-
-Output as **plain markdown** (no code fence):
-
-```markdown
 ── Sage Docs ─────────────────────────────────────
-**Doc type**   · <type>
-**Diagram**    · <mermaid-type> | none — <reason>
-**Output**     · `docs/<slug>.html`
-**CSS** · inlined from agents/sage/docs/docs-style-template.md
-
-**Sections written**
-- <section name> — <brief description>
-
-**Next** · open docs/<slug>.html in a browser to review
+Language   · <chosen language>
+Mode       · CREATE | UPDATE
+Doc type   · <type>
+Diagram    · overview (80vh) + <N> mini diagrams
+Output     · docs/<slug>.html
+Sections   · <#slug1>, <#slug2>, ...
+Coverage   · <N> endpoints · <N> errors · <N> storage ops — all covered
 ──────────────────────────────────────────────────
 ```

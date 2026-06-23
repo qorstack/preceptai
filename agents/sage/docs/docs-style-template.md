@@ -258,16 +258,59 @@ hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
   text-align: center;
 }
 
+/* ── TL;DR summary card ── */
+.tldr-card {
+  background: rgba(104, 217, 155, 0.06);
+  border: 1px solid rgba(104, 217, 155, 0.2);
+  border-left: 3px solid var(--mint);
+  border-radius: var(--radius-lg);
+  padding: 18px 24px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.tldr-card strong { color: var(--ink); }
+.tldr-card .tldr-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mint);
+  margin-bottom: 10px;
+}
+.tldr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.tldr-stat { display: flex; flex-direction: column; gap: 2px; }
+.tldr-stat-label { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+.tldr-stat-value { font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+
+/* ── Clickable nav links (used inside diagrams and jump-to anchors) ── */
+.jump-link { color: var(--cyan); text-decoration: none; border-bottom: 1px dashed rgba(113,215,255,0.35); cursor: pointer; }
+.jump-link:hover { color: var(--ink); border-bottom-color: var(--ink); }
+svg a { cursor: pointer; }
+svg a text { fill: var(--cyan); text-decoration: underline; }
+svg a:hover text { fill: var(--ink); }
+
 /* ── Zoomable inline SVG diagram ── */
 .svg-diagram {
   background: rgba(5, 5, 5, 0.5);
   border-radius: var(--radius);
   position: relative;
   overflow: hidden;
-  min-height: 320px;
+  height: 80vh;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+}
+/* Per-endpoint mini diagrams are shorter */
+.svg-diagram.svg-diagram--mini {
+  height: 40vh;
+  min-height: 220px;
 }
 .svg-diagram.is-dragging { cursor: grabbing; }
 .diagram-controls {
@@ -368,6 +411,24 @@ pre code { background: none; border: none; padding: 0; color: inherit; font-size
 .step-content { flex: 1; }
 .step-title { font-weight: 600; color: var(--ink); margin-bottom: 3px; }
 .step-detail { font-size: 0.875rem; color: var(--text); }
+
+/* ── Narrative article (flowing content — no panel boxes) ── */
+.doc-article { padding: 8px 0 0; }
+.doc-article h2 {
+  font-size: 1rem; font-weight: 700; color: var(--ink);
+  margin-top: 40px; margin-bottom: 14px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px;
+  scroll-margin-top: 24px;
+}
+.doc-article h2 .h2-accent { display: inline-block; width: 3px; height: 1em; border-radius: 2px; flex-shrink: 0; }
+.doc-article h3 { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-top: 22px; margin-bottom: 10px; }
+.doc-article p { margin-bottom: 14px; }
+.doc-article ol, .doc-article ul { padding-left: 22px; margin-bottom: 14px; }
+.doc-article li { margin-bottom: 6px; }
+.doc-article .table-wrap { margin-bottom: 20px; }
+.doc-article pre { margin-bottom: 20px; }
+.bridge { color: var(--muted); font-size: 0.82rem; font-style: italic; margin: 24px 0 0; padding: 10px 14px; border-left: 2px solid rgba(247,244,237,0.12); background: rgba(247,244,237,0.02); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 
 /* ── Footer ── */
 .doc-footer { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 48px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }

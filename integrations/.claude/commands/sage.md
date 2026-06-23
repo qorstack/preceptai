@@ -17,14 +17,42 @@ dimension** on any sub-task, for any reason.
 
 ### Floor
 
-**Minimum tier is `sonnet @ low`.** Do not drop below this. Do not use haiku.
+**Default minimum is `sonnet @ low`.** Do not drop below `sonnet` — **except**
+for the haiku whitelist below.
 
-### Effort levels (apply to every model)
+**`haiku @ low` is allowed (and preferred, to save tokens) for trivial,
+mechanical, fully-specified tasks where no reasoning or judgment is needed:**
 
-Every model supports every effort level. Pick the lowest effort that adequately
-covers the sub-task — do not default to high or max:
+- Translation / rewording / fixing grammar or tone of existing text
+- Adding a log/print line, a comment, or a TODO at a stated location
+- A literal, explicitly-specified one-liner (rename a variable, change a
+  constant, add an import the user named)
+- Pure formatting / mechanical find-and-replace
 
-| Effort   | When to use                                                       |
+**Do NOT use haiku** when the task needs any decision: logic, control flow,
+API shape, error handling, schema, naming choices, or anything touching
+behavior. When unsure whether a task qualifies → it does not; use `sonnet`.
+Never exceed the session model (haiku is below sonnet, so it's always allowed
+direction-wise — but only for the whitelist above).
+
+### The session effort is both the default AND the hard ceiling
+
+**The session effort is the cap. You may go BELOW it for trivial sub-tasks, but
+NEVER above it — for any reason, no matter how complex the task.**
+
+- If the session is `sonnet 4.6 @ effort:low` → **every** sub-task runs at
+  `low`. A complex task does not get bumped to `medium` — it stays `low`.
+- The only direction you may move is **down** (e.g. drop a one-line file read to
+  `low` when the session is `medium`).
+- "This task is standard implementation / complex logic" is **not** a reason to
+  raise effort above the session level. The ceiling always wins.
+
+### Effort levels — meaning only, NOT a target to pick
+
+This table describes what each level *means*. It does **not** authorize raising
+effort above the session ceiling. **Ignore every row above the session effort.**
+
+| Effort   | What it means                                                     |
 | -------- | ----------------------------------------------------------------- |
 | `low`    | Simple edits, file reads, boilerplate — minimal reasoning needed  |
 | `medium` | Standard implementation, moderate complexity                      |
@@ -33,15 +61,15 @@ covers the sub-task — do not default to high or max:
 
 ### How to pick
 
-1. Note the session ceiling (model version + effort).
-2. For each sub-task, ask: what is the _minimum_ effort needed?
-3. Cap at the session ceiling — if the ceiling is `opus 4.8 @ effort:low`,
-   every sub-task must be `≤ opus 4.8` **and** `≤ low`, even complex ones.
-4. State the full version + effort for every task:
-   `sonnet 4.6 @ effort:medium`, `opus 4.8 @ effort:low`, etc.
+1. Note the session effort — this is the default for every task **and** the cap.
+2. For each sub-task, ask: is this trivial enough to run **below** the session
+   effort? If yes, lower it. If no, leave it **at** the session effort.
+3. Never raise above the session effort. If the session is `@ low`, the answer
+   is always `low` — even for the hardest sub-task in the plan.
+4. State the full version + effort for every task, e.g. `sonnet 4.6 @ effort:low`.
 
-State the session ceiling once in the Step 3 intent block, then annotate each
-task in the parallel plan with its own chosen tier. Repeat the chosen tier in
+State the session effort once in the Step 3 intent block, then annotate each
+task in the parallel plan with its own chosen tier (≤ session effort). Repeat in
 the final summary.
 
 > **Multi-repo workspace:** When multiple repos are open at once, anchor every
@@ -131,10 +159,15 @@ Decision: proceed | warn | ask | reject
 
 Then declare the **parallel plan**. Before listing tasks, identify which can run
 at the same time (no dependency on each other) and which must be sequential.
-Apply the model + effort tier from the table above to every task — annotate each:
+Annotate each task with its tier — **every tier must be ≤ the session model and
+≤ the session effort.** No task may exceed either.
+
+The example below assumes a high session ceiling (e.g. `opus 4.8 @ effort:high`).
+**If the session is `sonnet 4.6 @ effort:low`, every task must read
+`sonnet effort: low` — including the complex ones. Never higher.**
 
 ```text
-Plan
+Plan  (session ceiling: opus 4.8 @ effort:high)
 ── Phase 1 [parallel] ─────────────────────────
   A. <task>                    sonnet  effort: low
   B. <task>                    haiku   effort: low

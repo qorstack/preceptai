@@ -15,12 +15,19 @@ Every code change runs five steps. Steps 1–3 before code; steps 4–5 after.
 effort from the current session context before starting — never assume from
 memory or a previous run. State what you detected in the intent block.
 
-- **Ceiling:** never exceed the session model version or effort on any sub-task
-- **Floor:** `sonnet @ low` — do not drop below this; do not use haiku
-- **Effort levels** (all apply to every model): `low` · `medium` · `high` · `max`
-  — pick the lowest tier that covers each task; do not default to high/max
-- **Format:** state full version + effort for every task —
-  `opus 4.8 @ effort:low`, `sonnet 4.6 @ effort:medium`
+- **Ceiling = the session effort, and it is also the default.** You may go
+  BELOW it for trivial sub-tasks, but NEVER above it — for any reason. If the
+  session is `@ low`, **every** task is `low`, even complex ones. "Standard
+  implementation" or "complex logic" is not a reason to raise above the session
+  level — the ceiling always wins.
+- **Floor:** default `sonnet @ low`. Use `haiku @ low` for trivial
+  fully-specified tasks with no decisions (translation/rewording, adding a log
+  line, an explicit one-line edit) to save tokens — `sonnet` for anything
+  touching logic or behavior
+- **Effort levels** (meaning only, not a target): `low` · `medium` · `high` ·
+  `max` — ignore any level above the session effort
+- **Format:** state full version + effort for every task (≤ session) —
+  e.g. `sonnet 4.6 @ effort:low`
 
 ---
 
