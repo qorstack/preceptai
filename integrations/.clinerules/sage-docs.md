@@ -8,10 +8,12 @@ Role: `writer` — open `agents/sage/roles/role-writer.md` (create if missing).
 (+ existing HTML if updating) in one batch, then generate the full HTML in one
 pass. Don't stop mid-way — except the one language question below.
 
-**Language:** Doc content is **English by default**, but ask the user every time
-before generating (English / Thai / Other). The answer sets all prose +
+**Language — one language only, never mixed.** Doc content is **English by
+default**, but ask the user every time before generating (English / Thai /
+Other). Write the **entire doc in that one language** — never mix Thai and
+English prose or code-switch mid-sentence. The answer sets all prose +
 `<html lang="...">`. Technical tokens (method/path/table/field/status/key/DTO)
-stay as their real names regardless.
+keep their real names and don't count as mixing.
 
 ## Principles of good docs
 

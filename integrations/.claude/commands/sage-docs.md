@@ -9,11 +9,12 @@ single pass. Do not stop to ask mid-way — **with one exception:** the doc
 language (see §1), asked once before you start, every time. After that, no more
 questions.
 
-**Document language:** Doc content is **English by default**, but you must ask
-the user every time before generating (see §1). If they pick another language,
-write the prose and set `<html lang="...">` accordingly. Technical tokens
-(method, path, table, field, status, key, DTO name) stay in English / their real
-names regardless of language.
+**Document language — one language only, never mixed.** Doc content is
+**English by default**, but you must ask the user every time before generating
+(see §1). Write the **entire doc in that one language** (Thai or English) — never
+mix Thai and English prose, never code-switch mid-sentence. Set
+`<html lang="...">` to match. Technical tokens (method, path, table, field,
+status, key, DTO name) keep their real names and do not count as mixing.
 
 ---
 
@@ -82,31 +83,31 @@ Log before proceeding:
 
 Extract from the source:
 
-| What to find | Example |
-| --- | --- |
-| Actors | user, frontend service, backend service, DB, queue, external API |
-| Endpoints | `POST /api/v1/orders` — full method + path |
-| DTOs | `CreateOrderDto`, `OrderResponseDto` — real names from code |
-| Logic branches | validate → check stock → reserve → charge — every if/else, every guard |
-| Error paths | every 4xx/5xx — when it happens, what it returns |
-| Storage | table name, READ or WRITE, under what condition |
-| Cache | Redis key pattern, TTL, invalidation trigger |
-| External calls | service name, endpoint called, timeout/retry |
-| Side effects | event published, email sent, webhook fired |
-| Frontend components | component name, state held, APIs called, middleware |
+| What to find        | Example                                                                |
+| ------------------- | ---------------------------------------------------------------------- |
+| Actors              | user, frontend service, backend service, DB, queue, external API       |
+| Endpoints           | `POST /api/v1/orders` — full method + path                             |
+| DTOs                | `CreateOrderDto`, `OrderResponseDto` — real names from code            |
+| Logic branches      | validate → check stock → reserve → charge — every if/else, every guard |
+| Error paths         | every 4xx/5xx — when it happens, what it returns                       |
+| Storage             | table name, READ or WRITE, under what condition                        |
+| Cache               | Redis key pattern, TTL, invalidation trigger                           |
+| External calls      | service name, endpoint called, timeout/retry                           |
+| Side effects        | event published, email sent, webhook fired                             |
+| Frontend components | component name, state held, APIs called, middleware                    |
 
 **Classify doc type:**
 
-| Type | Pick when |
-| --- | --- |
-| `api-flow` | source shows frontend/client calling backend endpoints |
+| Type            | Pick when                                                                   |
+| --------------- | --------------------------------------------------------------------------- |
+| `api-flow`      | source shows frontend/client calling backend endpoints                      |
 | `backend-logic` | source describes server-side processing — conditions, storage, side effects |
-| `frontend` | source describes component tree, state flow, API calls from the UI |
-| `architecture` | source describes system components and their relationships |
-| `user-journey` | source describes steps a user takes through a feature |
-| `runbook` | source is an operational procedure — setup, deploy, debug |
-| `data-schema` | source describes data models, entity relationships |
-| `general` | none of the above |
+| `frontend`      | source describes component tree, state flow, API calls from the UI          |
+| `architecture`  | source describes system components and their relationships                  |
+| `user-journey`  | source describes steps a user takes through a feature                       |
+| `runbook`       | source is an operational procedure — setup, deploy, debug                   |
+| `data-schema`   | source describes data models, entity relationships                          |
+| `general`       | none of the above                                                           |
 
 ---
 
@@ -135,15 +136,15 @@ below must explain all three — each diagram node maps 1:1 to the text.
 
 **Overview style by doc type:**
 
-| Type | Overview | Mini per item |
-| --- | --- | --- |
-| `api-flow` | swimlane LR — participants + arrows | flowchart TD per endpoint |
-| `backend-logic` | flowchart TD of the whole module | flowchart TD per endpoint |
-| `frontend` | component tree LR | data flow TD per component |
-| `architecture` | graph LR — components + edges | none |
-| `user-journey` | swimlane LR | none |
-| `runbook` | flowchart TD | none |
-| `data-schema` | ER grid | none |
+| Type            | Overview                            | Mini per item              |
+| --------------- | ----------------------------------- | -------------------------- |
+| `api-flow`      | swimlane LR — participants + arrows | flowchart TD per endpoint  |
+| `backend-logic` | flowchart TD of the whole module    | flowchart TD per endpoint  |
+| `frontend`      | component tree LR                   | data flow TD per component |
+| `architecture`  | graph LR — components + edges       | none                       |
+| `user-journey`  | swimlane LR                         | none                       |
+| `runbook`       | flowchart TD                        | none                       |
+| `data-schema`   | ER grid                             | none                       |
 
 **Diagram quality — all mandatory:**
 
@@ -201,7 +202,10 @@ Thai) and write all prose in that language.
 ```html
 <div class="tldr-card">
   <div class="tldr-label">TL;DR</div>
-  <p>{2–3 sentences in chosen language: what this module does, who calls it, what it touches}</p>
+  <p>
+    {2–3 sentences in chosen language: what this module does, who calls it, what
+    it touches}
+  </p>
   <div class="tldr-grid">
     <div class="tldr-stat">
       <span class="tldr-stat-label">Endpoints</span
@@ -273,13 +277,13 @@ self-contained unit.
 
 No fixed format — choose based on what the endpoint actually has:
 
-| What the endpoint has | Fitting format |
-| --- | --- |
-| simple CRUD (validate → save → return) | short `conditions-list`, 3–4 items |
-| many branches, retry, compensation | long `conditions-list` + diagram emphasizing branches |
-| a clear sequential process | `steps-list` with step numbers |
-| logic depending on multiple states | table (condition → outcome) |
-| internal utility, no auth/cache | a short paragraph instead of a list |
+| What the endpoint has                  | Fitting format                                        |
+| -------------------------------------- | ----------------------------------------------------- |
+| simple CRUD (validate → save → return) | short `conditions-list`, 3–4 items                    |
+| many branches, retry, compensation     | long `conditions-list` + diagram emphasizing branches |
+| a clear sequential process             | `steps-list` with step numbers                        |
+| logic depending on multiple states     | table (condition → outcome)                           |
+| internal utility, no auth/cache        | a short paragraph instead of a list                   |
 
 **Example conditions-list** (use when logic has several guards / branches):
 
@@ -357,7 +361,9 @@ No fixed format — choose based on what the endpoint actually has:
     <ul class="conditions-list">
       <li class="condition-item">
         <span class="condition-when">renders</span>
-        <span class="condition-then">{what data it shows, where it comes from}</span>
+        <span class="condition-then"
+          >{what data it shows, where it comes from}</span
+        >
       </li>
       <li class="condition-item">
         <span class="condition-when">api calls</span>
