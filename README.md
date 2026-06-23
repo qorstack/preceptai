@@ -142,15 +142,17 @@ Four commands cover the full lifecycle:
 
 **`/sage`** — run the full cognition pipeline before any code change
 
-Before writing, the agent establishes its role, reads team knowledge, and states
-intent + risk. After writing, it captures what it learned and closes with a
-summary. Every field is mandatory — a response without the summary block is
-considered incomplete.
+Before writing, the agent establishes its role, selects the appropriate model
+and effort tier for the task (never exceeding the session ceiling), reads team
+knowledge, and states intent + risk. After writing, it captures what it learned
+and closes with a summary that includes the model + effort used. Every field is
+mandatory — a response without the summary block is considered incomplete.
 
 ```text
 /sage fix infinite API loop on the material create page
 
 Role    : debugger — root-causing repeated GET /usage-plans calls
+Model   : sonnet @ effort:medium
 Intent  : stop useCallback from recreating on every render
 Touches : src/views/apps/boq/request/BoqUsagePlanSection.tsx
 Risk    : LOW — dependency array fix, no logic change
@@ -160,6 +162,7 @@ Decision: proceed
 
 ── Sage ──────────────────────────────────────────
 Role      : debugger — fix infinite API loop in BoqUsagePlanSection
+Model     : sonnet @ effort:medium
 Domain    : frontend  |  Risk: LOW
 
 Root cause: useLoadingScreen() returns a new object literal { start, stop } on

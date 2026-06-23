@@ -1839,6 +1839,7 @@ git clone --depth 1 https://github.com/qorstack/sage t &amp;&amp; cp -r t/agents
               <div class="install-body">
                 <pre>
 Role    : debugger — fix infinite API loop
+Model   : sonnet @ effort:medium
 Intent  : stop useCallback recreating every render
 Touches : BoqUsagePlanSection.tsx
 Risk    : LOW — dep array fix only
@@ -1848,6 +1849,7 @@ Decision: proceed
 
 ── Sage ────────────────────────────────
 Role      : debugger — fix infinite loop
+Model     : sonnet @ effort:medium
 Domain    : frontend  |  Risk: LOW
 Root cause: useLoadingScreen() returns a
             new object on every render.
