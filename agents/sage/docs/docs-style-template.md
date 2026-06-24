@@ -31,7 +31,10 @@ A generated `docs/<slug>.html` just **references** them (relative path from
 
 This keeps every doc tiny (no 400-line `<style>` / 100-line `<script>` repeated
 per file) and means a fix to the theme or zoom logic updates every doc at once.
-**Do not paste the CSS/JS inline** — edit the shared files instead.
+**Do not paste the CSS/JS inline** — edit the shared files instead. This template
+carries **no copyable CSS/JS**: the actual rules live in `sage-docs.css`, the
+actual behavior in `sage-docs.js`. What's below is only reference (color
+semantics) + the HTML structure scaffold to copy.
 
 > Trade-off: a generated doc is no longer a single standalone file — it needs
 > `agents/sage/docs/sage-docs.css|js` to sit in the same repo (they always do,
@@ -72,7 +75,11 @@ per file) and means a fix to the theme or zoom logic updates every doc at once.
 
 ---
 
-## Design tokens
+## Color semantics (cheat-sheet — values live in `sage-docs.css`)
+
+Use this to pick which color a node/badge type should use when drawing an SVG.
+These are **not** rules to copy — they're already defined as `:root` variables
+in [`sage-docs.css`](sage-docs.css).
 
 | Token | Value | Use |
 | --- | --- | --- |
