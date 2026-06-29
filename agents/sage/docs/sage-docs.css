@@ -399,6 +399,65 @@ pre code { background: none; border: none; padding: 0; color: inherit; font-size
 .doc-article pre { margin-bottom: 20px; }
 .bridge { color: var(--muted); font-size: 0.82rem; font-style: italic; margin: 24px 0 0; padding: 10px 14px; border-left: 2px solid rgba(247,244,237,0.12); background: rgba(247,244,237,0.02); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 
+/* ── Status badges (draft / stable / deprecated) ── */
+/* Lifecycle colour code: amber = work in progress, mint = safe to rely on,
+   red = on its way out. Mirrors the --amber/--mint/--red semantic tokens. */
+.badge-status-draft      { background: rgba(240, 196, 92, 0.14); color: var(--amber); border: 1px solid rgba(240, 196, 92, 0.25); }
+.badge-status-stable     { background: rgba(104, 217, 155, 0.14); color: var(--mint);  border: 1px solid rgba(104, 217, 155, 0.25); }
+.badge-status-deprecated { background: rgba(255, 90, 73, 0.14);  color: var(--red);   border: 1px solid rgba(255, 90, 73, 0.25); }
+
+/* ── Sticky sidebar TOC (auto-built, single-file, no framework) ── */
+/* Hidden by default; only shown ≥1100px where there's room for a fixed rail.
+   The 264px width below is kept in sync with body.has-toc padding-left so the
+   reading column never overlaps the sidebar. */
+.doc-toc { display: none; }
+@media (min-width: 1100px) {
+  /* shift the centered reading column right so it never sits under the sidebar
+     (must equal the .doc-toc width) */
+  body.has-toc { padding-left: 264px; }
+  .doc-toc {
+    display: block;
+    position: fixed;       /* pinned to the viewport, stays put while content scrolls */
+    top: 0;
+    left: 0;
+    width: 264px;          /* keep in sync with body.has-toc padding-left above */
+    height: 100vh;
+    overflow-y: auto;      /* long TOCs scroll independently of the page */
+    padding: 32px 20px 40px;
+    border-right: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(12, 12, 10, 0.92), rgba(5, 5, 5, 0.92));
+    backdrop-filter: blur(8px);
+    z-index: 40;           /* above page content, below the diagram controls (z 20 are scoped) */
+  }
+}
+.doc-toc-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.doc-toc-brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); flex-shrink: 0; }
+.doc-toc-title { font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin: 18px 0 10px; }
+.doc-toc ul { list-style: none; margin: 0; padding: 0; }
+.doc-toc li { margin: 0; }
+.doc-toc a {
+  display: block;
+  padding: 5px 0 5px 12px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+  border-left: 1px solid var(--line);
+  text-decoration: none;
+  transition: color 0.12s, border-color 0.12s;
+}
+.doc-toc a:hover { color: var(--ink); border-left-color: var(--muted); }
+.doc-toc a.is-active { color: var(--mint); border-left-color: var(--mint); font-weight: 600; }
+.doc-toc a.lvl-3 { padding-left: 26px; font-size: 0.74rem; }
+
 /* ── Footer ── */
 .doc-footer { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 48px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .doc-footer a { color: var(--muted); }

@@ -87,8 +87,22 @@ consistent grid · tight bounding box, no stray elements (JS auto-centers via ge
 and `<script src="../agents/sage/docs/sage-docs.js"></script>` as the last line
 before `</body>`. Set `<html lang>` to the chosen language; write all prose in it.
 
-Top-to-bottom: header · tldr-card · overview diagram (80vh) · sections per type
-· footer.
+Top-to-bottom: header (+ status badge) · tldr-card · overview diagram (80vh) ·
+sections per type · Related Documents · footer.
+
+**Auto sidebar TOC + headings:** the shared JS builds a left sticky sidebar
+(contents shortcut) from `h2`/`h3`, scroll-highlights it, and shifts the column
+right to clear it (≥1100 px) — no markup needed. Use one `<h1>`, then
+`h2`/`h3` only (avoid `h4`+); give each a stable `id` + `scroll-margin-top:24px`
+(JS auto-slugs if missing); name headings searchable, never `Other`/`Misc`.
+
+**Status badge:** header `doc-meta` →
+`<span class="badge badge-status-draft|stable|deprecated">…</span>`; use `draft`
+when requirements are unclear and list Open Questions / Assumptions.
+
+**Related Documents:** end with cross-links between the separate single-file docs
+(frontend → API contract · backend → data model + permissions · API → its
+feature · QA → acceptance). Link to one source of truth; don't duplicate facts.
 
 TL;DR card (mandatory, right after header):
 
